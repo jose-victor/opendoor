@@ -6,12 +6,12 @@ home-assistant/core,accepts_with_disclosure
 musescore/musescore,accepts_with_disclosure
 yargs/yargs,accepts
 yargs/yargs-parser,accepts
-godotengine/godot,silent
-obsproject/obs-studio,silent
+godotengine/godot,accepts_with_disclosure
+obsproject/obs-studio,forbids
 socketio/socket.io,silent
 lodash/lodash,silent
-prettier/prettier,silent
-lovell/sharp,silent
+prettier/prettier,accepts
+lovell/sharp,accepts
 flameshot-org/flameshot,silent
 postcss/postcss,silent
 tj/commander.js,silent
@@ -23,4 +23,7 @@ signalapp/signal-desktop,silent
 ajv-validator/ajv,silent
 bitwarden/clients,silent
 facebook/watchman,silent
-acornjs/acorn,silent
+acornjs/acorn,forbids
+zeromq/pyzmq,forbids
+tanstack/query,accepts
+ggml-org/llama.cpp,accepts_with_disclosure
