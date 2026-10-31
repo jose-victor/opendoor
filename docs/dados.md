@@ -58,6 +58,7 @@ SELECT w.repo,
        SUM(CASE WHEN m.login IS NULL THEN w.n ELSE 0 END) AS de_fora,
        ROUND(1.0 * SUM(CASE WHEN m.login IS NULL THEN w.n ELSE 0 END) / SUM(w.n), 2) AS abertura
 FROM win w LEFT JOIN mergers m ON m.repo = w.repo AND m.login = w.login
+JOIN repos r ON r.repo = w.repo AND r.collection_mode IS NULL  -- grandes: usar repo_sample
 WHERE w.role = 'merged_pr_author'
 GROUP BY w.repo HAVING prs_aceitos >= 5 ORDER BY abertura DESC;
 ```

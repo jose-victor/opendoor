@@ -12,7 +12,8 @@ Fase 0 (esqueleto, bloqueia o site)   E1 ─ E2 ─ E3
 Em paralelo desde já                  K1 → K2 → K3 (depende de P1)
                                       P1 (gabarito)
                                       A1 → A2 → A3 (A2 depende de E1)
-Depois do esqueleto                   D1 → D2 → D3 → D4
+Depois do esqueleto                   D1 → D2 → D3 → D5 → D4
+Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA)
                                       S1, S2, S3 → I1 (integração)
 ```
 
@@ -71,7 +72,7 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 
 ## Gemma offline (pipeline) — Kaiky
 
-### K1. Cliente do Gemma no pipeline (P) — 🔍 PR #29 (revisado e ajustado; falta o merge)
+### K1. Cliente do Gemma no pipeline (P) — ✅ PR #29
 - Trazer o `llm.py` do esqueleto do Kaiky para `pipeline/llm.py`, com caminhos baseados em `Path(__file__)` e configuração vinda das variáveis de `docs/arquitetura.md`.
 - **Pronto quando:** `python pipeline/llm.py "responda só OK"` responde, com `LLM_BACKEND=gemini`. Ollama é plano B.
 

@@ -10,6 +10,8 @@ OpenDoor: plataforma que recomenda portas de entrada em projetos open source. Co
 ```bash
 python pipeline/collect.py selftest     # rode depois de mexer na agregação
 python pipeline/collect.py stats        # resumo do banco
+python pipeline/collect.py graph --system pypi  # etapas de grafo e security aceitam npm | pypi | go
+python pipeline/llm.py "prompt"         # Gemma pelo pipeline (lê o .env da raiz)
 sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 ```
 
@@ -28,6 +30,8 @@ sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 - **`authorAssociation` é a de hoje:** quem estreou e teve o PR aceito aparece como `CONTRIBUTOR`. Não dá para contar estreias por ela.
 - **Next 16:** componente cliente com `useParams`/`useSearchParams` precisa de `<Suspense>` em volta, senão o build falha (exemplo em `web/app/p/[...repo]/page.tsx`).
 - **Zero PRs não é erro:** muitos pacotes minúsculos recebem commits diretos do mantenedor. Veja `commit_monthly.direct_commits`.
+- **Gemma 4 pela Gemini API:** o raciocínio vem em partes com `thought: true`; use só as outras partes, senão o texto e o JSON vêm sujos. `thinkingLevel: "minimal"` dá erro 500. Cada chamada leva de 10 a 15 s.
+- **deps.dev:** não resolve a árvore de dependências do Go nem de alguns pacotes npm (eslint, electron); o coletor desce 2 níveis pelo endpoint `:requirements`. No PyPI a árvore resolvida é rasa, então o caminho padrão é o mesmo.
 - **Espelhos:** GIMP, LibreOffice, Blender e Firefox não vivem no GitHub e estão fora do escopo por enquanto.
 
 ## Site (`web/`)
