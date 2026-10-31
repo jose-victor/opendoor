@@ -8,7 +8,7 @@ PIPELINE (Python, roda antes, na máquina de alguém)          SITE (Next.js na 
 pipeline/collect.py ──> data/ecosystem.db                    web/
                              │                                ├─ app/page.tsx          home + filtros + resultados
    pipeline/classify_ai_policy.py (Gemma) ──> ai_policy       ├─ app/p/[...repo]/      página do projeto
-   pipeline/skills.py ──> project_skills                      ├─ app/api/explain/      Gemma ao vivo (servidor)
+   pipeline/skills.py ──> (build.py)                          ├─ app/api/explain/      Gemma ao vivo (servidor)
                              │                                ├─ lib/types.ts          tipos deste contrato
 pipeline/build.py ──> web/public/data/projects.json ─────────>├─ lib/match.ts          ranking no navegador
                       web/public/data/skills.json  ─────────> └─ lib/gemma.ts          cliente Gemini API (só servidor)
@@ -21,12 +21,14 @@ pipeline/build.py ──> web/public/data/projects.json ────────
 ## `web/public/data/skills.json`: vocabulário fixo dos filtros
 ```ts
 type Skill = {
-  id: string;           // "react", "typescript", "docs", "testes"...
-  label: string;        // "React"
+  id: string;           // "typescript", "frontend", "ia", "testes"...
+  label: string;        // "Frontend web"
   kind: "linguagem" | "framework" | "ferramenta" | "area";  // area = não é código: docs, tradução, design, segurança...
 };
 ```
 Nenhuma outra parte inventa ids: tudo referencia este arquivo.
+
+**Só linguagens e áreas chegam aqui** (hoje 19: 7 linguagens e 12 áreas). O `pipeline/skills.py` detecta 62 habilidades finas, mas cada framework ou ferramenta tem um `parent` e conta como a área-mãe (React vira `frontend`, Flask vira `backend`, PyTorch vira `ia`). Além disso, o `build.py` só publica a habilidade que aparece em **5 projetos ou mais**, para nenhum filtro devolver vazio. Por isso C#, Java e Kotlin ficam de fora por enquanto. O `Project.skills` usa os mesmos ids.
 
 ## `web/public/data/projects.json`: lista de `Project`
 ```ts

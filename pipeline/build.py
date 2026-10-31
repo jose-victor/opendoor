@@ -4,18 +4,20 @@
   python pipeline/build.py   ->  web/public/data/projects.json e web/public/data/skills.json
 
 Campos ainda não calculados saem com valor neutro e são preenchidos pelas tarefas:
-skills (D2), profile/openness (D3), needs (D5), ai_policy (K2).
+profile/openness (D3), needs (D5), ai_policy (K2).
 """
 import json
-import re
 import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+import skills as skill_vocab
+
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "ecosystem.db"
 OUT = ROOT / "web" / "public" / "data"
+MIN_PROJECTS_PER_SKILL = 5
 YEAR_FIELDS = ["prs_opened", "prs_merged", "issues_opened", "issues_closed", "commits", "direct_commits", "people"]
 
 
@@ -23,10 +25,6 @@ def months_ago(n):
     now = datetime.now(timezone.utc)
     y, m = divmod(now.year * 12 + now.month - 1 - n, 12)
     return f"{y}-{m + 1:02d}"
-
-
-def slug(s):
-    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
 def table_exists(db, name):
@@ -50,6 +48,12 @@ def main():
         "SELECT repo, COUNT(DISTINCT login) FROM participation WHERE is_bot = 0 AND month >= ? "
         "AND role IN ('pr_merger', 'direct_committer') GROUP BY repo", (cut24,)))
 
+    topics = {r: json.loads(t) for r, t in db.execute("SELECT repo, topics FROM repo_topics")} if table_exists(db, "repo_topics") else {}
+    deps = defaultdict(set)  # dependências diretas do pacote publicado pelo repo (npm, PyPI, Go)
+    for repo, dep in db.execute("SELECT DISTINCT p.repo, e.to_name FROM packages p JOIN dep_edges e "
+                                "ON e.system = p.system AND e.from_name = p.name WHERE p.repo IS NOT NULL"):
+        deps[repo].add(dep)
+
     years = defaultdict(lambda: defaultdict(lambda: dict.fromkeys(YEAR_FIELDS, 0)))
     for r in db.execute("SELECT repo, substr(month, 1, 4) y, SUM(prs_opened) po, SUM(prs_merged) pm, "
                         "SUM(issues_opened) io, SUM(issues_closed) ic FROM repo_monthly GROUP BY repo, y"):
@@ -62,7 +66,7 @@ def main():
                         "WHERE is_bot = 0 GROUP BY repo, y"):
         years[r["repo"]][r["y"]]["people"] = r["n"]
 
-    projects, languages = [], set()
+    projects = []
     for r in db.execute("SELECT * FROM repos WHERE found = 1 AND (archived = 0 OR archived IS NULL) ORDER BY repo"):
         repo = r["repo"]
         large = r["collection_mode"] == "contagem+amostra"
@@ -71,8 +75,6 @@ def main():
             for v in years[repo].values():
                 v.update(people=None, direct_commits=None)
         since = max(filter(None, [r["activity_since"] or "2018-01", commit_since.get(repo)]))
-        if r["language"]:
-            languages.add(r["language"])
         projects.append({
             "repo": repo,
             "url": f"https://github.com/{repo}",
@@ -84,7 +86,8 @@ def main():
             "dependents": dependents.get(repo),
             "profile": "precisa_de_maos",  # D3
             "needs": [],                    # D5
-            "skills": [],                   # D2
+            "skills": skill_vocab.top(skill_vocab.detect(r["language"], topics.get(repo, []), deps[repo],
+                                              f'{repo} {r["description"] or ""}')),
             "openness": round(smp["outsider_prs"] / smp["human_prs"], 2) if large and smp and smp["human_prs"] >= 5 else None,  # D3: completos
             "maintainers_24m": (smp["mergers"] if smp else 0) if large else maint.get(repo, 0),
             "newcomer_open": newcomer.get(repo) or 0,
@@ -96,7 +99,15 @@ def main():
             "years": {y: v for y, v in sorted(years[repo].items()) if y >= since[:4]},
         })
 
-    skills = [{"id": slug(l), "label": l, "kind": "linguagem"} for l in sorted(languages)]  # D1 amplia
+    # só entra no filtro quem tem projetos suficientes: um checkbox que não devolve nada é ruído
+    count = defaultdict(int)
+    for p in projects:
+        for sid in p["skills"]:
+            count[sid] += 1
+    shown = {sid for sid, n in count.items() if n >= MIN_PROJECTS_PER_SKILL}
+    for p in projects:
+        p["skills"] = [sid for sid in p["skills"] if sid in shown]
+    skills = [skill_vocab.public(s) for s in skill_vocab.SKILLS if s["id"] in shown]
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "projects.json").write_text(json.dumps(projects, ensure_ascii=False, separators=(",", ":")))
     (OUT / "skills.json").write_text(json.dumps(skills, ensure_ascii=False, indent=1))
