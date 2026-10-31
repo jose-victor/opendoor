@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-DEFAULT_OLLAMA_MODEL = "gemma4:e4b"
+DEFAULT_OLLAMA_MODEL = ""  # sem padrão: defina OLLAMA_MODEL com o modelo instalado no Ollama
 REQUEST_TIMEOUT = 60
 RETRY_STATUS = {429, 500, 503}  # limite do plano grátis e instabilidade: tenta de novo com espera crescente
 
@@ -70,7 +70,7 @@ def _generate_gemini(prompt):
     text = "".join(
         part["text"]
         for part in parts
-        # modelos com raciocínio (Gemma 4) devolvem o raciocínio interno em partes com "thought": true; só a resposta interessa
+        # modelos com raciocínio devolvem o raciocínio interno em partes com "thought": true; só a resposta interessa
         if isinstance(part, dict) and isinstance(part.get("text"), str) and not part.get("thought")
     )
     if not text:
@@ -80,6 +80,8 @@ def _generate_gemini(prompt):
 
 def _generate_ollama(prompt):
     model = os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+    if not model:
+        raise RuntimeError("Defina OLLAMA_MODEL para usar o backend Ollama.")
     data = _post_json(
         os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/") + "/api/generate",
         {"model": model, "prompt": prompt, "stream": False},

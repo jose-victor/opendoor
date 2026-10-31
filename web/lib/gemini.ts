@@ -6,10 +6,10 @@ import type { ExplainResponse, Project, UserProfile } from "./types";
 const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 const TIMEOUT_MS = 60_000; // cada chamada leva de 10 a 25 s; acima disso algo travou
 
-// Sem responseSchema: com ele, o Gemma 4 travava (testado em 31/10). O JSON vem pelo prompt.
+// Sem responseSchema: com ele, o modelo anterior travava (testado em 31/10). O JSON vem pelo prompt.
 function buildPrompt(project: Project, profile: UserProfile): string {
   const opportunities = (project.opportunities ?? [])
-    .map((o) => `  - ${o.way} (${o.source === "gemma" ? "sugestão da IA" : o.source}): ${o.note}`)
+    .map((o) => `  - ${o.way} (${o.source === "gemini" ? "sugestão da IA" : o.source}): ${o.note}`)
     .join("\n");
   return `Você é o assistente do OpenDoor. Ajude uma pessoa a começar a contribuir com responsabilidade num projeto open source.
 

@@ -3,7 +3,7 @@
 
   python pipeline/build.py   ->  web/public/data/projects.json e web/public/data/skills.json
 
-Antes, rode (com cache, só o que falta): pipeline/opportunities.py (sugestões do Gemma) e
+Antes, rode (com cache, só o que falta): pipeline/opportunities.py (sugestões da LLM) e
 pipeline/classify_ai_policy.py (política de IA) e pipeline/guides.py (guia por projeto);
 sem eles, os campos saem neutros.
 """
@@ -329,7 +329,7 @@ def main():
         if beginner["ready"] and not any(o["way"] == "codigo" for o in opps):
             opps.append({"way": "codigo", "source": "dados", "note": f"{n_(deb, 'pessoa teve', 'pessoas tiveram')} o 1º PR aceito aqui no último ano"})
         facts = list(dict.fromkeys(o["way"] for o in opps))  # needs: só o que o guia menciona ou os números mostram
-        opps += [g for g in ai_opps.get(repo, []) if g["way"] not in facts]
+        opps += [{**g, "source": "gemini"} for g in ai_opps.get(repo, []) if g["way"] not in facts]  # o cache do banco guarda a fonte antiga
         projects.append({
             "repo": repo,
             "url": f"https://github.com/{repo}",

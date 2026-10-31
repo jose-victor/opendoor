@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""D5, camada 2: o Gemma sugere oportunidades de contribuição que o projeto não lista explicitamente.
+"""D5, camada 2: a LLM sugere oportunidades de contribuição que o projeto não lista explicitamente.
 
   python pipeline/build.py && python pipeline/opportunities.py && python pipeline/build.py
 
 Lê os projetos que aparecem no match (perfil diferente de "estavel") em web/public/data/projects.json,
-manda ao Gemma o guia de contribuição (ou o começo do README) e os números, e guarda a resposta em
-repo_opportunities (cache: cada repo é consultado uma vez). O build.py junta as sugestões com fonte "gemma".
+manda à LLM o guia de contribuição (ou o começo do README) e os números, e guarda a resposta em
+repo_opportunities (cache: cada repo é consultado uma vez). O build.py junta as sugestões com fonte "gemini".
 """
 import argparse
 import json
@@ -60,7 +60,7 @@ def parse(text, known):
     for s in data.get("suggestions", [])[:3]:
         way, note = s.get("way"), str(s.get("note", "")).strip()
         if way in WAYS and way not in known and note and not any(o["way"] == way for o in out):
-            out.append({"way": way, "source": "gemma", "note": note[:160]})
+            out.append({"way": way, "source": "gemini", "note": note[:160]})
     return out
 
 
@@ -111,5 +111,5 @@ def main():
 
 if __name__ == "__main__":
     assert parse('x {"suggestions":[{"way":"traducao","note":"traduzir"},{"way":"codigo","note":"y"},{"way":"bla","note":"z"}]}',
-                 {"codigo"}) == [{"way": "traducao", "source": "gemma", "note": "traduzir"}]
+                 {"codigo"}) == [{"way": "traducao", "source": "gemini", "note": "traduzir"}]
     main()

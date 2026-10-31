@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""G1: o Gemma escreve, uma vez por projeto, o guia "por onde começar" (offline, em cache no banco).
+"""G1: a LLM escreve, uma vez por projeto, o guia "por onde começar" (offline, em cache no banco).
 
   python pipeline/build.py && python pipeline/guides.py && python pipeline/build.py
 
-Para cada projeto que aparece no match (perfil diferente de "estavel"), o Gemma lê o guia de contribuição
+Para cada projeto que aparece no match (perfil diferente de "estavel"), a LLM lê o guia de contribuição
 (ou o README), as oportunidades e os números, e devolve: resumo, passos comuns, passos por forma de ajuda
 e um alerta. Fica em project_guides; o site combina com o perfil da pessoa sem chamar o modelo
 (web/lib/guide.ts), então a mesma pessoa vê sempre o mesmo guia.

@@ -25,10 +25,10 @@ export type AiPolicy = {
 };
 
 // D5: por que o projeto precisa dessa forma de ajuda. "projeto" = o guia de contribuição pede;
-// "dados" = os números mostram; "gemma" = sugestão da IA (mostrar como sugestão, não como fato).
-export type Opportunity = { way: Way; source: "projeto" | "dados" | "gemma"; note: string };
+// "dados" = os números mostram; "gemini" = sugestão da IA (mostrar como sugestão, não como fato).
+export type Opportunity = { way: Way; source: "projeto" | "dados" | "gemini"; note: string };
 
-// G1: guia "por onde começar" escrito pelo Gemma uma vez por projeto (pipeline/guides.py).
+// G1: guia "por onde começar" escrito pela LLM uma vez por projeto (pipeline/guides.py).
 // O site combina com o perfil em lib/guide.ts, sem chamar o modelo. null = ainda não gerado.
 export type Guide = {
   summary: string;                               // o que é o projeto e onde precisa de ajuda, em pt-BR

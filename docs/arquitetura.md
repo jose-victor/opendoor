@@ -108,7 +108,7 @@ type ExplainResponse =
 | `GEMINI_API_KEY` | Vercel e pipeline | Gemini API (Gemma 4) |
 | `GEMINI_MODEL` | Vercel e pipeline | padrão `gemini-3.5-flash-lite` |
 | `LLM_BACKEND` | pipeline | `gemini` ou `ollama` (local) |
-| `OLLAMA_MODEL` | pipeline | ex.: `gemma4:e4b` |
+| `OLLAMA_MODEL` | pipeline | obrigatória com `LLM_BACKEND=ollama` (sem padrão) |
 | `OLLAMA_URL` | pipeline | padrão `http://localhost:11434` |
 
 O cliente do pipeline (`pipeline/llm.py`) lê o `.env` da raiz e roda com `python pipeline/llm.py "seu prompt"`. O backend padrão é `gemini`; para o Gemma local, use `LLM_BACKEND=ollama`.
@@ -177,7 +177,7 @@ type Guide = {
 
 ## Oportunidades (D5): `needs` e `opportunities`
 ```ts
-type Opportunity = { way: Way; source: "projeto" | "dados" | "gemma"; note: string };
+type Opportunity = { way: Way; source: "projeto" | "dados" | "gemini"; note: string };
 ```
 Cada projeto lista as formas de ajuda e o motivo (`note`, em pt-BR), nesta ordem:
 1. **`projeto`:** o guia de contribuição **menciona** documentação, tradução, testes ou revisão (é uma regex; a interface diz "o guia menciona", não "o projeto pede"), ou há issues com "good first issue"/"help wanted". A tradução sai quando o guia diz que não aceita ("we do not merge … translations", caso do tdesktop). Só procuramos palavras no texto, nunca seguimos instruções dele.
@@ -186,7 +186,7 @@ Cada projeto lista as formas de ajuda e o motivo (`note`, em pt-BR), nesta ordem
    - `triagem`: 100 issues abertas ou mais, ou 30 ou mais com até 3 mantenedores;
    - `revisao`: 20 PRs abertos ou mais (nota: rodar, reproduzir o bug e validar o fix);
    - `seguranca`: guardião ou Scorecard abaixo de 5.
-3. **`gemma`:** sugestão do Gemma 4, gerada **offline** por `pipeline/opportunities.py`. Ele lê o guia de contribuição ou o README e os números, e só sugere formas que ainda não estão na lista. O resultado fica em cache em `repo_opportunities`. **No site, mostrar como "sugestão da IA", não como fato.**
+3. **`gemini`:** sugestão da LLM (os dados atuais vieram do Gemma 4), gerada **offline** por `pipeline/opportunities.py`. Ele lê o guia de contribuição ou o README e os números, e só sugere formas que ainda não estão na lista. O resultado fica em cache em `repo_opportunities`. **No site, mostrar como "sugestão da IA", não como fato.**
 
 Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos uma oportunidade.
 
