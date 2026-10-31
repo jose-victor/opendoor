@@ -28,7 +28,7 @@ type Skill = {
 ```
 Nenhuma outra parte inventa ids: tudo referencia este arquivo.
 
-**Só linguagens e áreas chegam aqui** (hoje 19: 7 linguagens e 12 áreas). O `pipeline/skills.py` detecta 62 habilidades finas, mas cada framework ou ferramenta tem um `parent` e conta como a área-mãe (React vira `frontend`, Flask vira `backend`, PyTorch vira `ia`). Além disso, o `build.py` só publica a habilidade que aparece em **5 projetos ou mais**, para nenhum filtro devolver vazio. Por isso C#, Java e Kotlin ficam de fora por enquanto. O `Project.skills` usa os mesmos ids.
+**Só linguagens e áreas chegam aqui** (hoje 20: 8 linguagens e 12 áreas). Um projeto conta com **todas as linguagens que têm 10% ou mais do código**, não só a principal (o OBS é C e C++). O `pipeline/skills.py` detecta 62 habilidades finas, mas cada framework ou ferramenta tem um `parent` e conta como a área-mãe (React vira `frontend`, Flask vira `backend`, PyTorch vira `ia`). Além disso, o `build.py` só publica a habilidade que aparece em **5 projetos ou mais**, para nenhum filtro devolver vazio. Por isso C#, Java e Kotlin ficam de fora por enquanto. O `Project.skills` usa os mesmos ids.
 
 ## `web/public/data/projects.json`: lista de `Project`
 ```ts

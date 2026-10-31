@@ -68,7 +68,12 @@ def main():
         "SELECT repo, COUNT(DISTINCT login) FROM participation WHERE is_bot = 0 AND month >= ? "
         "AND role IN ('pr_merger', 'direct_committer') GROUP BY repo", (cut24,)))
 
-    topics = {r: json.loads(t) for r, t in db.execute("SELECT repo, topics FROM repo_topics")} if table_exists(db, "repo_topics") else {}
+    topics, langs = {}, {}
+    if table_exists(db, "repo_topics"):
+        for repo, t, l in db.execute("SELECT repo, topics, languages FROM repo_topics"):
+            topics[repo] = json.loads(t)
+            sizes = json.loads(l or "{}")
+            langs[repo] = [k for k, v in sizes.items() if v >= 0.1 * sum(sizes.values())]  # 10%+ do código
     deps = defaultdict(set)  # dependências diretas do pacote publicado pelo repo (npm, PyPI, Go)
     for repo, dep in db.execute("SELECT DISTINCT p.repo, e.to_name FROM packages p JOIN dep_edges e "
                                 "ON e.system = p.system AND e.from_name = p.name WHERE p.repo IS NOT NULL"):
@@ -112,7 +117,7 @@ def main():
             "dependents": dependents.get(repo),
             "profile": profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0),
             "needs": [],                    # D5
-            "skills": skill_vocab.top(skill_vocab.detect(r["language"], topics.get(repo, []), deps[repo],
+            "skills": skill_vocab.top(skill_vocab.detect([r["language"], *langs.get(repo, [])], topics.get(repo, []), deps[repo],
                                               f'{repo} {r["description"] or ""}')),
             "openness": openness,
             "maintainers_24m": maintainers,
