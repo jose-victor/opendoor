@@ -16,6 +16,7 @@ Repositório sempre identificado como `dono/nome` em minúsculas. Meses no forma
 | `repos` | descrição, linguagem, licença, criação, último push, arquivado, estrelas, forks, issues/PRs abertos e totais; `found=0` = não existe mais |
 | `repo_files(repo, path, oid, text)` | CONTRIBUTING, AGENTS, CLAUDE, AI_POLICY, copilot-instructions, README. `oid` muda quando o arquivo muda |
 | `repo_labels(repo, newcomer_open)` | issues abertas com "good first issue", "help wanted" e parecidas |
+| `repo_topics(repo, topics)` | topics do GitHub (lista JSON); etapa `topics`, entra na detecção de habilidades |
 | `repo_scorecard(repo, overall, date)` / `scorecard_checks(repo, check_name, score, reason)` | OpenSSF Scorecard (0–10) e cada verificação (Maintained, Code-Review, Branch-Protection...) |
 | `package_advisories(system, name, version, advisory)` | alertas de vulnerabilidade da versão atual |
 

@@ -25,11 +25,6 @@
   "kind": "linguagem"
  },
  {
-  "id": "csharp",
-  "label": "C#",
-  "kind": "linguagem"
- },
- {
   "id": "go",
   "label": "Go",
   "kind": "linguagem"
@@ -38,191 +33,6 @@
   "id": "rust",
   "label": "Rust",
   "kind": "linguagem"
- },
- {
-  "id": "java",
-  "label": "Java",
-  "kind": "linguagem"
- },
- {
-  "id": "kotlin",
-  "label": "Kotlin",
-  "kind": "linguagem"
- },
- {
-  "id": "ruby",
-  "label": "Ruby",
-  "kind": "linguagem"
- },
- {
-  "id": "php",
-  "label": "PHP",
-  "kind": "linguagem"
- },
- {
-  "id": "shell",
-  "label": "Shell",
-  "kind": "linguagem"
- },
- {
-  "id": "dart",
-  "label": "Dart",
-  "kind": "linguagem"
- },
- {
-  "id": "swift",
-  "label": "Swift",
-  "kind": "linguagem"
- },
- {
-  "id": "nodejs",
-  "label": "Node.js",
-  "kind": "framework"
- },
- {
-  "id": "react",
-  "label": "React",
-  "kind": "framework"
- },
- {
-  "id": "vue",
-  "label": "Vue",
-  "kind": "framework"
- },
- {
-  "id": "angular",
-  "label": "Angular",
-  "kind": "framework"
- },
- {
-  "id": "nextjs",
-  "label": "Next.js",
-  "kind": "framework"
- },
- {
-  "id": "express",
-  "label": "Express",
-  "kind": "framework"
- },
- {
-  "id": "electron",
-  "label": "Electron",
-  "kind": "framework"
- },
- {
-  "id": "qt",
-  "label": "Qt",
-  "kind": "framework"
- },
- {
-  "id": "django",
-  "label": "Django",
-  "kind": "framework"
- },
- {
-  "id": "flask",
-  "label": "Flask",
-  "kind": "framework"
- },
- {
-  "id": "fastapi",
-  "label": "FastAPI",
-  "kind": "framework"
- },
- {
-  "id": "svelte",
-  "label": "Svelte",
-  "kind": "framework"
- },
- {
-  "id": "tailwind",
-  "label": "Tailwind CSS",
-  "kind": "framework"
- },
- {
-  "id": "gin",
-  "label": "Gin",
-  "kind": "framework"
- },
- {
-  "id": "cobra",
-  "label": "Cobra",
-  "kind": "framework"
- },
- {
-  "id": "pytorch",
-  "label": "PyTorch",
-  "kind": "framework"
- },
- {
-  "id": "huggingface",
-  "label": "Hugging Face",
-  "kind": "framework"
- },
- {
-  "id": "langchain",
-  "label": "LangChain",
-  "kind": "framework"
- },
- {
-  "id": "rails",
-  "label": "Ruby on Rails",
-  "kind": "framework"
- },
- {
-  "id": "babel",
-  "label": "Babel",
-  "kind": "ferramenta"
- },
- {
-  "id": "webpack",
-  "label": "Webpack",
-  "kind": "ferramenta"
- },
- {
-  "id": "vite",
-  "label": "Vite",
-  "kind": "ferramenta"
- },
- {
-  "id": "eslint",
-  "label": "ESLint",
-  "kind": "ferramenta"
- },
- {
-  "id": "jest",
-  "label": "Jest",
-  "kind": "ferramenta"
- },
- {
-  "id": "docker",
-  "label": "Docker",
-  "kind": "ferramenta"
- },
- {
-  "id": "sql",
-  "label": "SQL / bancos relacionais",
-  "kind": "ferramenta"
- },
- {
-  "id": "mongodb",
-  "label": "MongoDB",
-  "kind": "ferramenta"
- },
- {
-  "id": "pandas",
-  "label": "pandas / NumPy",
-  "kind": "ferramenta"
- },
- {
-  "id": "kubernetes",
-  "label": "Kubernetes",
-  "kind": "ferramenta"
- },
- {
-  "id": "graphql",
-  "label": "GraphQL",
-  "kind": "ferramenta"
  },
  {
   "id": "frontend",
@@ -241,12 +51,12 @@
  },
  {
   "id": "build",
-  "label": "Build e empacotamento",
+  "label": "Build, compiladores e tooling JS",
   "kind": "area"
  },
  {
   "id": "testes",
-  "label": "Testes e qualidade",
+  "label": "Testes, debug e qualidade",
   "kind": "area"
  },
  {
@@ -261,47 +71,27 @@
  },
  {
   "id": "multimidia",
-  "label": "Áudio, vídeo e imagem",
+  "label": "Áudio, vídeo, imagem e jogos",
+  "kind": "area"
+ },
+ {
+  "id": "infra",
+  "label": "Infraestrutura e DevOps",
   "kind": "area"
  },
  {
   "id": "ia",
-  "label": "IA e machine learning",
-  "kind": "area"
- },
- {
-  "id": "dados",
-  "label": "Ciência e análise de dados",
-  "kind": "area"
- },
- {
-  "id": "jogos",
-  "label": "Jogos",
+  "label": "IA e ciência de dados",
   "kind": "area"
  },
  {
   "id": "desktop",
-  "label": "Aplicativos desktop",
-  "kind": "area"
- },
- {
-  "id": "produtividade",
-  "label": "Produtividade e notas",
+  "label": "Apps desktop e produtividade",
   "kind": "area"
  },
  {
   "id": "redes",
   "label": "Redes e protocolos",
-  "kind": "area"
- },
- {
-  "id": "streams",
-  "label": "Streams e assincronia",
-  "kind": "area"
- },
- {
-  "id": "polyfills",
-  "label": "Polyfills e padrões ECMAScript",
   "kind": "area"
  }
 ]

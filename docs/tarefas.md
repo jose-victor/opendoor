@@ -42,11 +42,12 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 
 ### D1. Vocabulário de habilidades (P) — ✅ PR da #4
 - `pipeline/skills.py`: lista de ~40 habilidades (`id`, `label`, `kind`) e, para cada uma, as regras de detecção: nomes de dependências npm, linguagens do GitHub, *topics*.
-- Feito: 61 habilidades (15 linguagens, 20 frameworks, 9 ferramentas, 17 áreas, incluindo IA/ML e dados). As regras de dependência valem para npm, PyPI e Go; `skills.detect(language, topics, deps, texto)` já está pronta para a D2. Selftest: `python pipeline/skills.py`.
+- Feito: 62 habilidades (15 linguagens, 20 frameworks, 9 ferramentas, 18 áreas, incluindo IA/ML e dados). As regras de dependência valem para npm, PyPI e Go; `skills.detect(language, topics, deps, texto)` já está pronta para a D2. Selftest: `python pipeline/skills.py`.
 - **Pronto quando:** `skills.json` é gerado a partir dessa lista.
 
 ### D2. Habilidades de cada projeto (M)
 - Detectar pelas dependências (já coletadas), pela linguagem e pelos *topics* (nova coleta, barata). Grava `project_skills(repo, skill, source)`.
+- ✅ Feito (PR da #5): etapa `collect.py topics` (`repo_topics`) e detecção no `build.py` (sem tabela `project_skills`: é recalculada a cada build). Após a conversa sobre a UX, o site mostra só **19 filtros** (linguagens e áreas, com 5+ projetos cada; ver `docs/arquitetura.md`). Resultado: 99,7% dos projetos com 1+ habilidade e 64% com 2+. Os outros são bibliotecas utilitárias minúsculas, em que a linguagem é a resposta honesta. O critério de 90% com 2+ era para o vocabulário fino e foi trocado por "todo filtro tem 5+ projetos".
 - **Pronto quando:** pelo menos 90% dos projetos têm 2 ou mais habilidades.
 
 ### D3. Perfil e métricas (M)
