@@ -39,6 +39,8 @@ python pipeline/collect.py selftest    # testes da agregação
 ```
 
 ## Site (`web/`)
+**No ar:** https://opendoor-fawn.vercel.app
+
 Next.js 16 (App Router) na Vercel. Os dados vêm de `web/public/data/`, gerados por `python pipeline/build.py`.
 
 ```bash
