@@ -55,7 +55,7 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 - **Pronto quando:** `debug-js/debug` sai como `guardiao` e algum projeto com PRs de fora sai como `porta_aberta`.
 - Feito: as regras estão em `docs/arquitetura.md` e os asserts rodam com `python pipeline/build.py`. O debug sai guardião; Express, React, VS Code, Godot e llama.cpp saem porta aberta.
 
-### D6. Repos grandes: contagem + amostra (M) — issue #25, PR #24 ⏳ rodando nos 104 grandes
+### D6. Repos grandes: contagem + amostra (M) — issue #25, PR #24 ✅ coleta dos 104 grandes concluída (os dados entram no PR de dados finais)
 - Repos com mais de 6 mil issues + PRs (53) ganham contagens mensais completas desde 2018 pela busca, mais uma amostra de até 300 PRs aceitos dos últimos 12 meses (abertura e quem faz merge). Etapa `collect.py large`.
 - **Atenção, A1 e S3:** nesses repos, `years[ano].people` e `direct_commits` são `null`.
 
