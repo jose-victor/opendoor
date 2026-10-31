@@ -145,6 +145,11 @@ Todas dependem do E1 e usam o `projects.json` do E2.
     - a página do projeto foi reorganizada em seções;
     - surgiu um link para as issues "good first issue" (e labels parecidos) no GitHub;
     - nada é gerado na hora: o guia é salvo antes.
+  - Na terceira rodada:
+    - lista com todos os projetos que combinam, com filtros e ordenação;
+    - atividade dos últimos 3 meses;
+    - link para o relatório do OpenSSF Scorecard;
+    - abertura e mantenedores recalculados (commits diretos contam; o rótulo do GitHub deixou de ser a fonte principal nos repos grandes).
   - Componentes em `web/components/` e rótulos em `web/lib/labels.ts`.
 
 ---

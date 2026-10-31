@@ -60,8 +60,9 @@ type Project = {
   dependents: number | null;  // pacotes que dependem dele; null em apps mainstream (não vêm de grafo)
   profile: Profile;
   skills: string[];           // ids de skills.json
-  openness: number | null;    // 0..1, fatia de PRs aceitos de quem não é mantenedor (12 meses); null = poucos dados
-  maintainers_24m: number;    // pessoas que fizeram merge ou commit direto (24 meses, não-bot)
+  openness: number | null;    // 0..1, do que entrou em 12 meses (PRs aceitos + commits diretos), a fatia de quem é de fora; null = poucos dados
+  maintainers_24m: number;    // pessoas que fizeram merge, ou 3+ commits diretos, em 24 meses (sem bots)
+  recent: Recent | null;      // issues e PRs dos 3 últimos meses fechados
   newcomer_open: number;      // issues abertas para iniciantes
   scorecard: number | null;   // OpenSSF 0..10
   ai_policy: AiPolicy;
@@ -118,7 +119,11 @@ Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
 3. **`precisa_de_maos`:** 30 issues abertas ou mais, de 1 a 3 mantenedores ativos, e aceita gente de fora **de verdade**: 10% ou mais dos PRs aceitos vêm de fora (sem dados de PR, vale ter issues para iniciantes). Antes bastava 1 PR aceito; o open-webui (4%, 1 mantenedor) e o webpack (2%) saíam como "precisa de mãos" e foram para estável.
 4. **`estavel`:** o resto, incluindo pacotes sem nenhum mantenedor ativo em 24 meses.
 
-O `openness` só é calculado com **5 PRs aceitos de humanos ou mais** em 12 meses; abaixo disso é `null`. Mantenedor é quem fez merge ou commit direto em 24 meses. Nos repos grandes, os dois números vêm da amostra (`repo_sample`).
+**Quem é de dentro e de fora:**
+- **Mantenedor (de dentro):** quem fez merge de um PR em 24 meses, ou fez 3 ou mais commits diretos na branch principal. Um commit isolado não conta, porque o commit de terceiro aplicado à mão fica no nome do autor. Bots ficam de fora, inclusive os com nome de gente, como `antfubot` (filtro `login NOT LIKE '%bot'`).
+- **`openness`:** do que entrou no projeto em 12 meses (PRs aceitos + commits diretos de quem mantém), a fatia que veio de quem é de fora. Precisa de 5 mudanças ou mais; abaixo disso é `null`. Antes contava só PRs, e o sharp aparecia com 100% de fora; contando os 177 commits diretos do mantenedor, são 17%.
+- **Repos grandes:** usam a mesma regra sobre a amostra de PRs aceitos (quem fez merge é de dentro). O `authorAssociation` do GitHub só entra quando não há essa participação, porque quem participa da organização de forma privada aparece como `CONTRIBUTOR`. No Mastodon, isso dava 100% de fora, e o certo é 25%. Se o `authorAssociation` dá 95% ou mais de fora, o valor vira `null` (era o caso do Tailwind).
+- **`recent`:** soma de `repo_monthly` nos 3 últimos meses fechados. Exemplo: o debug teve 18 PRs abertos e nenhum aceito de julho a setembro.
 
 Distribuição em 31/10 às 14h, com a coleta da rodada 3 ainda rodando: 580 estáveis, 168 guardiões, 199 portas abertas e 14 que precisam de mãos.
 
@@ -170,7 +175,7 @@ Cada projeto lista as formas de ajuda e o motivo (`note`, em pt-BR), nesta ordem
 Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos uma oportunidade.
 
 ## Regras de ranking (`web/lib/match.ts`)
-`rankProjects(projects, profile, languageIds)` devolve **no máximo 5 portas** (`MAX_DOORS`). O `languageIds` são os ids de `skills.json` com `kind: "linguagem"`; o S1 já carrega esse arquivo e passa o conjunto.
+`rankProjects(projects, profile, languageIds)` devolve **todos os projetos que se enquadram**, do que mais combina para o que menos combina. Isso foi uma decisão do grupo: antes eram no máximo 5. Na home, uma barra filtra a lista por perfil, política de IA e "só com issues para iniciantes", e ordena por combinação, abertura, issues para iniciantes ou estrelas (`components/ResultsBar.tsx`). A lista mostra 20 projetos por vez. O `languageIds` são os ids de `skills.json` com `kind: "linguagem"`; o S1 já carrega esse arquivo e passa o conjunto.
 - **Exclusões:**
   - `estavel` nunca aparece;
   - `guardiao` não aparece para iniciante;

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { WAY_LABELS } from "@/lib/labels";
 import type { Project, UserProfile } from "@/lib/types";
-import { AiBadge, BigNumbers, NewcomerLink, ProfileBand } from "./ProjectBits";
+import { AiBadge, BigNumbers, NewcomerLink, ProfileBand, RecentActivity } from "./ProjectBits";
 import StartBox from "./StartBox";
 
 export default function DoorCard({ project, profile }: { project: Project; profile: UserProfile }) {
@@ -28,6 +28,7 @@ export default function DoorCard({ project, profile }: { project: Project; profi
         {about && <p className="max-w-prose text-[15px] leading-relaxed">{about}</p>}
 
         <BigNumbers project={project} />
+        <RecentActivity project={project} compact />
 
         {project.needs.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">

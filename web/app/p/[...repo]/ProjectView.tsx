@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BigNumbers, NewcomerLink, ProfileBand } from "@/components/ProjectBits";
+import { BigNumbers, NewcomerLink, ProfileBand, RecentActivity, ScorecardLink } from "@/components/ProjectBits";
 import StartBox from "@/components/StartBox";
 import { LEVEL_LABELS, WAY_LABELS } from "@/lib/labels";
 import { EMPTY_PROFILE, loadProfile } from "@/lib/profile-store";
@@ -119,6 +119,7 @@ export default function ProjectView() {
             project.description && <p className="text-lg leading-relaxed">{project.description}</p>
           )}
           <BigNumbers project={project} full />
+          <ScorecardLink project={project} />
         </div>
       </header>
 
@@ -131,6 +132,12 @@ export default function ProjectView() {
         <StartBox project={project} profile={profile} startOpen />
         <NewcomerLink project={project} />
       </Section>
+
+      {project.recent && (
+        <Section title="Atividade nos últimos 3 meses">
+          <RecentActivity project={project} />
+        </Section>
+      )}
 
       <Section title="Onde o projeto precisa de ajuda">
         {project.opportunities.length === 0 ? (

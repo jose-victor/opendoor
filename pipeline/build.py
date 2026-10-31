@@ -109,16 +109,25 @@ def main():
     newcomer = dict(db.execute("SELECT repo, newcomer_open FROM repo_labels")) if table_exists(db, "repo_labels") else {}
     sample = {r["repo"]: r for r in db.execute("SELECT * FROM repo_sample")} if table_exists(db, "repo_sample") else {}
     commit_since = dict(db.execute("SELECT repo, since FROM commit_coverage")) if table_exists(db, "commit_coverage") else {}
-    # abertura (completos): fatia dos PRs aceitos nos últimos 12 meses cujo autor não fez merge nem commit direto em 24 meses
-    merged12 = dict(db.execute(
-        "WITH m AS (SELECT DISTINCT repo, login FROM participation WHERE is_bot = 0 AND month >= ? "
-        "AND role IN ('pr_merger', 'direct_committer')) "
-        "SELECT p.repo, SUM(p.n) || ',' || SUM(CASE WHEN m.login IS NULL THEN p.n ELSE 0 END) FROM participation p "
+    # Abertura: do que entrou no projeto nos últimos 12 meses (PRs aceitos + commits diretos de quem mantém),
+    # a fatia que veio de quem não faz merge nem commit direto. Vale para todos os repos que têm participation;
+    # nos grandes ela vem da amostra de PRs (sem commits diretos). O authorAssociation do GitHub engana
+    # (membro com participação privada na organização aparece como CONTRIBUTOR), então só é usado sem participation.
+    cut12 = months_ago(12)
+    human = "is_bot = 0 AND login NOT LIKE '%bot'"  # bots com nome de gente (antfubot, prombot) não marcam is_bot
+    # quem mantém: fez merge, ou fez 3+ commits diretos em 24 meses (commit de terceiro aplicado à mão fica no nome do autor)
+    maintainers_sql = (f"SELECT repo, login FROM participation WHERE {human} AND month >= ? "
+                       "AND role IN ('pr_merger', 'direct_committer') GROUP BY repo, login "
+                       "HAVING SUM(role = 'pr_merger') > 0 OR SUM(CASE WHEN role = 'direct_committer' THEN n ELSE 0 END) >= 3")
+    merged12 = {r: (m, o) for r, m, o in db.execute(
+        f"WITH m AS ({maintainers_sql}) "
+        "SELECT p.repo, SUM(p.n), SUM(CASE WHEN m.login IS NULL THEN p.n ELSE 0 END) FROM participation p "
         "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login "
-        "WHERE p.role = 'merged_pr_author' AND p.is_bot = 0 AND p.month >= ? GROUP BY p.repo", (cut24, months_ago(12))))
-    maint = dict(db.execute(
-        "SELECT repo, COUNT(DISTINCT login) FROM participation WHERE is_bot = 0 AND month >= ? "
-        "AND role IN ('pr_merger', 'direct_committer') GROUP BY repo", (cut24,)))
+        "WHERE p.role = 'merged_pr_author' AND p.is_bot = 0 AND p.login NOT LIKE '%bot' AND p.month >= ? GROUP BY p.repo",
+        (cut24, cut12))}
+    direct12 = dict(db.execute(f"SELECT repo, SUM(n) FROM participation WHERE role = 'direct_committer' AND {human} "
+                               "AND month >= ? GROUP BY repo", (cut12,)))
+    maint = dict(db.execute(f"SELECT repo, COUNT(*) FROM ({maintainers_sql}) GROUP BY repo", (cut24,)))
 
     guides = defaultdict(str)  # CONTRIBUTING (qualquer caminho) de cada repo
     for repo, text in db.execute("SELECT repo, text FROM repo_files WHERE path LIKE '%CONTRIBUTING.md'"):
@@ -137,6 +146,13 @@ def main():
     for repo, dep in db.execute("SELECT DISTINCT p.repo, e.to_name FROM packages p JOIN dep_edges e "
                                 "ON e.system = p.system AND e.from_name = p.name WHERE p.repo IS NOT NULL"):
         deps[repo].add(dep)
+
+    # Atividade recente: os 3 últimos meses fechados (os dados são mensais; o mês corrente fica de fora).
+    last = db.execute("SELECT MAX(month) FROM repo_monthly").fetchone()[0]
+    recent_from = months_ago(3) if last is None else f"{int(last[:4]) - (int(last[5:]) <= 2)}-{(int(last[5:]) - 3) % 12 + 1:02d}"
+    recent = {r[0]: dict(since=recent_from, until=last, issues_opened=r[1], issues_closed=r[2], prs_opened=r[3], prs_merged=r[4])
+              for r in db.execute("SELECT repo, SUM(issues_opened), SUM(issues_closed), SUM(prs_opened), SUM(prs_merged) "
+                                  "FROM repo_monthly WHERE month >= ? GROUP BY repo", (recent_from,))}
 
     years = defaultdict(lambda: defaultdict(lambda: dict.fromkeys(YEAR_FIELDS, 0)))
     for r in db.execute("SELECT repo, substr(month, 1, 4) y, SUM(prs_opened) po, SUM(prs_merged) pm, "
@@ -159,12 +175,17 @@ def main():
             for v in years[repo].values():
                 v.update(people=None, direct_commits=None)
         since = max(filter(None, [r["activity_since"] or "2018-01", commit_since.get(repo)]))
-        if large:
-            human, outside = (smp["human_prs"], smp["outsider_prs"]) if smp else (0, 0)
+        if repo in merged12:
+            merged, outside = merged12[repo]
+            total = merged + (direct12.get(repo) or 0)
+        elif large and smp and smp["outsider_prs"] < 0.95 * smp["human_prs"]:
+            # shortcut: authorAssociation diz CONTRIBUTOR para membro com participação privada; 95%+ "de fora" é esse
+            # sintoma (Tailwind) e vira "sem dados". Melhor: coletar o mergedBy da amostra na participation.
+            total, outside = smp["human_prs"], smp["outsider_prs"]
         else:
-            human, outside = map(int, merged12.get(repo, "0,0").split(","))
-        openness = round(outside / human, 2) if human >= MIN_PRS_FOR_OPENNESS else None
-        maintainers = (smp["mergers"] if smp else 0) if large else maint.get(repo, 0)
+            total, outside = 0, 0
+        openness = round(outside / total, 2) if total >= MIN_PRS_FOR_OPENNESS else None
+        maintainers = maint.get(repo) or ((smp["mergers"] if smp else 0) if large else 0)
         profile = profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0)
         opps = opportunities_of(r, profile, openness, maintainers, newcomer.get(repo) or 0, scorecard.get(repo), guides[repo])
         opps += [g for g in gemma.get(repo, []) if g["way"] not in {o["way"] for o in opps}]
@@ -184,6 +205,7 @@ def main():
             "skills": skill_vocab.top(skill_vocab.detect([r["language"], *langs.get(repo, [])], topics.get(repo, []), deps[repo],
                                               f'{repo} {r["description"] or ""}')),
             "openness": openness,
+            "recent": recent.get(repo),
             "maintainers_24m": maintainers,
             "newcomer_open": newcomer.get(repo) or 0,
             "scorecard": scorecard.get(repo),

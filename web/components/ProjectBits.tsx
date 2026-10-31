@@ -85,3 +85,58 @@ export function BigNumbers({ project: p, full = false }: { project: Project; ful
     </dl>
   );
 }
+
+// Atividade dos 3 últimos meses fechados: dá para ver se o projeto responde ou se o trabalho acumula.
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const monthName = (m: string) => `${MONTHS[Number(m.slice(5)) - 1]}/${m.slice(2, 4)}`;
+
+export function RecentActivity({ project, compact = false }: { project: Project; compact?: boolean }) {
+  const r = project.recent;
+  if (!r) return null;
+  const period = `${monthName(r.since)} a ${monthName(r.until)}`;
+  if (compact)
+    return (
+      <p className="text-xs text-muted">
+        <span className="font-medium text-foreground/80">Nos últimos 3 meses:</span> {r.issues_opened} issues abertas e {r.issues_closed} fechadas ·{" "}
+        {r.prs_opened} PRs abertos e {r.prs_merged} aceitos
+      </p>
+    );
+  const pairs: [string, number, string, number][] = [
+    ["issues abertas", r.issues_opened, "fechadas", r.issues_closed],
+    ["PRs abertos", r.prs_opened, "aceitos", r.prs_merged],
+  ];
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted">De {period}, os meses fechados mais recentes.</p>
+      {pairs.map(([a, x, b, y]) => {
+        const max = Math.max(1, x, y);
+        return (
+          <div key={a} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 text-sm">
+            <div className="h-2.5 rounded-full bg-zinc-400/50" style={{ width: `${(x / max) * 100}%` }} />
+            <span className="tabular-nums">
+              <b>{x}</b> {a}
+            </span>
+            <div className="h-2.5 rounded-full bg-emerald-500" style={{ width: `${(y / max) * 100}%`, minWidth: y ? undefined : "2px" }} />
+            <span className="tabular-nums">
+              <b>{y}</b> {b}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ScorecardLink({ project }: { project: Project }) {
+  if (project.scorecard === null) return null;
+  return (
+    <a
+      href={`https://scorecard.dev/viewer/?uri=github.com/${project.repo}`}
+      target="_blank"
+      rel="noreferrer"
+      className="text-sm text-muted underline underline-offset-2 hover:text-foreground"
+    >
+      Ver o relatório completo do OpenSSF Scorecard ↗
+    </a>
+  );
+}

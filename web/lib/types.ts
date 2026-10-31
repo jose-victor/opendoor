@@ -37,6 +37,9 @@ export type Guide = {
   heads_up: string | null;
 };
 
+// Atividade dos 3 últimos meses fechados (since/until = "AAAA-MM"): o projeto responde ou acumula?
+export type Recent = { since: string; until: string; issues_opened: number; issues_closed: number; prs_opened: number; prs_merged: number };
+
 export type YearStats = {
   prs_opened: number;
   prs_merged: number;
@@ -60,6 +63,7 @@ export type Project = {
   needs: Way[];
   opportunities: Opportunity[];
   guide: Guide | null;
+  recent: Recent | null;      // últimos 3 meses fechados
   skills: string[];
   openness: number | null;
   maintainers_24m: number;

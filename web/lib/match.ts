@@ -1,8 +1,6 @@
 // D4: ranking do match, roda no navegador. Regras em docs/arquitetura.md ("Regras de ranking").
 import type { Level, Profile, Project, UserProfile, Way } from "./types";
 
-// Poucas portas, não uma lista infinita (docs/visao.md).
-export const MAX_DOORS = 5;
 
 // Formas de ajudar que não exigem habilidade técnica em comum com o projeto.
 const NON_CODE: Way[] = ["triagem", "refinamento", "documentacao", "traducao"];
@@ -43,6 +41,5 @@ export function rankProjects(projects: Project[], profile: UserProfile, language
   }
   return scored
     .sort((a, b) => b.score - a.score || (b.p.openness ?? 0) - (a.p.openness ?? 0) || b.p.stars - a.p.stars)
-    .slice(0, MAX_DOORS)
     .map((x) => x.p);
 }
