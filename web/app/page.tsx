@@ -1,6 +1,7 @@
 "use client";
 // Home: S1 (filtros, na coluna da esquerda) + S2 (portas). O match roda no navegador (lib/match.ts).
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import DoorCard from "@/components/DoorCard";
 import FilterPanel from "@/components/FilterPanel";
@@ -79,9 +80,14 @@ export default function Home() {
           <Image src="/logo.svg" alt="" width={72} height={72} className="rounded-2xl" priority />
           <span className="font-display text-4xl font-bold tracking-tight">OpenDoor</span>
         </span>
+        <span className="flex flex-wrap justify-end gap-x-6 gap-y-1 text-sm">
+          <Link href="/analise" className="text-muted hover:text-foreground">
+            Análise do Ecossistema
+          </Link>
         <a href="https://github.com/jose-victor/opendoor" className="text-sm text-muted hover:text-foreground">
           Código aberto no GitHub ↗
         </a>
+        </span>
       </nav>
 
       <header className="mb-12 max-w-5xl space-y-4">

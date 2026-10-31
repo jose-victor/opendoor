@@ -8,6 +8,7 @@ PIPELINE (Python, roda antes, na máquina de alguém)          SITE (Next.js na 
 pipeline/collect.py ──> data/ecosystem.db                    web/
                              │                                ├─ app/page.tsx          home + filtros + resultados
    pipeline/classify_ai_policy.py (Gemma) ──> ai_policy       ├─ app/p/[...repo]/      página do projeto
+                             │                                ├─ app/analise/           Análise do Ecossistema (calculada no build a partir de projects.json)
    pipeline/skills.py ──> (build.py)                          ├─ app/api/explain/      Gemma ao vivo (servidor)
                              │                                ├─ lib/types.ts          tipos deste contrato
 pipeline/build.py ──> web/public/data/projects.json ─────────>├─ lib/match.ts          ranking no navegador

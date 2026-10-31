@@ -19,6 +19,7 @@ O OpenDoor mapeia o ecossistema, mede a saúde e a abertura de cada projeto e ca
 3. **Perfil de cada projeto:** *Guardião*, *Porta aberta*, *Precisa de mãos* ou *Estável* (ver [docs/visao.md](docs/visao.md)).
 4. **Pronto para iniciante:** só ganha o selo o projeto em que os dados mostram gente nova conseguindo entrar (estreias, aceite de quem é novo, PRs de fora aceitos recentemente, tempo de resposta e guia de contribuição). Ver [docs/arquitetura.md](docs/arquitetura.md).
 5. **IA aberta (Gemma 4), offline:** lê a política de contribuição de cada projeto (aceita IA? com aviso? proíbe?), sugere onde ajudar e escreve o guia "por onde começar". Tudo é gerado antes e fica salvo; o site não chama o modelo na hora.
+6. **Análise do Ecossistema (`/analise`):** os achados sobre todos os projetos (perfis, PRs por ano, pacotes críticos com poucos mantenedores, abertura, Scorecard, política de IA e o funil do "pronto para iniciante"), recalculados no build a partir de `projects.json`.
 
 ## Dados e IA
 
