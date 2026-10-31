@@ -40,8 +40,11 @@ type YearStats = {
   prs_opened: number; prs_merged: number; issues_opened: number; issues_closed: number;
   commits: number; direct_commits: number; people: number;   // people = pessoas distintas (não-bot) no ano
 };
+// Formas de contribuir (docs/visao.md). Mesma lista para o projeto (o que precisa) e para a pessoa (o que quer fazer).
+type Way = "codigo" | "triagem" | "revisao" | "refinamento" | "documentacao" | "traducao" | "seguranca" | "testes";
 type Project = {
   repo: string;               // "debug-js/debug" (minúsculas)
+  needs: Way[];               // formas de ajuda que o projeto mais precisa, da mais para a menos urgente
   url: string;                // "https://github.com/debug-js/debug"
   tags: ("npm-graph" | "mainstream-app")[];
   description: string | null;
@@ -67,6 +70,7 @@ Entrada (o navegador manda **só o repo e o perfil**; o servidor busca o projeto
 type UserProfile = {
   skills: string[];                                       // ids de skills.json
   level: "iniciante" | "intermediario" | "experiente";
+  ways: Way[];                                            // como a pessoa quer ajudar; vazio = qualquer forma
 };
 type ExplainRequest = { repo: string; profile: UserProfile };
 ```
@@ -91,6 +95,7 @@ type ExplainResponse =
 
 ## Regras de ranking (`web/lib/match.ts`)
 Implementação do José. Resumo para quem consome:
+- **Formas de contribuir:** se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs`. Formas que não são código (triagem, docs, tradução) **não exigem** habilidade técnica em comum.
 - **Habilidades:** pontua quantas habilidades marcadas o projeto tem.
 - **Nível:** iniciante favorece `porta_aberta` com `newcomer_open > 0`; experiente favorece `guardiao` e `precisa_de_maos`.
 - **Exclusões:** `estavel` não aparece.

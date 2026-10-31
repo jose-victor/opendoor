@@ -50,6 +50,10 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 - Calcular `profile`, `openness`, `maintainers_24m` e `years` no `build.py`, com as regras de `docs/visao.md`. Teste com assert em 3 projetos conhecidos.
 - **Pronto quando:** `debug-js/debug` sai como `guardiao` e algum projeto com PRs de fora sai como `porta_aberta`.
 
+### D5. Formas de contribuir por projeto (`needs`) (M)
+- Calcular `needs` com os sinais de `docs/visao.md`: issues sem label nem resposta → triagem; PRs abertos esperando revisão → revisão; Scorecard baixo / guardião → segurança; label ou arquivos de docs/i18n → documentação/tradução. Pode precisar de uma coleta extra, barata: labels das issues abertas e PRs abertos sem revisão.
+- **Pronto quando:** todo projeto tem pelo menos uma forma em `needs`, e a ordem faz sentido em 5 projetos conferidos à mão.
+
 ### D4. `match.ts` (M)
 - Ranking no navegador (regras em `docs/arquitetura.md`), mais um teste com 3 perfis.
 - **Pronto quando:** o teste passa.
@@ -97,7 +101,7 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 Todas dependem do E1 e usam o `projects.json` do E2.
 
 ### S1. Painel de filtros (M)
-- Checkboxes das habilidades de `skills.json`, agrupadas por `kind`, mais a escolha de nível. O estado vira um `UserProfile`.
+- Checkboxes das habilidades de `skills.json`, agrupadas por `kind`, a escolha de nível e **as formas de contribuir** (código, triagem, revisão, documentação, tradução, segurança...). O estado vira um `UserProfile`.
 - **Pronto quando:** marcar e desmarcar atualiza o `UserProfile`.
 
 ### S2. Lista de resultados (M)
@@ -130,3 +134,10 @@ Todas dependem do E1 e usam o `projects.json` do E2.
 
 ### I1. Integração final (M), às 15h
 - Gerar o `projects.json` final (skills + perfil + ai_policy), fazer o deploy, testar o fluxo inteiro e congelar a `main` às 16h.
+
+---
+
+## Depois de hoje
+- **G1. Guia de contribuição de cada projeto** (issue #21): ambiente, regras do projeto, quem revisa e quanto tempo leva.
+
+As issues no GitHub têm o código da tarefa no título (`[E1]`, `[K2]`...), e as dependências já apontam para o número da issue.

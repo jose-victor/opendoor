@@ -24,6 +24,20 @@ A longo prazo vira um marketplace ou rede social para ajudar projetos open sourc
 
 **Indicador-chave de abertura:** a fatia de PRs mergeados de quem não é mantenedor.
 
+## Formas de contribuir (não é só código)
+Cada projeto precisa de tipos diferentes de ajuda, e cada pessoa pode oferecer tipos diferentes. O match cruza as duas coisas.
+
+| Forma | Sinal de que o projeto precisa |
+|---|---|
+| Código | issues abertas com label de bug/feature, PRs de fora sendo aceitos |
+| Triagem de issues | muitas issues abertas sem label e sem resposta |
+| Revisão de PRs | PRs abertos esperando, poucos revisores ativos |
+| Refinamento de issues | issues vagas: sem passos de reprodução, sem label, sem critério de pronto |
+| Documentação | label de docs, README/CONTRIBUTING fracos ou ausentes |
+| Tradução / localização | arquivos de i18n, label de tradução |
+| Segurança | Scorecard baixo, perfil guardião, commits diretos sem revisão |
+| Testes | label de testes, pouca cobertura (quando dá para saber) |
+
 ## Fora do MVP de hoje
 - Cadastro de projetos pelos mantenedores (marketplace/rede social).
 - Monitor de inserções maliciosas (ver `ideias.md`).
