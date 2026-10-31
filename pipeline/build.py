@@ -4,7 +4,8 @@
   python pipeline/build.py   ->  web/public/data/projects.json e web/public/data/skills.json
 
 Antes, rode (com cache, só o que falta): pipeline/opportunities.py (sugestões do Gemma) e
-pipeline/classify_ai_policy.py (política de IA); sem eles, os campos saem neutros.
+pipeline/classify_ai_policy.py (política de IA) e pipeline/guides.py (guia por projeto);
+sem eles, os campos saem neutros.
 """
 import json
 import re
@@ -122,6 +123,8 @@ def main():
         guides[repo] += text or ""
     gemma = {r: json.loads(s) for r, s in db.execute("SELECT repo, suggestions FROM repo_opportunities")} \
         if table_exists(db, "repo_opportunities") else {}  # D5 camada 2 (pipeline/opportunities.py)
+    guide_of = {r: json.loads(g) for r, g in db.execute("SELECT repo, guide FROM project_guides")} \
+        if table_exists(db, "project_guides") else {}  # G1 (pipeline/guides.py)
     topics, langs = {}, {}
     if table_exists(db, "repo_topics"):
         for repo, t, l in db.execute("SELECT repo, topics, languages FROM repo_topics"):
@@ -175,6 +178,7 @@ def main():
             "profile": profile,
             "needs": list(dict.fromkeys(o["way"] for o in opps)),
             "opportunities": opps,
+            "guide": guide_of.get(repo),
             "skills": skill_vocab.top(skill_vocab.detect([r["language"], *langs.get(repo, [])], topics.get(repo, []), deps[repo],
                                               f'{repo} {r["description"] or ""}')),
             "openness": openness,

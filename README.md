@@ -43,6 +43,7 @@ python pipeline/collect.py reaggregate # recalcula agregações do cache bruto, 
 python pipeline/build.py               # gera web/public/data/*.json para o site
 python pipeline/opportunities.py       # Gemma sugere oportunidades (offline, com cache); rode o build.py de novo depois
 python pipeline/classify_ai_policy.py  # Gemma classifica a política de IA (offline, com cache); rode o build.py de novo depois
+python pipeline/guides.py              # guia "por onde começar" de cada projeto (offline, com cache); rode o build.py de novo depois
 python pipeline/collect.py selftest    # testes da agregação
 ```
 
@@ -66,6 +67,7 @@ npm run dev                     # http://localhost:3000
 | `pipeline/skills.py` | vocabulário de habilidades e regras de detecção |
 | `pipeline/opportunities.py` | Gemma 4 sugere oportunidades de contribuição (offline, em cache no banco) |
 | `pipeline/classify_ai_policy.py` | Gemma 4 classifica a política de IA de cada repo, com evidência literal (offline, em cache em `ai_policy`) |
+| `pipeline/guides.py` | guia "por onde começar" de cada projeto, escrito uma vez pelo modelo e combinado com o perfil no site (`web/lib/guide.ts`) |
 | `pipeline/llm.py` | cliente mínimo do Gemma (Gemini API ou Ollama) |
 | `web/` | site Next.js: páginas, `/api/explain`, `lib/types.ts` (tipos do contrato) |
 | `data/ecosystem.db` | banco SQLite com tudo que foi coletado |

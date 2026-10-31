@@ -26,6 +26,18 @@ function fmt(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(".", ",")} mil` : String(n);
 }
 
+// Uma frase com o número que explica o perfil, em vez de uma fileira de métricas.
+export function keyFact(p: Project): string {
+  const people = (n: number) => (n === 1 ? "1 pessoa cuida" : `${n} pessoas cuidam`);
+  const newcomer = p.newcomer_open > 0 ? ` Há ${p.newcomer_open === 1 ? "1 issue marcada" : `${p.newcomer_open} issues marcadas`} para quem está começando.` : "";
+  if (p.profile === "guardiao" && p.dependents)
+    return `${fmt(p.dependents)} pacotes dependem dele e ${people(p.maintainers_24m)}. Ajuda com cuidado faz muita diferença.${newcomer}`;
+  if (p.profile === "porta_aberta" && p.openness !== null)
+    return `${Math.round(p.openness * 100)}% dos PRs aceitos no último ano vieram de gente de fora.${newcomer}`;
+  if (p.profile === "precisa_de_maos") return `Muito trabalho acumulado e só ${people(p.maintainers_24m).replace(" cuida", " mantém").replace(" cuidam", " mantêm")}.${newcomer}`;
+  return newcomer.trim();
+}
+
 export function Stats({ project }: { project: Project }) {
   const items: [string, string][] = [
     ["mantêm (24 meses)", String(project.maintainers_24m)],

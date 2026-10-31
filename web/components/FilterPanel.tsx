@@ -1,7 +1,7 @@
 "use client";
 // S1: o que a pessoa sabe, o nível e como quer ajudar. O estado é um UserProfile (docs/arquitetura.md).
 import { LEVEL_LABELS, WAY_LABELS } from "@/lib/labels";
-import { LEVELS, WAYS, type Skill, type UserProfile, type Way } from "@/lib/types";
+import { LEVELS, WAYS, type Skill, type UserProfile } from "@/lib/types";
 
 function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
   return (
@@ -10,10 +10,8 @@ function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => vo
       aria-pressed={on}
       title={title}
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-600 ${
-        on
-          ? "border-emerald-600 bg-emerald-600 text-white"
-          : "border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500"
+      className={`rounded-full px-2.5 py-1 text-[13px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-600 ${
+        on ? "bg-emerald-600 text-white" : "border border-line bg-card text-foreground/85 hover:border-foreground/30"
       }`}
     >
       {children}
@@ -21,18 +19,18 @@ function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => vo
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
-      <span className="pt-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</span>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-semibold">{label}</legend>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </fieldset>
   );
 }
 
 export default function FilterPanel({ skills, profile, onChange }: { skills: Skill[]; profile: UserProfile; onChange: (p: UserProfile) => void }) {
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const skillChips = (kind: Skill["kind"]) =>
+  const chips = (kind: Skill["kind"]) =>
     skills
       .filter((s) => s.kind === kind)
       .map((s) => (
@@ -40,25 +38,42 @@ export default function FilterPanel({ skills, profile, onChange }: { skills: Ski
           {s.label}
         </Chip>
       ));
+  const areasOn = skills.filter((s) => s.kind === "area" && profile.skills.includes(s.id)).length;
 
   return (
-    <section aria-label="Seu perfil" className="space-y-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5">
-      <Row label="Linguagens">{skillChips("linguagem")}</Row>
-      <Row label="Áreas">{skillChips("area")}</Row>
-      <Row label="Nível">
-        {LEVELS.map((l) => (
-          <Chip key={l} on={profile.level === l} onClick={() => onChange({ ...profile, level: l })}>
-            {LEVEL_LABELS[l]}
-          </Chip>
-        ))}
-      </Row>
-      <Row label="Como quer ajudar">
-        {WAYS.map((w: Way) => (
+    <section aria-label="Seu perfil" className="space-y-5">
+      <Group label="Seu nível">
+        <div className="flex w-full rounded-full border border-line bg-card p-0.5">
+          {LEVELS.map((l) => (
+            <button
+              key={l}
+              type="button"
+              aria-pressed={profile.level === l}
+              onClick={() => onChange({ ...profile, level: l })}
+              className={`flex-1 rounded-full px-2 py-1 text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600 ${
+                profile.level === l ? "bg-foreground text-background" : "text-foreground/75 hover:text-foreground"
+              }`}
+            >
+              {LEVEL_LABELS[l]}
+            </button>
+          ))}
+        </div>
+      </Group>
+      <Group label="Linguagens que você usa">{chips("linguagem")}</Group>
+      <details className="group space-y-2" open={areasOn > 0}>
+        <summary className="cursor-pointer list-none text-sm font-semibold">
+          Áreas de interesse <span className="font-normal text-muted">{areasOn ? `(${areasOn} marcadas)` : "(opcional)"}</span>
+          <span className="ml-1 inline-block text-muted transition-transform group-open:rotate-90">›</span>
+        </summary>
+        <div className="flex flex-wrap gap-1.5 pt-2">{chips("area")}</div>
+      </details>
+      <Group label="Como quer ajudar">
+        {WAYS.map((w) => (
           <Chip key={w} on={profile.ways.includes(w)} title={WAY_LABELS[w].hint} onClick={() => onChange({ ...profile, ways: toggle(profile.ways, w) })}>
             {WAY_LABELS[w].label}
           </Chip>
         ))}
-      </Row>
+      </Group>
     </section>
   );
 }

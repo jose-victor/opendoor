@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import ExplainBox from "@/components/ExplainBox";
+import StartBox from "@/components/StartBox";
 import { AiBadge, OpportunityItem, ProfileBadge, Stats } from "@/components/ProjectBits";
 import { AI_LABELS, LEVEL_LABELS, PROFILE_LABELS, WAY_LABELS } from "@/lib/labels";
 import { EMPTY_PROFILE, loadProfile } from "@/lib/profile-store";
@@ -73,11 +73,12 @@ export default function ProjectView() {
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="min-w-0 break-words text-2xl font-bold tracking-tight">{project.repo}</h1>
+          <h1 className="min-w-0 break-words text-3xl font-semibold tracking-tight">{project.repo}</h1>
           <ProfileBadge project={project} />
           <AiBadge project={project} />
         </div>
-        {project.description && <p className="text-zinc-600 dark:text-zinc-400">{project.description}</p>}
+        {project.guide && <p className="text-lg leading-relaxed">{project.guide.summary}</p>}
+        {project.description && <p className="text-sm text-muted">No GitHub: {project.description}</p>}
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           {PROFILE_LABELS[project.profile].label}: {PROFILE_LABELS[project.profile].hint}.{" "}
           <a href={project.url} className="underline">
@@ -95,7 +96,7 @@ export default function ProjectView() {
           {profile.ways.length > 0 && `, ajudando com ${profile.ways.map((w) => WAY_LABELS[w].label.toLowerCase()).join(", ")}`}. Mude o perfil na
           página inicial.
         </p>
-        <ExplainBox repo={project.repo} profile={profile} />
+        <StartBox project={project} profile={profile} startOpen />
       </section>
 
       <section className="space-y-3">

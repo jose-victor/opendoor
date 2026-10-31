@@ -50,6 +50,7 @@ type Project = {
   repo: string;               // "debug-js/debug" (minúsculas)
   needs: Way[];               // formas de ajuda, na ordem de opportunities (sem repetir)
   opportunities: Opportunity[]; // por que precisa de cada forma; ver "Oportunidades (D5)" abaixo
+  guide: Guide | null;        // guia "por onde começar" salvo; ver "Guia por projeto (G1)" abaixo
   url: string;                // "https://github.com/debug-js/debug"
   tags: ("npm-graph" | "pypi-graph" | "go-graph" | "mainstream-app")[];  // de qual grafo veio, ou app da lista à mão
   description: string | null;
@@ -134,6 +135,24 @@ Distribuição em 31/10, com a etapa `large` ainda rodando: 723 estáveis, 142 g
 | `testes` | Testes e observabilidade | testes de regressão, cobertura, logs, métricas, tracing |
 
 O prompt do Gemma (`pipeline/opportunities.py`) usa essas mesmas descrições. Acessibilidade, design/UX, empacotamento e performance ficaram para depois de hoje, porque mudariam o contrato.
+
+## Guia por projeto (G1): `guide`
+```ts
+type Guide = {
+  summary: string;                               // o que é o projeto e onde precisa de ajuda, em pt-BR
+  common_steps: string[];                        // observar e conversar
+  steps_by_way: Partial<Record<Way, string[]>>;  // 2 ou 3 passos por forma de ajuda (só as de needs)
+  heads_up: string | null;
+};
+```
+- **Geração, uma vez por projeto:** `pipeline/guides.py` faz o modelo (Gemma 4) ler o guia de contribuição ou o README, as oportunidades, os números e a política de IA. A resposta fica em `project_guides`. Rode o script **depois** do `classify_ai_policy.py`, para o alerta citar a política.
+- **No site, sem modelo:** `web/lib/guide.ts` (`composeGuide`) junta os passos comuns com os passos de até 2 formas de ajuda:
+  - as que a pessoa marcou;
+  - se ela não marcou nenhuma e é iniciante, testes, docs e triagem primeiro;
+  - senão, as do projeto.
+  É determinístico: mesma entrada, mesma saída, e responde na hora.
+- **Ao vivo, opcional:** "Personalizar para o meu perfil" chama o `/api/explain` (30 a 45 s). Também é o caminho quando o projeto ainda não tem guia.
+- **No site, o conteúdo da IA é sinalizado** ("gerado com IA", "sugestão da IA"), sem propaganda do modelo. O OpenDoor é para a comunidade, e o modelo é um meio.
 
 ## Oportunidades (D5): `needs` e `opportunities`
 ```ts

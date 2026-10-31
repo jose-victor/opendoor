@@ -7,13 +7,13 @@ import type { ExplainResponse, UserProfile } from "@/lib/types";
 const cache = new Map<string, ExplainResponse>();
 
 const WAITING = [
-  "O Gemma está lendo o guia de contribuição…",
+  "Lendo o guia de contribuição…",
   "Cruzando o seu perfil com o que o projeto precisa…",
   "Montando os primeiros passos…",
-  "Quase lá. O Gemma leva de 30 a 45 segundos.",
+  "Quase lá. Leva de 30 a 45 segundos.",
 ];
 
-export default function ExplainBox({ repo, profile, compact = false }: { repo: string; profile: UserProfile; compact?: boolean }) {
+export default function ExplainBox({ repo, profile, compact = false, autoStart = false }: { repo: string; profile: UserProfile; compact?: boolean; autoStart?: boolean }) {
   const key = JSON.stringify([repo, profile]);
   const [answer, setAnswer] = useState<ExplainResponse | null>(() => cache.get(key) ?? null);
   const [loading, setLoading] = useState(false);
@@ -25,6 +25,11 @@ export default function ExplainBox({ repo, profile, compact = false }: { repo: s
     const t = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, [loading]);
+
+  useEffect(() => {
+    if (autoStart && !cache.has(key)) ask();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function ask() {
     setLoading(true);
@@ -59,7 +64,7 @@ export default function ExplainBox({ repo, profile, compact = false }: { repo: s
     return (
       <button
         onClick={ask}
-        className="w-full self-start rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:w-auto"
+        className="self-start rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
       >
         Por onde começar?
       </button>
@@ -88,7 +93,7 @@ export default function ExplainBox({ repo, profile, compact = false }: { repo: s
       {answer.heads_up && (
         <p className="rounded border-l-4 border-amber-500 bg-amber-50 p-2 text-amber-900 dark:bg-amber-950 dark:text-amber-200">{answer.heads_up}</p>
       )}
-      <p className="text-xs text-zinc-500">Gerado por {answer.model}. Confira no projeto antes de agir.</p>
+      <p className="text-xs text-zinc-500">Gerado com IA ({answer.model}). Confira no projeto antes de agir.</p>
     </div>
   );
 }

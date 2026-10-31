@@ -139,6 +139,7 @@ Todas dependem do E1 e usam o `projects.json` do E2.
   - O botão "Por onde começar?" chama o Gemma ali mesmo, com carregamento e contador, e guarda a resposta para não repetir a chamada.
   - A página do projeto traz todas as oportunidades, a política de IA com a citação, o gráfico de PRs abertos contra aceitos por ano e a mesma caixa do Gemma.
   - O perfil marcado na home vale na página do projeto (`sessionStorage`).
+  - Na revisão em grupo (José, Anna, Kaiky e Pablo), a home virou duas colunas: filtros à esquerda e portas à direita. O card ficou mais leve: resumo em pt-BR do guia, uma frase com o número que explica o perfil e "onde ajudar" em etiquetas. O site não faz propaganda do modelo.
   - Componentes em `web/components/` e rótulos em `web/lib/labels.ts`.
 
 ---
@@ -168,6 +169,6 @@ Todas dependem do E1 e usam o `projects.json` do E2.
 ---
 
 ## Depois de hoje
-- **G1. Guia de contribuição de cada projeto** (issue #21): ambiente, regras do projeto, quem revisa e quanto tempo leva.
+- **G1. Guia de contribuição de cada projeto** (issue #21). **Parte feita hoje**, ideia do José: o guia "por onde começar" escrito uma vez por projeto pelo modelo (`pipeline/guides.py`) e combinado com o perfil sem chamar o modelo (`web/lib/guide.ts`). Validado numa amostra de 6 projetos. **Fica para depois:** ambiente, regras do projeto (DCO, estilo de commit), quem revisa e quanto tempo leva.
 
 As issues no GitHub têm o código da tarefa no título (`[E1]`, `[K2]`...), e as dependências já apontam para o número da issue.

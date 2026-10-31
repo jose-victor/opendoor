@@ -1,43 +1,56 @@
 "use client";
-// S2: uma porta de entrada. Perfil, política de IA, habilidades em comum, saúde, 2 oportunidades e o Gemma.
+// S2: uma porta de entrada. O que é o projeto (em pt-BR, do guia), um fato que importa, onde ajudar e por onde começar.
 import Link from "next/link";
-import type { Project, Skill, UserProfile } from "@/lib/types";
-import ExplainBox from "./ExplainBox";
-import { AiBadge, OpportunityItem, ProfileBadge, Stats } from "./ProjectBits";
+import { WAY_LABELS } from "@/lib/labels";
+import type { Project, UserProfile } from "@/lib/types";
+import { AiBadge, ProfileBadge, keyFact } from "./ProjectBits";
+import StartBox from "./StartBox";
 
-export default function DoorCard({ project, profile, skills }: { project: Project; profile: UserProfile; skills: Skill[] }) {
-  const common = skills.filter((s) => profile.skills.includes(s.id) && project.skills.includes(s.id));
-  // primeiro as oportunidades nas formas que a pessoa marcou
-  const opps = [...project.opportunities]
-    .sort((a, b) => Number(profile.ways.includes(b.way)) - Number(profile.ways.includes(a.way)))
-    .slice(0, 2);
+export default function DoorCard({ project, profile }: { project: Project; profile: UserProfile }) {
+  const [owner, name] = project.repo.split("/");
+  const about = project.guide?.summary ?? project.description;
 
   return (
-    <article className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:p-5">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Link href={`/p/${project.repo}`} className="min-w-0 break-words text-base font-semibold hover:underline">
-          {project.repo}
-        </Link>
-        <ProfileBadge project={project} />
-        <AiBadge project={project} />
-        <span className="ml-auto text-xs tabular-nums text-zinc-500">★ {project.stars.toLocaleString("pt-BR")}</span>
+    <article className="flex flex-col gap-4 rounded-xl border border-line bg-card p-5 sm:p-6">
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <Link href={`/p/${project.repo}`} className="group block">
+            <h3 className="break-words text-xl font-semibold leading-tight group-hover:underline">{name}</h3>
+            <span className="text-xs text-muted">{owner}</span>
+          </Link>
+        </div>
+        <div className="flex items-center gap-2">
+          <AiBadge project={project} />
+          <ProfileBadge project={project} />
+        </div>
       </header>
-      {project.description && <p className="text-sm text-zinc-600 dark:text-zinc-400">{project.description}</p>}
-      {common.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {common.map((s) => (
-            <span key={s.id} className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              {s.label}
+
+      {about && <p className="max-w-prose text-[15px] leading-relaxed">{about}</p>}
+
+      <p className="text-sm text-muted">{keyFact(project)}</p>
+
+      {project.needs.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs text-muted">Onde ajudar:</span>
+          {project.needs.map((w) => (
+            <span
+              key={w}
+              className={`rounded-full px-2.5 py-0.5 text-xs ${
+                profile.ways.includes(w)
+                  ? "bg-emerald-600 text-white"
+                  : "border border-line text-foreground/80"
+              }`}
+            >
+              {WAY_LABELS[w].label}
             </span>
           ))}
         </div>
       )}
-      <Stats project={project} />
-      {opps.length > 0 && <ul className="space-y-1.5">{opps.map((o) => <OpportunityItem key={o.way} o={o} />)}</ul>}
-      <div className="flex flex-col gap-3 pt-1">
-        <ExplainBox repo={project.repo} profile={profile} compact />
-        <Link href={`/p/${project.repo}`} className="text-sm text-zinc-600 underline-offset-2 hover:underline dark:text-zinc-400">
-          Ver o projeto inteiro →
+
+      <div className="flex flex-col gap-3 border-t border-line pt-4">
+        <StartBox project={project} profile={profile} />
+        <Link href={`/p/${project.repo}`} className="self-start text-xs text-muted underline-offset-2 hover:underline">
+          Ver números, histórico e política de IA →
         </Link>
       </div>
     </article>

@@ -28,6 +28,15 @@ export type AiPolicy = {
 // "dados" = os números mostram; "gemma" = sugestão da IA (mostrar como sugestão, não como fato).
 export type Opportunity = { way: Way; source: "projeto" | "dados" | "gemma"; note: string };
 
+// G1: guia "por onde começar" escrito pelo Gemma uma vez por projeto (pipeline/guides.py).
+// O site combina com o perfil em lib/guide.ts, sem chamar o modelo. null = ainda não gerado.
+export type Guide = {
+  summary: string;                               // o que é o projeto e onde precisa de ajuda, em pt-BR
+  common_steps: string[];                        // observar e conversar
+  steps_by_way: Partial<Record<Way, string[]>>;  // 2 ou 3 passos por forma de ajuda
+  heads_up: string | null;
+};
+
 export type YearStats = {
   prs_opened: number;
   prs_merged: number;
@@ -50,6 +59,7 @@ export type Project = {
   profile: Profile;
   needs: Way[];
   opportunities: Opportunity[];
+  guide: Guide | null;
   skills: string[];
   openness: number | null;
   maintainers_24m: number;
