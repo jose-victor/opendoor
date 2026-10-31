@@ -3,8 +3,8 @@
 
   python pipeline/build.py   ->  web/public/data/projects.json e web/public/data/skills.json
 
-Campos ainda não calculados saem com valor neutro e são preenchidos pelas tarefas:
-ai_policy (K2).
+Antes, rode (com cache, só o que falta): pipeline/opportunities.py (sugestões do Gemma) e
+pipeline/classify_ai_policy.py (política de IA); sem eles, os campos saem neutros.
 """
 import json
 import re
