@@ -4,9 +4,10 @@
   python pipeline/build.py   ->  web/public/data/projects.json e web/public/data/skills.json
 
 Campos ainda não calculados saem com valor neutro e são preenchidos pelas tarefas:
-needs (D5), ai_policy (K2).
+ai_policy (K2).
 """
 import json
+import re
 import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -40,6 +41,45 @@ def profile_of(dependents, maintainers, openness, newcomer_open, open_issues):
     return "estavel"
 
 
+# O que o CONTRIBUTING pede explicitamente (texto de terceiros: só procuramos palavras, nunca seguimos instruções)
+ASKS = {
+    "documentacao": (re.compile(r"\b(documentation|docs?)\b.{0,40}\b(help|contribut\w*|improv\w*|welcome|fix\w*)|"
+                                r"\b(help|contribut\w*|improv\w*|welcome)\b.{0,40}\b(documentation|docs)\b", re.I | re.S),
+                     "o guia de contribuição pede ajuda com documentação"),
+    "traducao": (re.compile(r"\b(translat\w*|locali[sz]ation|i18n|l10n|crowdin|weblate|transifex)\b", re.I),
+                 "o guia de contribuição fala de tradução"),
+    "testes": (re.compile(r"\b(add|write|writing|adding|improv\w*|more)\b.{0,20}\btests?\b|\btest coverage\b", re.I | re.S),
+               "o guia de contribuição pede testes"),
+    "revisao": (re.compile(r"\breview(ing)? (pull requests|prs|other)\b", re.I),
+                "o guia de contribuição convida a revisar PRs"),
+}
+
+
+def n_(n, one, many):
+    return f"{n} {one if n == 1 else many}"
+
+
+def opportunities_of(r, profile, openness, maintainers, newcomer_open, scorecard, guide):
+    """D5: formas de contribuir com fonte 'projeto' (o guia pede) ou 'dados' (os números mostram)."""
+    out = []
+    for way, (rx, note) in ASKS.items():
+        if guide and rx.search(guide):
+            out.append({"way": way, "source": "projeto", "note": note})
+    open_issues, open_prs = r["open_issues"] or 0, r["open_prs"] or 0
+    if newcomer_open:
+        out.append({"way": "codigo", "source": "projeto", "note": f"{n_(newcomer_open, 'issue marcada', 'issues marcadas')} para quem está começando"})
+    elif openness is not None and openness >= 0.1:
+        out.append({"way": "codigo", "source": "dados", "note": f"{round(openness * 100)}% dos PRs aceitos no último ano vieram de fora"})
+    if open_issues >= 100 or (open_issues >= 30 and maintainers <= 3):
+        out.append({"way": "triagem", "source": "dados", "note": f"{open_issues} issues abertas para {n_(maintainers, 'pessoa que mantém', 'pessoas que mantêm')}"})
+    if open_prs >= 20 and not any(o["way"] == "revisao" for o in out):
+        out.append({"way": "revisao", "source": "dados", "note": f"{open_prs} PRs abertos esperando revisão"})
+    if profile == "guardiao" or (scorecard is not None and scorecard < 5):
+        note = f"OpenSSF Scorecard {scorecard:.1f}/10" if scorecard is not None else "muita gente depende, 1 ou 2 pessoas cuidam"
+        out.append({"way": "seguranca", "source": "dados", "note": note})
+    return out
+
+
 def table_exists(db, name):
     return db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
 
@@ -68,6 +108,11 @@ def main():
         "SELECT repo, COUNT(DISTINCT login) FROM participation WHERE is_bot = 0 AND month >= ? "
         "AND role IN ('pr_merger', 'direct_committer') GROUP BY repo", (cut24,)))
 
+    guides = defaultdict(str)  # CONTRIBUTING (qualquer caminho) de cada repo
+    for repo, text in db.execute("SELECT repo, text FROM repo_files WHERE path LIKE '%CONTRIBUTING.md'"):
+        guides[repo] += text or ""
+    gemma = {r: json.loads(s) for r, s in db.execute("SELECT repo, suggestions FROM repo_opportunities")} \
+        if table_exists(db, "repo_opportunities") else {}  # D5 camada 2 (pipeline/opportunities.py)
     topics, langs = {}, {}
     if table_exists(db, "repo_topics"):
         for repo, t, l in db.execute("SELECT repo, topics, languages FROM repo_topics"):
@@ -106,6 +151,9 @@ def main():
             human, outside = map(int, merged12.get(repo, "0,0").split(","))
         openness = round(outside / human, 2) if human >= MIN_PRS_FOR_OPENNESS else None
         maintainers = (smp["mergers"] if smp else 0) if large else maint.get(repo, 0)
+        profile = profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0)
+        opps = opportunities_of(r, profile, openness, maintainers, newcomer.get(repo) or 0, scorecard.get(repo), guides[repo])
+        opps += [g for g in gemma.get(repo, []) if g["way"] not in {o["way"] for o in opps}]
         projects.append({
             "repo": repo,
             "url": f"https://github.com/{repo}",
@@ -115,8 +163,9 @@ def main():
             "license": r["license"],
             "stars": r["stars"] or 0,
             "dependents": dependents.get(repo),
-            "profile": profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0),
-            "needs": [],                    # D5
+            "profile": profile,
+            "needs": list(dict.fromkeys(o["way"] for o in opps)),
+            "opportunities": opps,
             "skills": skill_vocab.top(skill_vocab.detect([r["language"], *langs.get(repo, [])], topics.get(repo, []), deps[repo],
                                               f'{repo} {r["description"] or ""}')),
             "openness": openness,

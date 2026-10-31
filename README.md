@@ -41,6 +41,7 @@ python pipeline/collect.py security    # OpenSSF Scorecard + alertas
 python pipeline/collect.py large       # repos grandes: contagens mensais + amostra de pessoas
 python pipeline/collect.py reaggregate # recalcula agregações do cache bruto, sem API
 python pipeline/build.py               # gera web/public/data/*.json para o site
+python pipeline/opportunities.py       # Gemma sugere oportunidades (offline, com cache); rode o build.py de novo depois
 python pipeline/collect.py selftest    # testes da agregação
 ```
 
@@ -60,7 +61,10 @@ npm run dev                     # http://localhost:3000
 | Caminho | O quê |
 |---|---|
 | `pipeline/collect.py` | coletor (um arquivo, sem dependências) |
-| `pipeline/build.py` | gera `web/public/data/*.json` a partir do banco |
+| `pipeline/build.py` | gera `web/public/data/*.json` a partir do banco: habilidades, perfil, oportunidades |
+| `pipeline/skills.py` | vocabulário de habilidades e regras de detecção |
+| `pipeline/opportunities.py` | Gemma 4 sugere oportunidades de contribuição (offline, em cache no banco) |
+| `pipeline/llm.py` | cliente mínimo do Gemma (Gemini API ou Ollama) |
 | `web/` | site Next.js: páginas, `/api/explain`, `lib/types.ts` (tipos do contrato) |
 | `data/ecosystem.db` | banco SQLite com tudo que foi coletado |
 | `docs/dados.md` | dicionário de dados e consultas de exemplo |

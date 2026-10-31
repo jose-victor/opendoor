@@ -16,6 +16,7 @@ Repositório sempre identificado como `dono/nome` em minúsculas. Meses no forma
 | `repos` | descrição, linguagem, licença, criação, último push, arquivado, estrelas, forks, issues/PRs abertos e totais; `found=0` = não existe mais |
 | `repo_files(repo, path, oid, text)` | CONTRIBUTING, AGENTS, CLAUDE, AI_POLICY, copilot-instructions, README. `oid` muda quando o arquivo muda |
 | `repo_labels(repo, newcomer_open)` | issues abertas com "good first issue", "help wanted" e parecidas |
+| `repo_opportunities(repo, model, suggestions)` | sugestões do Gemma (lista JSON de `Opportunity` com `source: "gemma"`), geradas por `pipeline/opportunities.py`; cada repo é consultado uma vez |
 | `repo_topics(repo, topics, languages)` | topics do GitHub (lista JSON) e linguagens com bytes (`{"C++": 639…}`); etapa `topics`, entra na detecção de habilidades |
 | `repo_scorecard(repo, overall, date)` / `scorecard_checks(repo, check_name, score, reason)` | OpenSSF Scorecard (0–10) e cada verificação (Maintained, Code-Review, Branch-Protection...) |
 | `package_advisories(system, name, version, advisory)` | alertas de vulnerabilidade da versão atual |

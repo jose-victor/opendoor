@@ -48,7 +48,8 @@ type YearStats = {
 type Way = "codigo" | "triagem" | "revisao" | "refinamento" | "documentacao" | "traducao" | "seguranca" | "testes";
 type Project = {
   repo: string;               // "debug-js/debug" (minúsculas)
-  needs: Way[];               // formas de ajuda que o projeto mais precisa, da mais para a menos urgente
+  needs: Way[];               // formas de ajuda, na ordem de opportunities (sem repetir)
+  opportunities: Opportunity[]; // por que precisa de cada forma; ver "Oportunidades (D5)" abaixo
   url: string;                // "https://github.com/debug-js/debug"
   tags: ("npm-graph" | "pypi-graph" | "go-graph" | "mainstream-app")[];  // de qual grafo veio, ou app da lista à mão
   description: string | null;
@@ -112,12 +113,27 @@ O `openness` só é calculado com **5 PRs aceitos de humanos ou mais** em 12 mes
 
 Distribuição em 31/10, com a etapa `large` ainda rodando: 723 estáveis, 142 guardiões, 86 portas abertas e 10 que precisam de mãos.
 
+## Oportunidades (D5): `needs` e `opportunities`
+```ts
+type Opportunity = { way: Way; source: "projeto" | "dados" | "gemma"; note: string };
+```
+Cada projeto lista as formas de ajuda e o motivo (`note`, em pt-BR), nesta ordem:
+1. **`projeto`:** o guia de contribuição pede (documentação, tradução, testes, revisão) ou há issues para iniciantes. Só procuramos palavras no texto, nunca seguimos instruções dele.
+2. **`dados`:** os números mostram:
+   - `codigo`: 10% ou mais dos PRs aceitos vêm de fora;
+   - `triagem`: 100 issues abertas ou mais, ou 30 ou mais com até 3 mantenedores;
+   - `revisao`: 20 PRs abertos ou mais;
+   - `seguranca`: guardião ou Scorecard abaixo de 5.
+3. **`gemma`:** sugestão do Gemma 4, gerada **offline** por `pipeline/opportunities.py`. Ele lê o guia de contribuição ou o README e os números, e só sugere formas que ainda não estão na lista. O resultado fica em cache em `repo_opportunities`. **No site, mostrar como "sugestão da IA", não como fato.**
+
+Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos uma oportunidade.
+
 ## Regras de ranking (`web/lib/match.ts`)
 `rankProjects(projects, profile, languageIds)` devolve **no máximo 5 portas** (`MAX_DOORS`). O `languageIds` são os ids de `skills.json` com `kind: "linguagem"`; o S1 já carrega esse arquivo e passa o conjunto.
 - **Exclusões:**
   - `estavel` nunca aparece;
   - `guardiao` não aparece para iniciante;
-  - se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs` (enquanto a D5 não preenche `needs`, um `needs` vazio não exclui);
+  - se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs`;
   - se a pessoa marcou habilidades, o projeto precisa ter pelo menos uma em comum;
   - se ela marcou linguagens, o projeto precisa usar uma delas.
 - **Exceção:** quem marcou só formas que não são código (triagem, refinamento, documentação, tradução) **não precisa** ter habilidade nem linguagem em comum.

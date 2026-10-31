@@ -63,9 +63,10 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 - `collect.py --system npm|pypi|go`. Sementes de web (React, TypeScript, Tailwind...), dados e IA (pandas, transformers, LangChain, Ollama...). Apps de IA no GitHub (Ollama, llama.cpp, Open WebUI, ComfyUI).
 - Go e alguns pacotes npm não têm árvore resolvida no deps.dev: o grafo desce 2 níveis pelas dependências declaradas.
 
-### D5. Formas de contribuir por projeto (`needs`) (M)
+### D5. Formas de contribuir por projeto (`needs`) (M) — ✅ PR da #22
 - Calcular `needs` com os sinais de `docs/visao.md`: issues sem label nem resposta → triagem; PRs abertos esperando revisão → revisão; Scorecard baixo / guardião → segurança; label ou arquivos de docs/i18n → documentação/tradução. Pode precisar de uma coleta extra, barata: labels das issues abertas e PRs abertos sem revisão.
 - **Pronto quando:** todo projeto tem pelo menos uma forma em `needs`, e a ordem faz sentido em 5 projetos conferidos à mão.
+- Feito, em duas camadas (ideia do José). (1) O que o guia de contribuição pede (fonte `projeto`), mais os sinais dos números (fonte `dados`), no `build.py`. (2) Sugestões do Gemma 4 para o que o projeto não lista (fonte `gemma`), offline, com `pipeline/opportunities.py`. Campo novo no contrato: `opportunities`. Todo projeto que aparece no match (não estável) tem pelo menos uma oportunidade. Conferidos à mão: express, debug, vscode, godot, obs.
 
 ### D4. `match.ts` (M) — ✅ PR da #7 (regras em `docs/arquitetura.md`)
 - Ranking no navegador (regras em `docs/arquitetura.md`), mais um teste com 3 perfis.
