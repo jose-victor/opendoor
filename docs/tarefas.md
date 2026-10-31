@@ -21,7 +21,7 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 ## Fase 0: Esqueleto — José
 
 ### E1. Criar `web/` e publicar na Vercel (M) — ✅ PR #23, no ar em https://opendoor-fawn.vercel.app
-- ⏳ Falta: conexão automática Vercel ↔ GitHub (pasta raiz `web/`) e `GEMINI_API_KEY` na Vercel.
+- ✅ Vercel conectada ao GitHub (pasta raiz `web/`): a `main` faz deploy sozinha e **cada PR ganha um preview**. `GEMINI_API_KEY` e `GEMMA_MODEL` configuradas.
 - Next.js (App Router, TypeScript), com as pastas e arquivos vazios de `docs/arquitetura.md`. `lib/types.ts` com os tipos do contrato.
 - Projeto na Vercel ligado ao repositório. `GEMINI_API_KEY` configurada lá.
 - **Pronto quando:** a URL da Vercel abre uma página e `npm run build` passa.
@@ -51,11 +51,11 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 - Calcular `profile`, `openness`, `maintainers_24m` e `years` no `build.py`, com as regras de `docs/visao.md`. Teste com assert em 3 projetos conhecidos.
 - **Pronto quando:** `debug-js/debug` sai como `guardiao` e algum projeto com PRs de fora sai como `porta_aberta`.
 
-### D6. Repos grandes: contagem + amostra (M) — issue #25, PR #24
+### D6. Repos grandes: contagem + amostra (M) — issue #25, PR #24 ⏳ rodando nos 104 grandes
 - Repos com mais de 6 mil issues + PRs (53) ganham contagens mensais completas desde 2018 pela busca, mais uma amostra de até 300 PRs aceitos dos últimos 12 meses (abertura e quem faz merge). Etapa `collect.py large`.
 - **Atenção, A1 e S3:** nesses repos, `years[ano].people` e `direct_commits` são `null`.
 
-### D7. Novos ecossistemas: PyPI e Go, mais web e IA (M) — issue #27
+### D7. Novos ecossistemas: PyPI e Go, mais web e IA (M) — issue #27 ✅ código (PR #28); ⏳ dados em coleta
 - `collect.py --system npm|pypi|go`. Sementes de web (React, TypeScript, Tailwind...), dados e IA (pandas, transformers, LangChain, Ollama...). Apps de IA no GitHub (Ollama, llama.cpp, Open WebUI, ComfyUI).
 - Go e alguns pacotes npm não têm árvore resolvida no deps.dev: o grafo desce 2 níveis pelas dependências declaradas.
 
@@ -71,7 +71,7 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 
 ## Gemma offline (pipeline) — Kaiky
 
-### K1. Cliente do Gemma no pipeline (P)
+### K1. Cliente do Gemma no pipeline (P) — 🔍 PR #29 (revisado e ajustado; falta o merge)
 - Trazer o `llm.py` do esqueleto do Kaiky para `pipeline/llm.py`, com caminhos baseados em `Path(__file__)` e configuração vinda das variáveis de `docs/arquitetura.md`.
 - **Pronto quando:** `python pipeline/llm.py "responda só OK"` responde, com `LLM_BACKEND=gemini`. Ollama é plano B.
 
@@ -90,6 +90,7 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 ## Gemma ao vivo (site) — Anna
 
 ### A1. `web/lib/gemma.ts` (M)
+- ⚠️ Gemma 4 pela API: use só as partes **sem** `thought: true` (o raciocínio vem junto); não use `thinkingLevel: "minimal"` (erro 500); cada chamada leva de 10 a 15 s.
 - Função `explain(project: Project, profile: UserProfile): Promise<ExplainResponse>`, que chama a Gemini API com o modelo `GEMMA_MODEL` (SDK `@google/genai`).
 - O prompt em português usa **só** os dados do `Project` (habilidades, perfil, política de IA com a evidência, issues para iniciantes, mantenedores) e pede JSON no formato `why` / `first_steps` / `heads_up`.
 - Dá para começar antes do E1, num arquivo solto testado com `npx tsx`.
