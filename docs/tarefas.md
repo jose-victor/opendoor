@@ -122,17 +122,24 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 ## Site (telas) — Pablo / Kaiky (depois do K2)
 Todas dependem do E1 e usam o `projects.json` do E2.
 
-### S1. Painel de filtros (M)
+### S1. Painel de filtros (M) — ✅ feito em grupo (José, Anna, Kaiky, Pablo e Claude)
 - Checkboxes das habilidades de `skills.json`, agrupadas por `kind`, a escolha de nível e **as formas de contribuir** (código, triagem, revisão, documentação, tradução, segurança...). O estado vira um `UserProfile`.
 - **Pronto quando:** marcar e desmarcar atualiza o `UserProfile`.
 
-### S2. Lista de resultados (M)
+### S2. Lista de resultados (M) — ✅ feito em grupo
 - Cards com repo, descrição, perfil (selo), habilidades em comum, política de IA e issues para iniciantes. A ordem vem do `match.ts` (D4); até ele ficar pronto, ordene por estrelas.
 - **Pronto quando:** filtrar por React mostra só projetos com React.
 
-### S3. Página do projeto `/p/dono/nome` (M)
+### S3. Página do projeto `/p/dono/nome` (M) — ✅ feito em grupo
 - Dados do projeto, gráfico simples por ano (PRs, issues, pessoas), política de IA com a evidência citada, e o botão "Como eu começo aqui?", que chama `/api/explain` com o perfil atual.
 - **Pronto quando:** o botão mostra a resposta do stub (E3) e depois a real (A2).
+- **Como ficou:**
+  - Uma página só, com filtros em chips (Linguagens, Áreas, Nível, Como quer ajudar) e de 3 a 5 portas embaixo.
+  - O card mostra perfil, política de IA, habilidades em comum, números de saúde e 2 oportunidades (a "sugestão da IA" marcada).
+  - O botão "Por onde começar?" chama o Gemma ali mesmo, com carregamento e contador, e guarda a resposta para não repetir a chamada.
+  - A página do projeto traz todas as oportunidades, a política de IA com a citação, o gráfico de PRs abertos contra aceitos por ano e a mesma caixa do Gemma.
+  - O perfil marcado na home vale na página do projeto (`sessionStorage`).
+  - Componentes em `web/components/` e rótulos em `web/lib/labels.ts`.
 
 ---
 
