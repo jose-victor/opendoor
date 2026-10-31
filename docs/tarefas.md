@@ -6,20 +6,16 @@ Nomes são sugestão. Tamanho: P (até 30 min), M (até 1h).
 
 Prazo: **congelar às 16h**, submeter às **16h30**.
 
-## Situação (31/10, 13h30)
-- **Na `main` e no ar:**
-  - D1 a D5: habilidades, perfis, match e oportunidades;
-  - K1, K2 e A1 a A3: o Gemma no pipeline e ao vivo no `/api/explain`;
-  - P1: o gabarito.
-- **Rodando em segundo plano:**
-  - a coleta da rodada 3 (atividade dos repos PyPI e Go);
-  - as sugestões do Gemma (`opportunities.py`).
-  Depois deles roda a política de IA (`classify_ai_policy.py`), e tudo entra no PR de dados finais (#25).
-- **Falta para a demo:**
-  - S1, S2 e S3 (telas: filtros, cards e página do projeto);
-  - K3 (acurácia);
-  - I1 (integração às 15h);
-  - P2 e P3 (README final, vídeo e submissão).
+## Situação (31/10, 15h15)
+- **Na `main` e no ar:** D1 a D5, K1, K2, A1 a A3, P1 e P2.
+- **Esperando merge:**
+  - **#45**, telas revisadas em grupo (S1 a S3), guias salvos (G1, parte), critérios de iniciante revistos depois de duas auditorias, e o logo (inclui o #47);
+  - em seguida, o **PR de dados finais (#25)**, com o banco e o `projects.json`.
+- **Números atuais:** 958 projetos, 346 aceitam contribuição, **30 prontos para iniciante**.
+- **Falta:**
+  - I1 (congelar a `main` às 16h);
+  - P3 (vídeo e submissão às 16h30);
+  - K3 (acurácia; o gabarito e o classificador estão prontos).
 
 ## Ordem
 ```
@@ -137,17 +133,51 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 ## Site (telas) — Pablo / Kaiky (depois do K2)
 Todas dependem do E1 e usam o `projects.json` do E2.
 
-### S1. Painel de filtros (M)
+### S1. Painel de filtros (M) — ✅ feito em grupo (José, Anna, Kaiky, Pablo e Claude)
 - Checkboxes das habilidades de `skills.json`, agrupadas por `kind`, a escolha de nível e **as formas de contribuir** (código, triagem, revisão, documentação, tradução, segurança...). O estado vira um `UserProfile`.
 - **Pronto quando:** marcar e desmarcar atualiza o `UserProfile`.
 
-### S2. Lista de resultados (M)
+### S2. Lista de resultados (M) — ✅ feito em grupo
 - Cards com repo, descrição, perfil (selo), habilidades em comum, política de IA e issues para iniciantes. A ordem vem do `match.ts` (D4); até ele ficar pronto, ordene por estrelas.
 - **Pronto quando:** filtrar por React mostra só projetos com React.
 
-### S3. Página do projeto `/p/dono/nome` (M)
+### S3. Página do projeto `/p/dono/nome` (M) — ✅ feito em grupo
 - Dados do projeto, gráfico simples por ano (PRs, issues, pessoas), política de IA com a evidência citada, e o botão "Como eu começo aqui?", que chama `/api/explain` com o perfil atual.
 - **Pronto quando:** o botão mostra a resposta do stub (E3) e depois a real (A2).
+- **Como ficou:**
+  - Uma página só, com filtros em chips (Linguagens, Áreas, Nível, Como quer ajudar) e de 3 a 5 portas embaixo.
+  - O card mostra perfil, política de IA, habilidades em comum, números de saúde e 2 oportunidades (a "sugestão da IA" marcada).
+  - O botão "Por onde começar?" chama o Gemma ali mesmo, com carregamento e contador, e guarda a resposta para não repetir a chamada.
+  - A página do projeto traz todas as oportunidades, a política de IA com a citação, o gráfico de PRs abertos contra aceitos por ano e a mesma caixa do Gemma.
+  - O perfil marcado na home vale na página do projeto (`sessionStorage`).
+  - Na revisão em grupo (José, Anna, Kaiky e Pablo), a home virou duas colunas: filtros à esquerda e portas à direita. O card ficou mais leve: resumo em pt-BR do guia, uma frase com o número que explica o perfil e "onde ajudar" em etiquetas. O site não faz propaganda do modelo. Na segunda rodada:
+    - a faixa colorida do card diz **por que** a porta apareceu;
+    - entraram 3 números grandes na cor do perfil;
+    - a página do projeto foi reorganizada em seções;
+    - surgiu um link para as issues "good first issue" (e labels parecidos) no GitHub;
+    - nada é gerado na hora: o guia é salvo antes.
+  - Na terceira rodada:
+    - lista com todos os projetos que combinam, com filtros e ordenação;
+    - atividade dos últimos 3 meses;
+    - link para o relatório do OpenSSF Scorecard;
+    - abertura e mantenedores recalculados (commits diretos contam; o rótulo do GitHub deixou de ser a fonte principal nos repos grandes).
+  - Depois da auditoria dos dados (subagente, 31/10):
+    - critério "pronto para iniciante" com 4 provas (estreias, aceite, vivo, guia);
+    - taxa de aceite de PRs de fora;
+    - "precisa de mãos" sem becos;
+    - "o guia menciona" no lugar de "o projeto pede";
+    - sugestões do Gemma fora do filtro;
+    - duplicatas removidas;
+    - filtros da lista refeitos.
+    As propostas para depois do hackathon estão na seção "Depois de hoje".
+  - Na reavaliação, o veredito foi "dá para congelar" depois de 4 ajustes, que já entraram:
+    - guardiões sem o selo;
+    - a conta "X de Y" sem X maior que Y;
+    - "vivo" medido por PRs de gente de fora;
+    - nota de código nos projetos prontos.
+    Resultado: 38 projetos prontos para iniciante (os que o iniciante vê), com precisão estimada de 85 a 90%.
+  - Feedback de uma pessoa experiente em open source, no evento: entrou o **tempo até o primeiro retorno** em PRs de fora e a contagem de **PRs parados** (30+ dias sem revisão), no card, na página e como 5º critério de iniciante. Ficaram 30 prontos.
+  - Componentes em `web/components/` e rótulos em `web/lib/labels.ts`.
 
 ---
 
@@ -176,6 +206,21 @@ Todas dependem do E1 e usam o `projects.json` do E2.
 ---
 
 ## Depois de hoje
-- **G1. Guia de contribuição de cada projeto** (issue #21): ambiente, regras do projeto, quem revisa e quanto tempo leva.
+- **Versão do site em inglês** (pedido do José). Título: "An Open Door for you to contribute to the Open Source world".
+- **Necessidades mais específicas** (auditoria de 31/10):
+  - coletar todos os labels de cada repo e separar "good first issue" livre e recente de "help wanted";
+  - medir o tempo até a primeira resposta e os PRs de fora parados (do cache bruto);
+  - segurança por verificação do Scorecard (`scorecard_checks`, já coletado);
+  - detectar a infraestrutura de tradução (crowdin, weblate, `locales/`);
+  - prompt do Gemma ancorado em labels e PRs parados;
+  - um gabarito de necessidades rotulado à mão;
+  - estreias também nos repos grandes;
+  - guardar o `nameWithOwner` da API para resolver redirecionamentos.
+  - o CONTRIBUTING em outros caminhos (`.rst`, `docs/`, `.github` da organização, variações de caixa): 77 projetos caem no selo de iniciante só por isso;
+  - `authorAssociation` no cache, para saber quem é funcionário da empresa;
+  - atividade dos repos Go (só 4 de 151 cobertos);
+  - estreias nos repos grandes que têm histórico desde 2022 (axios, babel, jest, mocha, sharp, zod...);
+  - exigir que o repo tenha mais de 24 meses para valer o selo (num repo novo, todo mundo "estreia").
+- **G1. Guia de contribuição de cada projeto** (issue #21). **Parte feita hoje**, ideia do José: o guia "por onde começar" escrito uma vez por projeto pelo modelo (`pipeline/guides.py`) e combinado com o perfil sem chamar o modelo (`web/lib/guide.ts`). Validado numa amostra de 6 projetos. **Fica para depois:** ambiente, regras do projeto (DCO, estilo de commit), quem revisa e quanto tempo leva.
 
 As issues no GitHub têm o código da tarefa no título (`[E1]`, `[K2]`...), e as dependências já apontam para o número da issue.

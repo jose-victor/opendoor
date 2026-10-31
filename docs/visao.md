@@ -23,7 +23,7 @@ O OpenDoor guia a pessoa pelo caminho que a palestra recomenda:
 
 O que isso muda no produto:
 - **Portas (Gemma):** os primeiros passos começam por observar e conversar. "Abra um PR" nunca é o primeiro passo.
-- **Match:** recomenda poucos projetos, não uma lista infinita; para iniciantes, favorece entradas de baixo risco (testes, docs, triagem).
+- **Match:** mostra todos os projetos que combinam, do que mais combina para o que menos, com filtros (perfil, política de IA, issues para iniciantes). Para iniciantes, só entram projetos acolhedores e são favorecidas as entradas de baixo risco (testes, docs, triagem).
 - **Política de IA em destaque:** usar IA num projeto que pede aviso, ou que proíbe, é o tipo de contribuição que cria problema.
 - **Nunca** incentivar PRs gerados em massa.
 

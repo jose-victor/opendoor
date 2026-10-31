@@ -13,6 +13,7 @@ python pipeline/collect.py stats        # resumo do banco
 python pipeline/collect.py graph --system pypi  # etapas de grafo e security aceitam npm | pypi | go
 python pipeline/llm.py "prompt"         # Gemma pelo pipeline (lê o .env da raiz)
 python pipeline/opportunities.py        # Gemma sugere oportunidades por projeto (cache em repo_opportunities)
+python pipeline/guides.py --limit 10    # Gemma escreve o guia de cada projeto (cache em project_guides); rode depois do classify_ai_policy
 python pipeline/classify_ai_policy.py   # Gemma classifica a política de IA (cache em ai_policy; repos com erro ficam para a próxima)
 sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 ```

@@ -1,8 +1,6 @@
 // D4: ranking do match, roda no navegador. Regras em docs/arquitetura.md ("Regras de ranking").
 import type { Level, Profile, Project, UserProfile, Way } from "./types";
 
-// Poucas portas, não uma lista infinita (docs/visao.md).
-export const MAX_DOORS = 5;
 
 // Formas de ajudar que não exigem habilidade técnica em comum com o projeto.
 const NON_CODE: Way[] = ["triagem", "refinamento", "documentacao", "traducao"];
@@ -14,6 +12,12 @@ const LEVEL_BONUS: Record<Level, Partial<Record<Profile, number>>> = {
 };
 
 // languageIds: ids de skills.json com kind "linguagem". Se a pessoa marcou linguagens, o projeto precisa usar uma delas.
+// Para iniciante só entra o que está pronto: gente nova sendo aceita, PRs de fora com chance real,
+// projeto vivo e com guia de contribuição (calculado no build.py, beginner_checks).
+export function welcoming(p: Project): boolean {
+  return p.beginner.ready;
+}
+
 export function rankProjects(projects: Project[], profile: UserProfile, languageIds: ReadonlySet<string> = new Set()): Project[] {
   const wanted = new Set(profile.skills);
   const wantedLangs = profile.skills.filter((s) => languageIds.has(s));
@@ -25,6 +29,7 @@ export function rankProjects(projects: Project[], profile: UserProfile, language
     if (p.profile === "estavel") continue;
     // guardião pede gente experiente e de confiança: não é porta para quem está começando
     if (p.profile === "guardiao" && profile.level === "iniciante") continue;
+    if (profile.level === "iniciante" && !welcoming(p)) continue;
     if (ways.size > 0 && !p.needs.some((w) => ways.has(w))) continue;
     const common = p.skills.filter((s) => wanted.has(s)).length;
     if (wanted.size > 0 && common === 0 && !nonCodeOnly) continue;
@@ -36,7 +41,13 @@ export function rankProjects(projects: Project[], profile: UserProfile, language
     scored.push({ p, score });
   }
   return scored
-    .sort((a, b) => b.score - a.score || (b.p.openness ?? 0) - (a.p.openness ?? 0) || b.p.stars - a.p.stars)
-    .slice(0, MAX_DOORS)
+    // desempate: gente nova sendo aceita, depois taxa de aceite (a abertura sozinha engana em projeto de 1 pessoa)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.p.debuts_12m ?? -1) - (a.p.debuts_12m ?? -1) ||
+        (b.p.acceptance ?? -1) - (a.p.acceptance ?? -1) ||
+        b.p.stars - a.p.stars,
+    )
     .map((x) => x.p);
 }
