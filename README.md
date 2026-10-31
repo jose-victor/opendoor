@@ -30,7 +30,7 @@ python pipeline/collect.py stats
 Para coletar de novo ou atualizar (cada etapa retoma de onde parou):
 
 ```bash
-python pipeline/collect.py graph       # grafo npm (deps.dev)
+python pipeline/collect.py graph --system npm   # grafo de dependências (npm, pypi ou go)
 python pipeline/collect.py apps        # apps mainstream (lista APPS em collect.py)
 python pipeline/collect.py repos       # foto atual + arquivos de política
 python pipeline/collect.py activity    # PRs/issues por mês desde 2018

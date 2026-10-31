@@ -53,7 +53,7 @@ type Project = {
   language: string | null;
   license: string | null;
   stars: number;
-  dependents: number | null;  // só npm-graph
+  dependents: number | null;  // pacotes que dependem dele; null em apps mainstream (não vêm de grafo)
   profile: Profile;
   skills: string[];           // ids de skills.json
   openness: number | null;    // 0..1, fatia de PRs aceitos de quem não é mantenedor (12 meses); null = poucos dados

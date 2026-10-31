@@ -102,7 +102,7 @@ Não há comparação oficial com a mesma metodologia. Números de fontes secund
 
 ## 6. Pendências para decidir
 
-- [ ] Qual projeto construir (brainstorming em andamento).
+- [x] Qual projeto construir: **OpenDoor** (ver `README.md` e `docs/visao.md`).
 - [ ] Confirmar com os organizadores o que conta como "open-weight" na categoria 1 e quais são os critérios de julgamento das duas.
 - [ ] Ver os limites do Gemma 4 no AI Studio.
 - [ ] Ler os links "Build with DigitalOcean" e "Build with Gemma 4" no navegador (créditos, tutoriais, regras).
