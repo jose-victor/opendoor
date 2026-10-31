@@ -48,7 +48,7 @@ type Project = {
   repo: string;               // "debug-js/debug" (minúsculas)
   needs: Way[];               // formas de ajuda que o projeto mais precisa, da mais para a menos urgente
   url: string;                // "https://github.com/debug-js/debug"
-  tags: ("npm-graph" | "mainstream-app")[];
+  tags: ("npm-graph" | "pypi-graph" | "go-graph" | "mainstream-app")[];  // de qual grafo veio, ou app da lista à mão
   description: string | null;
   language: string | null;
   license: string | null;

@@ -37,7 +37,7 @@ export type YearStats = {
 export type Project = {
   repo: string;
   url: string;
-  tags: ("npm-graph" | "mainstream-app")[];
+  tags: ("npm-graph" | "pypi-graph" | "go-graph" | "mainstream-app")[];
   description: string | null;
   language: string | null;
   license: string | null;

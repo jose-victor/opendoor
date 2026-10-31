@@ -12,7 +12,7 @@ Mas entrar não é sair abrindo PR sem entender o projeto: muitos projetos estã
 O OpenDoor mapeia o ecossistema, mede a saúde e a abertura de cada projeto e casa isso com o perfil de quem quer contribuir.
 
 ## Como funciona
-1. **Mapa:** grafo de dependências do npm (deps.dev) mais uma lista de apps mainstream que vivem no GitHub.
+1. **Mapa:** grafo de dependências do npm, PyPI e Go (deps.dev), mais uma lista de apps mainstream e de IA que vivem no GitHub.
 2. **Saúde, de 2018 até hoje:** issues, PRs, revisões, merges e commits por mês, com quem fez cada papel; OpenSSF Scorecard; issues para iniciantes.
 3. **Perfil de cada projeto:** *Guardião*, *Porta aberta*, *Precisa de mãos* ou *Estável* (ver [docs/visao.md](docs/visao.md)).
 4. **IA aberta (Gemma 4):** lê a política de contribuição de cada projeto (aceita IA? com aviso? proíbe?) e explica por que um projeto combina com você.

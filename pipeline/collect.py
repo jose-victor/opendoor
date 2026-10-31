@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Coletor do ecossistema open source (MVP: npm).
+"""Coletor do ecossistema open source (npm, PyPI e Go; escolha com --system).
 
 Cada etapa pode ser re-executada: ela pula o que já está no banco e retoma de onde parou.
 
+  python pipeline/collect.py graph --system npm|pypi|go  # grafo de um ecossistema
   python pipeline/collect.py graph                 # deps.dev: árvore de dependências das sementes -> seeds, packages, dep_edges
   python pipeline/collect.py repos                 # GitHub: foto atual + arquivos de política -> repos, repo_files
   python pipeline/collect.py activity [--limit N]  # GitHub: quem abriu/revisou/mergeou/fechou, por mês desde 2018
@@ -37,11 +38,32 @@ DB = DATA / "ecosystem.db"
 SYSTEM = "npm"
 SINCE = "2018-01"
 MAX_PAGES = 30  # por tipo (PR/issue) e repo: até 3000 itens; acima disso o repo fica marcado como truncado
-SEEDS = [
-    "express", "next", "react-dom", "vue", "@angular/core", "vite", "webpack", "eslint", "jest", "mocha",
-    "axios", "socket.io", "mongoose", "pg", "nodemon", "yargs", "electron", "puppeteer", "sharp",
-    "@babel/core", "typescript", "prettier", "jsonwebtoken", "dotenv", "winston",
-]
+SEEDS_BY_SYSTEM = {
+    "npm": [
+        # backend, build, testes, CLI, banco, desktop, automação
+        "express", "next", "react-dom", "vue", "@angular/core", "vite", "webpack", "eslint", "jest", "mocha",
+        "axios", "socket.io", "mongoose", "pg", "nodemon", "yargs", "electron", "puppeteer", "sharp",
+        "@babel/core", "typescript", "prettier", "jsonwebtoken", "dotenv", "winston",
+        # web frontend
+        "react-router", "@reduxjs/toolkit", "@tanstack/react-query", "tailwindcss", "@mui/material",
+        "styled-components", "react-hook-form", "zod", "svelte", "astro", "@storybook/react", "framer-motion",
+        # IA
+        "ai", "openai", "@langchain/core", "@huggingface/transformers",
+    ],
+    "pypi": [
+        # web
+        "django", "flask", "fastapi", "requests", "httpx", "celery", "sqlalchemy", "pydantic", "scrapy",
+        # dados, IA, ferramentas
+        "pandas", "scikit-learn", "transformers", "langchain", "llama-index", "huggingface-hub", "openai",
+        "matplotlib", "jupyterlab", "streamlit", "pytest", "poetry",
+    ],
+    "go": [
+        "github.com/gin-gonic/gin", "github.com/gofiber/fiber/v2", "github.com/labstack/echo/v4",
+        "github.com/go-chi/chi/v5", "github.com/spf13/cobra", "github.com/charmbracelet/bubbletea",
+        "github.com/stretchr/testify", "gorm.io/gorm", "go.uber.org/zap", "k8s.io/client-go",
+        "github.com/prometheus/client_golang", "github.com/ollama/ollama",
+    ],
+}
 # vertente 2: apps mainstream que vivem de verdade no GitHub (issues e PRs lá). Fora: GIMP, LibreOffice,
 # Blender, Firefox, Krita, Inkscape, que só têm espelho aqui e parecem abandonados se medidos pelo GitHub.
 APPS = [
@@ -51,6 +73,8 @@ APPS = [
     "xbmc/xbmc", "mltframework/shotcut", "nextcloud/server", "mastodon/mastodon", "logseq/logseq",
     "appflowy-io/appflowy", "signalapp/signal-desktop", "telegramdesktop/tdesktop", "zed-industries/zed",
     "microsoft/vscode",
+    # IA
+    "ollama/ollama", "ggml-org/llama.cpp", "open-webui/open-webui", "comfyanonymous/comfyui",
 ]
 POLICY_FILES = [
     "CONTRIBUTING.md", ".github/CONTRIBUTING.md", "docs/CONTRIBUTING.md", "AI_POLICY.md", ".github/AI_POLICY.md",
@@ -147,15 +171,49 @@ def norm_repo(project_id):
     return f"{parts[1]}/{parts[2]}".lower() if len(parts) >= 3 else None
 
 
+def requirements(name, ver):
+    """Dependências declaradas (package.json / go.mod / metadados PyPI), sem resolver a árvore."""
+    d = (dd("depsdev_reqs", name, ver, ":requirements", api="v3alpha") or {}).get(SYSTEM) or {}
+    if SYSTEM == "go":
+        return [x["name"] for x in d.get("directDependencies", [])]
+    if SYSTEM == "pypi":  # extras opcionais ("extra == ...") não contam
+        return [x["projectName"].lower() for x in d.get("dependencies", []) if "extra" not in x.get("environmentMarker", "")]
+    return [x["name"] for x in (d.get("dependencies") or {}).get("dependencies", [])]
+
+
+def requirements_graph(seed, ver, depth=2):
+    """Grafo descendo `depth` níveis pelas dependências declaradas: plano B quando o deps.dev não resolve a árvore
+    (Go, e pacotes npm como eslint/electron), e o caminho padrão no PyPI, onde a árvore resolvida é rasa."""
+    nodes, edges, frontier = {seed: ver}, [], [(seed, ver)]
+    for _ in range(depth):
+        nxt = []
+        for name, v in frontier:
+            for dep in requirements(name, v):
+                edges.append((name, dep))
+                if dep not in nodes:
+                    nodes[dep] = dd_default_version(dep)
+                    if nodes[dep]:
+                        nxt.append((dep, nodes[dep]))
+        frontier = nxt
+    return {n: v for n, v in nodes.items() if v}, edges
+
+
 def cmd_graph(db, args):
     versions = {}
-    for seed in SEEDS:
+    for seed in SEEDS_BY_SYSTEM[SYSTEM]:
         ver = dd_default_version(seed)
         if not ver:
             log("sem versão no deps.dev:", seed)
             continue
         db.execute("INSERT OR REPLACE INTO seeds VALUES(?,?,?)", (SYSTEM, seed, ver))
-        g = dd("depsdev_deps", seed, ver, ":dependencies") or {"nodes": [], "edges": []}
+        g = (dd("depsdev_deps", seed, ver, ":dependencies") if SYSTEM == "npm" else None) or {"nodes": [], "edges": []}
+        if len(g["nodes"]) <= 1:
+            found, edges = requirements_graph(seed, ver)
+            for n, v in found.items():
+                versions.setdefault(n, v)
+            db.executemany("INSERT OR IGNORE INTO dep_edges VALUES(?,?,?,?)", [(SYSTEM, seed, a, b) for a, b in edges])
+            log(f"semente {seed}@{ver}: {len(found)} pacotes (dependências declaradas, 2 níveis)")
+            continue
         nodes = g["nodes"]
         for n in nodes:
             versions.setdefault(n["versionKey"]["name"], n["versionKey"]["version"])
@@ -219,7 +277,7 @@ def cmd_apps(db, args):
     """Vertente 2: marca os apps mainstream e tira a foto deles (depois: activity, commits, labels, security)."""
     with db:
         db.executemany("INSERT OR IGNORE INTO repo_tags VALUES(?, 'mainstream-app')", [(r,) for r in APPS])
-        db.execute("INSERT OR IGNORE INTO repo_tags SELECT DISTINCT repo, 'npm-graph' FROM packages WHERE repo IS NOT NULL")
+        db.execute("INSERT OR IGNORE INTO repo_tags SELECT DISTINCT repo, system || '-graph' FROM packages WHERE repo IS NOT NULL")
     cmd_repos(db, args)
 
 
@@ -241,7 +299,9 @@ def cmd_repos(db, args):
             if not x:
                 db.execute("INSERT OR REPLACE INTO repos(repo, found, fetched_at) VALUES(?,0,?)", (repo, now()))
                 continue
-            db.execute("INSERT OR REPLACE INTO repos VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL)", (
+            db.execute("INSERT OR REPLACE INTO repos(repo, found, description, language, license, created_at, pushed_at, "
+                       "archived, stars, forks, open_issues, total_issues, open_prs, total_prs, fetched_at) "
+                       "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
                 repo, 1, x["description"], (x["primaryLanguage"] or {}).get("name"),
                 (x["licenseInfo"] or {}).get("spdxId"), x["createdAt"], x["pushedAt"], int(x["isArchived"]),
                 x["stargazerCount"], x["forkCount"], x["openIssues"]["totalCount"], x["allIssues"]["totalCount"],
@@ -553,8 +613,8 @@ def cmd_large(db, args):
                 db.execute("DELETE FROM commit_monthly WHERE repo=?", (repo,))
                 db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,NULL)", [(repo, mo, n) for mo, n in commits.items()])
                 db.execute("INSERT OR REPLACE INTO repo_sample VALUES(?,?,?,?,?,?,?,?,?)", (repo, *sample, now()))
-                db.execute("UPDATE repos SET collection_mode='contagem+amostra', activity_since=?, activity_truncated=0 "
-                           "WHERE repo=?", (since, repo))
+                db.execute("UPDATE repos SET collection_mode='contagem+amostra', activity_since=?, activity_truncated=0, "
+                           "activity_fetched_at=COALESCE(activity_fetched_at, ?) WHERE repo=?", (since, now(), repo))  # activity pula
                 db.execute("INSERT OR REPLACE INTO commit_coverage VALUES(?,?,0,?)", (repo, since, now()))
             _, n, h, out, ft, mg, au = sample
             log(f"  [{i}/{len(todo)}] {repo}: {len(counts)} meses; amostra {n} PRs aceitos, "
@@ -664,7 +724,10 @@ def main():
     ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "security", "apps", "reaggregate", "large", "stats", "selftest"])
     ap.add_argument("--limit", type=int, default=300, help="activity: quantos repos (os com mais dependentes primeiro)")
     ap.add_argument("--workers", type=int, default=4, help="activity: repos em paralelo")
+    ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: ecossistema do deps.dev")
     args = ap.parse_args()
+    global SYSTEM
+    SYSTEM = args.system
     DATA.mkdir(exist_ok=True)
     db = sqlite3.connect(DB, timeout=60)
     db.executescript(SCHEMA)
