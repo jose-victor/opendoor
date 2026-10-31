@@ -519,8 +519,13 @@ def cmd_commits(db, args):
                 db.execute("DELETE FROM participation WHERE repo=? AND role IN (?,?)", (repo, *COMMIT_ROLES))
                 db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,?)",
                                [(repo, mo, c["commits"], c["direct_commits"]) for mo, c in monthly.items()])
+                # a mesma pessoa pode vir como usuária e como bot no mesmo mês: uma linha só por chave
+                rows = {}
+                for (mo, role, login, bot), k in part.items():
+                    b, total = rows.get((mo, role, login), (0, 0))
+                    rows[(mo, role, login)] = (max(b, bot), total + k)
                 db.executemany("INSERT INTO participation VALUES(?,?,?,?,?,?)",
-                               [(repo, mo, role, login, bot, k) for (mo, role, login, bot), k in part.items()])
+                               [(repo, mo, role, login, b, k) for (mo, role, login), (b, k) in rows.items()])
                 db.execute("INSERT OR REPLACE INTO commit_coverage VALUES(?,?,?,?)", (repo, since, trunc, now()))
             log(f"  [{i}/{len(todo)}] {repo}: {n} commits desde {since}{' (truncado)' if trunc else ''}")
 
