@@ -25,8 +25,7 @@ export function rankProjects(projects: Project[], profile: UserProfile, language
     if (p.profile === "estavel") continue;
     // guardião pede gente experiente e de confiança: não é porta para quem está começando
     if (p.profile === "guardiao" && profile.level === "iniciante") continue;
-    // shortcut: needs vazio = D5 ainda não calculou; não exclui. Quando a D5 entrar, todo projeto terá needs.
-    if (ways.size > 0 && p.needs.length > 0 && !p.needs.some((w) => ways.has(w))) continue;
+    if (ways.size > 0 && !p.needs.some((w) => ways.has(w))) continue;
     const common = p.skills.filter((s) => wanted.has(s)).length;
     if (wanted.size > 0 && common === 0 && !nonCodeOnly) continue;
     if (wantedLangs.length > 0 && !nonCodeOnly && !wantedLangs.some((l) => p.skills.includes(l))) continue;
