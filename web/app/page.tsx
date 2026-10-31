@@ -1,5 +1,6 @@
 "use client";
 // Home: S1 (filtros, na coluna da esquerda) + S2 (portas). O match roda no navegador (lib/match.ts).
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import DoorCard from "@/components/DoorCard";
 import FilterPanel from "@/components/FilterPanel";
@@ -74,10 +75,8 @@ export default function Home() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <nav className="mb-12 flex items-center justify-between border-b border-line pb-4">
-        <span className="flex items-center gap-2 font-display text-lg font-semibold">
-          <span aria-hidden className="flex h-7 w-6 items-end justify-center rounded-t-md border-2 border-emerald-600 pb-1">
-            <span className="h-1 w-1 rounded-full bg-emerald-600" />
-          </span>
+        <span className="flex items-center gap-2.5 font-display text-lg font-semibold">
+          <Image src="/logo.svg" alt="" width={36} height={36} className="rounded-lg" priority />
           OpenDoor
         </span>
         <a href="https://github.com/jose-victor/opendoor" className="text-sm text-muted hover:text-foreground">
@@ -85,12 +84,16 @@ export default function Home() {
         </a>
       </nav>
 
-      <header className="mb-12 max-w-3xl space-y-4">
+      <header className="mb-12 max-w-5xl space-y-4">
         <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
-          Uma <span className="text-emerald-600 dark:text-emerald-400">Porta Aberta</span> para você contribuir no mundo Open Source
+          Uma <span className="text-emerald-600 dark:text-emerald-400">Porta Aberta</span> para você contribuir{" "}
+          <br className="hidden md:block" />
+          no mundo Open Source
         </h1>
-        <p className="max-w-2xl text-lg leading-relaxed text-foreground/85">
-          Quer contribuir pra um projeto Open Source e não sabe como? Descubra quais os projetos ideais para você iniciar nessa jornada!
+        <p className="text-lg leading-relaxed text-foreground/85">
+          Quer contribuir pra um projeto Open Source e não sabe como?{" "}
+          <br className="hidden sm:block" />
+          Descubra quais os projetos ideais para você iniciar nessa jornada!
         </p>
       </header>
 

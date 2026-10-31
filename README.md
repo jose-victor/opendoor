@@ -1,3 +1,5 @@
+<img src="web/public/logo.svg" alt="Logo do OpenDoor: o Tux saindo por uma porta" width="160">
+
 # OpenDoor
 
 **Portas de entrada para contribuir com open source.** Você diz o que sabe e o OpenDoor mostra onde e como você pode ajudar: em qual projeto, que tipo de ajuda ele precisa e por onde começar.
@@ -16,6 +18,60 @@ O OpenDoor mapeia o ecossistema, mede a saúde e a abertura de cada projeto e ca
 2. **Saúde, de 2018 até hoje:** issues, PRs, revisões, merges e commits por mês, com quem fez cada papel; OpenSSF Scorecard; issues para iniciantes.
 3. **Perfil de cada projeto:** *Guardião*, *Porta aberta*, *Precisa de mãos* ou *Estável* (ver [docs/visao.md](docs/visao.md)).
 4. **IA aberta (Gemma 4):** lê a política de contribuição de cada projeto (aceita IA? com aviso? proíbe?) e explica por que um projeto combina com você.
+
+## Dados e IA
+
+Em 31/10/2026, às 13h30, o banco tinha:
+- **973 repositórios**: os de 1.351 pacotes críticos de npm (950), PyPI (225) e Go (176), mais apps mainstream e de IA;
+- **961 projetos no site**, dos quais 265 aparecem no match (os estáveis ficam de fora);
+- **25.463 linhas mensais** e **317.774 registros de participação**;
+- **1.190 arquivos** de contribuição e de política de IA.
+
+Os 104 repos grandes têm contagens mensais completas mais uma amostra de PRs. Todos os números são recalculáveis a partir do cache bruto.
+
+O achado central é que atividade não é sinônimo de abertura: um projeto pode receber muitos PRs
+e continuar mantendo poucas pessoas externas. Por isso, o OpenDoor mede PRs aceitos de quem não é
+mantenedor, mantenedores ativos, issues para iniciantes, commits, revisões e Scorecard de segurança.
+
+**O Gemma 4 (`gemma-4-26b-a4b-it`) trabalha em três pontos:**
+1. **Oportunidades (offline):** `pipeline/opportunities.py` lê o guia de contribuição de cada projeto e sugere onde ajudar quando o projeto não diz. Exemplo no React: "traduzir a documentação oficial para o português brasileiro".
+2. **Política de IA (offline):** `pipeline/classify_ai_policy.py` classifica se o projeto aceita IA, pede aviso ou proíbe, sempre com uma citação literal do arquivo.
+3. **Explicação (ao vivo):** `/api/explain` explica por que o projeto combina com a pessoa e dá os primeiros passos. Ele começa por observar e conversar, nunca por "abra um PR". A avaliação está em `eval/explain.md`.
+
+`pipeline/llm.py` fala com o Gemma pela Gemini API ou pelo Ollama local.
+
+## Roteiro da demo — 2 minutos
+
+1. **0:00–0:15 — Problema:** “Contribuir com open source parece procurar uma porta sem saber qual está aberta.”
+2. **0:15–0:35 — Escala:** mostrar que o OpenDoor combina pacotes críticos, aplicativos mainstream e dados históricos.
+3. **0:35–0:55 — Perfil:** apresentar habilidade, nível e forma de contribuição escolhidos pela pessoa.
+4. **0:55–1:20 — Resultados:** abrir um projeto e destacar perfil, abertura, mantenedores, issues para iniciantes e Scorecard.
+5. **1:20–1:45 — Gemma:** mostrar as oportunidades sugeridas pela IA e a política de IA com a citação literal (por exemplo, o OBS proíbe: "must be human written"); depois, clicar em "por onde começar" para ver a explicação ao vivo.
+6. **1:45–2:00 — Responsabilidade:** mostrar os primeiros passos de observar, conversar e começar por docs, testes ou triagem.
+7. Fechar com a frase: “OpenDoor não manda fazer um PR; ajuda a entrar de maneira responsável.”
+
+## English
+
+OpenDoor is an open-source contribution recommender for people with limited time and experience.
+It maps dependencies and GitHub activity, measures project openness and maintenance health, and
+matches those signals with a contributor's skills, experience and preferred type of help.
+
+The project uses data collected from deps.dev, GitHub and OpenSSF Scorecard. The static Next.js
+site loads generated JSON, while the Gemma integration is designed to run on the server through
+the `/api/explain` route. Gemma 4 suggests contribution opportunities, classifies each project's AI policy
+with a literal quote as evidence, and explains live why a project fits and how to start responsibly.
+`pipeline/llm.py` supports the Gemini API and a local Ollama backend.
+
+The demo should emphasize responsible contribution: observe the roadmap, read contribution
+guidelines, join discussions, understand the code and prefer low-risk starts such as documentation,
+tests or issue triage.
+
+## Estado da demo
+
+- **Dados coletados:** 973 repositórios e 961 projetos no site (números completos em "Dados e IA").
+- **Gabarito de políticas:** 28 repositórios rotulados à mão, com as 4 categorias (13 silent, 7 accepts_with_disclosure, 5 accepts e 3 forbids).
+- **Gemma ao vivo:** `/api/explain` em produção. Nas 9 combinações de `eval/explain.md` (3 perfis × 3 projetos), todas as respostas foram válidas, cada uma levando de 30 a 45 s.
+- **Acurácia do classificador K3:** aguarda a implementação de `pipeline/evaluate.py`; o valor não foi estimado neste README sem a comparação oficial.
 
 ## Começando
 Requisitos: Python 3.11+ (só biblioteca padrão) e o [GitHub CLI](https://cli.github.com/) logado (`gh auth login`), que fornece o token da API.
@@ -71,6 +127,7 @@ npm run dev                     # http://localhost:3000
 | `pipeline/llm.py` | cliente mínimo do Gemma (Gemini API ou Ollama) |
 | `web/` | site Next.js: páginas, `/api/explain`, `lib/types.ts` (tipos do contrato) |
 | `data/ecosystem.db` | banco SQLite com tudo que foi coletado |
+| `eval/` | `gabarito.csv` (política de IA rotulada à mão) e `explain.md` (avaliação das respostas do Gemma) |
 | `docs/dados.md` | dicionário de dados e consultas de exemplo |
 | `docs/tarefas.md` | **tarefas em aberto (cada uma vira uma issue)** |
 | `docs/arquitetura.md` | contratos: formato do JSON, tipos, API do Gemma |
