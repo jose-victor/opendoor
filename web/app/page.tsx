@@ -73,21 +73,28 @@ export default function Home() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-10 max-w-3xl space-y-4">
-        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-          OpenDoor
-        </p>
-        <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
-          Uma porta de entrada no open source,{" "}
-          <span className="text-emerald-600 dark:text-emerald-400">
-            do seu tamanho
+      <nav className="mb-12 flex items-center justify-between border-b border-line pb-4">
+        <span className="flex items-center gap-2 font-display text-lg font-semibold">
+          <span aria-hidden className="flex h-7 w-6 items-end justify-center rounded-t-md border-2 border-emerald-600 pb-1">
+            <span className="h-1 w-1 rounded-full bg-emerald-600" />
           </span>
-          .
+          OpenDoor
+        </span>
+        <a href="https://github.com/jose-victor/opendoor" className="text-sm text-muted hover:text-foreground">
+          Código aberto no GitHub ↗
+        </a>
+      </nav>
+
+      <header className="mb-12 max-w-3xl space-y-4">
+        <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
+          Uma <span className="text-emerald-600 dark:text-emerald-400">Porta Aberta</span> para você contribuir no mundo Open Source
         </h1>
-        <p className="text-lg leading-relaxed text-muted">
-          Conte o que você sabe e como quer ajudar. A gente mostra os projetos
-          que precisam exatamente disso e por onde começar: primeiro observar e
-          conversar, depois contribuir.
+        <p lang="en" className="text-lg text-muted">
+          An Open Door for you to contribute to the Open Source world
+        </p>
+        <p className="max-w-2xl leading-relaxed text-foreground/85">
+          Conte o que você sabe e como quer ajudar. Mostramos projetos que estão recebendo bem quem chega e por onde começar: primeiro
+          observar e conversar, depois contribuir.
         </p>
       </header>
 
