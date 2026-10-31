@@ -38,7 +38,9 @@ type AiPolicy = {
 };
 type YearStats = {
   prs_opened: number; prs_merged: number; issues_opened: number; issues_closed: number;
-  commits: number; direct_commits: number; people: number;   // people = pessoas distintas (não-bot) no ano
+  commits: number;
+  direct_commits: number | null;  // null em repos grandes
+  people: number | null;          // pessoas distintas (não-bot) no ano; null em repos grandes
 };
 // Formas de contribuir (docs/visao.md). Mesma lista para o projeto (o que precisa) e para a pessoa (o que quer fazer).
 type Way = "codigo" | "triagem" | "revisao" | "refinamento" | "documentacao" | "traducao" | "seguranca" | "testes";
@@ -59,6 +61,7 @@ type Project = {
   newcomer_open: number;      // issues abertas para iniciantes
   scorecard: number | null;   // OpenSSF 0..10
   ai_policy: AiPolicy;
+  collection: "completo" | "contagem+amostra";  // grandes: contagens mensais completas + amostra de pessoas (12 meses)
   coverage_since: string;     // "2018-01" ou mês a partir do qual os dados estão completos
   years: Record<string, YearStats>;  // "2018".."2026"
 };

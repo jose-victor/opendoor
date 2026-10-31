@@ -34,6 +34,13 @@ Papéis em `participation.role`:
 
 Logins especiais: `ghost` = conta apagada; `~Nome` = autor de commit sem conta no GitHub.
 
+## Repositórios grandes (`repos.collection_mode = 'contagem+amostra'`)
+Acima de 6 mil issues + PRs não copiamos item a item:
+- `repo_monthly`: só `issues_opened`, `issues_closed`, `prs_opened` e `prs_merged`, que são **contagens completas desde 2018** pela busca do GitHub. Os outros campos ficam NULL.
+- `commit_monthly`: `commits` completo; `direct_commits` NULL.
+- `repo_sample(repo, window_start, prs, human_prs, outsider_prs, first_timer_prs, mergers, authors)`: amostra de até 300 PRs aceitos nos últimos 12 meses. `outsider_prs` = autor não é membro, dono nem colaborador (`authorAssociation`). `first_timer_prs` quase sempre dá 0, porque a associação é a de hoje: depois do merge, quem estreou vira contribuidor.
+- `participation` desses repos é parcial (só o período mais recente) e não deve ser usada para séries anuais.
+
 ## Cobertura (leia antes de comparar anos)
 - `repos.activity_since` / `repos.activity_truncated`: a partir de quando PRs e issues estão completos. Repositórios gigantes guardam só os 3 mil itens mais recentes por tipo.
 - `commit_coverage(repo, since, truncated)`: o mesmo para commits.

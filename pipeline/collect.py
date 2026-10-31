@@ -10,6 +10,7 @@ Cada etapa pode ser re-executada: ela pula o que já está no banco e retoma de 
   python pipeline/collect.py labels                # GitHub: issues abertas marcadas para iniciantes / help wanted
   python pipeline/collect.py security              # deps.dev: OpenSSF Scorecard + alertas de vulnerabilidade
   python pipeline/collect.py apps                  # vertente 2: marca e fotografa os apps mainstream (lista APPS)
+  python pipeline/collect.py large [--workers N]  # repos grandes: contagens mensais + amostra de pessoas
   python pipeline/collect.py reaggregate           # recalcula as agregações a partir do cache bruto, sem API
   python pipeline/collect.py stats                 # resumo do banco
   python pipeline/collect.py selftest              # checa a agregação mensal
@@ -360,7 +361,7 @@ def write_activity(db, repo, since, trunc, monthly, part, fetched_at):
 def cmd_reaggregate(db, args):
     """Recalcula repo_monthly e participation a partir de data/raw/github_activity, sem chamar a API."""
     rows = db.execute("SELECT repo, activity_since, activity_truncated, activity_fetched_at FROM repos "
-                      "WHERE activity_fetched_at IS NOT NULL").fetchall()
+                      "WHERE activity_fetched_at IS NOT NULL AND collection_mode IS NULL").fetchall()  # grandes: etapa large
     for repo, since, trunc, fetched_at in rows:
         raw = json.loads(gzip.decompress((RAW / "github_activity" / (repo.replace("/", "__") + ".json.gz")).read_bytes()))
         monthly, part = aggregate(raw["prs"], raw["issues"], since, raw["fetched_at"][:7])
@@ -462,6 +463,104 @@ def cmd_commits(db, args):
             log(f"  [{i}/{len(todo)}] {repo}: {n} commits desde {since}{' (truncado)' if trunc else ''}")
 
 
+LARGE_ITEMS = 6000  # acima disso (issues + PRs no total) o repo é "grande": contagem + amostra, não cópia
+OUTSIDER = {"CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER", "NONE"}
+FIRST_TIMER = {"FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER"}
+COUNT_QUERIES = {  # campo de repo_monthly -> filtro da busca
+    "issues_opened": "is:issue created:{r}", "issues_closed": "is:issue closed:{r}",
+    "prs_opened": "is:pr created:{r}", "prs_merged": "is:pr merged:{r}",
+}
+SAMPLE_QUERY = """query($q:String!,$c:String){ rateLimit{remaining resetAt}
+ search(type:ISSUE, first:100, after:$c, query:$q){ pageInfo{hasNextPage endCursor}
+  nodes{ ... on PullRequest{ authorAssociation author{login __typename} mergedBy{login __typename} } } } }"""
+
+
+def month_range(since, until):
+    y, m = map(int, since.split("-"))
+    while f"{y}-{m:02d}" < until:
+        nxt = (y + m // 12, m % 12 + 1)
+        yield f"{y}-{m:02d}", f"{y}-{m:02d}-01", f"{nxt[0]}-{nxt[1]:02d}-01"
+        y, m = nxt
+
+
+def large_for(repo, created):
+    owner, name = repo.split("/")
+    until = datetime.now(timezone.utc).strftime("%Y-%m")
+    since = max(SINCE, created[:7])
+    months = list(month_range(since, until))
+    counts = defaultdict(dict)
+    # 1) contagens mensais pela busca: só o total, sem baixar itens (~30 contagens por chamada)
+    jobs = [(mo, f, q.format(r=f"{a}..{b}")) for mo, a, b in months for f, q in COUNT_QUERIES.items()]
+    for start in range(0, len(jobs), 30):
+        chunk = jobs[start:start + 30]
+        parts = [f'a{i}: search(type:ISSUE, first:0, query:{json.dumps(f"repo:{repo} {q}")}){{issueCount}}'
+                 for i, (_, _, q) in enumerate(chunk)]
+        data = gh("query{ rateLimit{remaining resetAt} " + " ".join(parts) + " }").get("data") or {}
+        for i, (mo, f, _) in enumerate(chunk):
+            counts[mo][f] = (data.get(f"a{i}") or {}).get("issueCount")
+    # 2) commits por mês no branch principal: também só o total
+    commits = {}
+    for start in range(0, len(months), 36):
+        chunk = months[start:start + 36]
+        parts = [f'c{i}: history(since:"{a}T00:00:00Z", until:"{b}T00:00:00Z"){{totalCount}}' for i, (_, a, b) in enumerate(chunk)]
+        q = (f'query{{ rateLimit{{remaining resetAt}} repository(owner:{json.dumps(owner)}, name:{json.dumps(name)}){{'
+             f' defaultBranchRef{{ target{{ ... on Commit{{ {" ".join(parts)} }} }} }} }} }}')
+        target = ((((gh(q).get("data") or {}).get("repository") or {}).get("defaultBranchRef") or {}).get("target") or {})
+        for i, (mo, _, _) in enumerate(chunk):
+            commits[mo] = (target.get(f"c{i}") or {}).get("totalCount")
+    # 3) amostra de pessoas: até 300 PRs aceitos nos últimos 12 meses, com a relação do autor com o projeto
+    window = list(month_range("2000-01", until))[-12][0]
+    prs, cursor = [], None
+    for _ in range(3):
+        d = gh(SAMPLE_QUERY, {"q": f"repo:{repo} is:pr is:merged merged:>={window}-01 sort:created-desc", "c": cursor})
+        s = (d.get("data") or {}).get("search") or {"nodes": [], "pageInfo": {}}
+        prs += [n for n in s["nodes"] if n]
+        if not s["pageInfo"].get("hasNextPage"):
+            break
+        cursor = s["pageInfo"]["endCursor"]
+    humans = [p for p in prs if not is_bot(p.get("author"))]
+    sample = (window, len(prs), len(humans), sum(p["authorAssociation"] in OUTSIDER for p in humans),
+              sum(p["authorAssociation"] in FIRST_TIMER for p in humans),
+              len({(p.get("mergedBy") or {}).get("login") for p in prs if p.get("mergedBy") and not is_bot(p["mergedBy"])}),
+              len({(p.get("author") or {}).get("login") for p in humans}))
+    return repo, since, counts, commits, sample
+
+
+def cmd_large(db, args):
+    """Repos grandes: contagens mensais completas (busca) + amostra de pessoas, em vez de copiar cada item."""
+    db.execute("""CREATE TABLE IF NOT EXISTS repo_sample(repo TEXT PRIMARY KEY, window_start TEXT, prs INT, human_prs INT,
+      outsider_prs INT, first_timer_prs INT, mergers INT, authors INT, fetched_at TEXT)""")
+    todo = db.execute(
+        "SELECT r.repo, r.created_at FROM repos r LEFT JOIN commit_coverage c ON c.repo = r.repo "
+        "WHERE r.found = 1 AND COALESCE(r.collection_mode, '') != 'contagem+amostra' AND "
+        "(r.activity_truncated = 1 OR c.truncated = 1 OR COALESCE(r.total_issues, 0) + COALESCE(r.total_prs, 0) > ?)",
+        (LARGE_ITEMS,)).fetchall()
+    log(f"{len(todo)} repositórios grandes")
+    with cf.ThreadPoolExecutor(args.workers) as ex:
+        futures = [ex.submit(large_for, r, c) for r, c in todo]
+        for i, fut in enumerate(cf.as_completed(futures), 1):
+            try:
+                repo, since, counts, commits, sample = fut.result()
+            except Exception as e:
+                log(f"  ERRO: {e}")
+                continue
+            with db:
+                # campos que só a cópia item a item dá (fechadas sem merge, revisões, commits diretos) ficam NULL
+                db.execute("DELETE FROM repo_monthly WHERE repo=?", (repo,))
+                db.executemany("INSERT INTO repo_monthly(repo, month, issues_opened, issues_closed, prs_opened, prs_merged) "
+                               "VALUES(?,?,?,?,?,?)", [(repo, mo, c.get("issues_opened"), c.get("issues_closed"),
+                                                         c.get("prs_opened"), c.get("prs_merged")) for mo, c in counts.items()])
+                db.execute("DELETE FROM commit_monthly WHERE repo=?", (repo,))
+                db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,NULL)", [(repo, mo, n) for mo, n in commits.items()])
+                db.execute("INSERT OR REPLACE INTO repo_sample VALUES(?,?,?,?,?,?,?,?,?)", (repo, *sample, now()))
+                db.execute("UPDATE repos SET collection_mode='contagem+amostra', activity_since=?, activity_truncated=0 "
+                           "WHERE repo=?", (since, repo))
+                db.execute("INSERT OR REPLACE INTO commit_coverage VALUES(?,?,0,?)", (repo, since, now()))
+            _, n, h, out, ft, mg, au = sample
+            log(f"  [{i}/{len(todo)}] {repo}: {len(counts)} meses; amostra {n} PRs aceitos, "
+                f"{out}/{h} de fora, {ft} estreias, {mg} fazem merge")
+
+
 NEWCOMER_LABELS = '"good first issue","good-first-issue","first-timers-only","beginner","easy","help wanted"'
 
 
@@ -555,18 +654,22 @@ def cmd_selftest(db, args):
     assert monthly["2025-01"] == Counter(commits=2, direct_commits=1) and "2025-02" not in monthly
     assert part[("2025-01", "direct_committer", "rui", 0)] == 1 and part[("2025-01", "committer", "~Fulano", 0)] == 1
     assert aggregate_commits(commits, "2018-01", "2025-03")[1][("2025-02", "direct_committer", "renovate[bot]", 1)] == 1
+    assert [m[0] for m in month_range("2025-11", "2026-02")] == ["2025-11", "2025-12", "2026-01"]
+    assert list(month_range("2025-12", "2026-01")) == [("2025-12", "2025-12-01", "2026-01-01")]
     log("selftest ok")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "security", "apps", "reaggregate", "stats", "selftest"])
+    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "security", "apps", "reaggregate", "large", "stats", "selftest"])
     ap.add_argument("--limit", type=int, default=300, help="activity: quantos repos (os com mais dependentes primeiro)")
     ap.add_argument("--workers", type=int, default=4, help="activity: repos em paralelo")
     args = ap.parse_args()
     DATA.mkdir(exist_ok=True)
     db = sqlite3.connect(DB, timeout=60)
     db.executescript(SCHEMA)
+    if "collection_mode" not in {r[1] for r in db.execute("PRAGMA table_info(repos)")}:
+        db.execute("ALTER TABLE repos ADD COLUMN collection_mode TEXT")  # NULL = completo; 'contagem+amostra' = grande
     globals()[f"cmd_{args.cmd}"](db, args)
 
 

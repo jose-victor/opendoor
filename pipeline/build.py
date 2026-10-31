@@ -44,6 +44,7 @@ def main():
     dependents = dict(db.execute("SELECT repo, MAX(dependents) FROM packages WHERE repo IS NOT NULL GROUP BY repo"))
     scorecard = dict(db.execute("SELECT repo, overall FROM repo_scorecard")) if table_exists(db, "repo_scorecard") else {}
     newcomer = dict(db.execute("SELECT repo, newcomer_open FROM repo_labels")) if table_exists(db, "repo_labels") else {}
+    sample = {r["repo"]: r for r in db.execute("SELECT * FROM repo_sample")} if table_exists(db, "repo_sample") else {}
     commit_since = dict(db.execute("SELECT repo, since FROM commit_coverage")) if table_exists(db, "commit_coverage") else {}
     maint = dict(db.execute(
         "SELECT repo, COUNT(DISTINCT login) FROM participation WHERE is_bot = 0 AND month >= ? "
@@ -64,6 +65,11 @@ def main():
     projects, languages = [], set()
     for r in db.execute("SELECT * FROM repos WHERE found = 1 AND (archived = 0 OR archived IS NULL) ORDER BY repo"):
         repo = r["repo"]
+        large = r["collection_mode"] == "contagem+amostra"
+        smp = sample.get(repo)
+        if large:  # pessoas e commits diretos não existem para os grandes; abertura e mergers vêm da amostra
+            for v in years[repo].values():
+                v.update(people=None, direct_commits=None)
         since = max(filter(None, [r["activity_since"] or "2018-01", commit_since.get(repo)]))
         if r["language"]:
             languages.add(r["language"])
@@ -79,11 +85,12 @@ def main():
             "profile": "precisa_de_maos",  # D3
             "needs": [],                    # D5
             "skills": [],                   # D2
-            "openness": None,               # D3
-            "maintainers_24m": maint.get(repo, 0),
+            "openness": round(smp["outsider_prs"] / smp["human_prs"], 2) if large and smp and smp["human_prs"] >= 5 else None,  # D3: completos
+            "maintainers_24m": (smp["mergers"] if smp else 0) if large else maint.get(repo, 0),
             "newcomer_open": newcomer.get(repo) or 0,
             "scorecard": scorecard.get(repo),
             "ai_policy": {"classification": "unknown", "evidence": "", "source_file": ""},  # K2
+            "collection": "contagem+amostra" if large else "completo",
             "coverage_since": since,
             # anos anteriores ao início da cobertura ficam de fora para não parecerem "zero atividade"
             "years": {y: v for y, v in sorted(years[repo].items()) if y >= since[:4]},
