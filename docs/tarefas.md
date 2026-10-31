@@ -6,20 +6,16 @@ Nomes são sugestão. Tamanho: P (até 30 min), M (até 1h).
 
 Prazo: **congelar às 16h**, submeter às **16h30**.
 
-## Situação (31/10, 13h30)
-- **Na `main` e no ar:**
-  - D1 a D5: habilidades, perfis, match e oportunidades;
-  - K1, K2 e A1 a A3: o Gemma no pipeline e ao vivo no `/api/explain`;
-  - P1: o gabarito.
-- **Rodando em segundo plano:**
-  - a coleta da rodada 3 (atividade dos repos PyPI e Go);
-  - as sugestões do Gemma (`opportunities.py`).
-  Depois deles roda a política de IA (`classify_ai_policy.py`), e tudo entra no PR de dados finais (#25).
-- **Falta para a demo:**
-  - S1, S2 e S3 (telas: filtros, cards e página do projeto);
-  - K3 (acurácia);
-  - I1 (integração às 15h);
-  - P2 e P3 (README final, vídeo e submissão).
+## Situação (31/10, 15h15)
+- **Na `main` e no ar:** D1 a D5, K1, K2, A1 a A3, P1 e P2.
+- **Esperando merge:**
+  - **#45**, telas revisadas em grupo (S1 a S3), guias salvos (G1, parte), critérios de iniciante revistos depois de duas auditorias, e o logo (inclui o #47);
+  - em seguida, o **PR de dados finais (#25)**, com o banco e o `projects.json`.
+- **Números atuais:** 958 projetos, 346 aceitam contribuição, **30 prontos para iniciante**.
+- **Falta:**
+  - I1 (congelar a `main` às 16h);
+  - P3 (vídeo e submissão às 16h30);
+  - K3 (acurácia; o gabarito e o classificador estão prontos).
 
 ## Ordem
 ```

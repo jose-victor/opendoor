@@ -17,14 +17,15 @@ O OpenDoor mapeia o ecossistema, mede a saúde e a abertura de cada projeto e ca
 1. **Mapa:** grafo de dependências do npm, PyPI e Go (deps.dev), mais uma lista de apps mainstream e de IA que vivem no GitHub.
 2. **Saúde, de 2018 até hoje:** issues, PRs, revisões, merges e commits por mês, com quem fez cada papel; OpenSSF Scorecard; issues para iniciantes.
 3. **Perfil de cada projeto:** *Guardião*, *Porta aberta*, *Precisa de mãos* ou *Estável* (ver [docs/visao.md](docs/visao.md)).
-4. **IA aberta (Gemma 4):** lê a política de contribuição de cada projeto (aceita IA? com aviso? proíbe?) e explica por que um projeto combina com você.
+4. **Pronto para iniciante:** só ganha o selo o projeto em que os dados mostram gente nova conseguindo entrar (estreias, aceite de quem é novo, PRs de fora aceitos recentemente, tempo de resposta e guia de contribuição). Ver [docs/arquitetura.md](docs/arquitetura.md).
+5. **IA aberta (Gemma 4), offline:** lê a política de contribuição de cada projeto (aceita IA? com aviso? proíbe?), sugere onde ajudar e escreve o guia "por onde começar". Tudo é gerado antes e fica salvo; o site não chama o modelo na hora.
 
 ## Dados e IA
 
-Em 31/10/2026, às 13h30, o banco tinha:
+Em 31/10/2026, às 15h, o banco tinha:
 - **973 repositórios**: os de 1.351 pacotes críticos de npm (950), PyPI (225) e Go (176), mais apps mainstream e de IA;
-- **961 projetos no site**, dos quais 265 aparecem no match (os estáveis ficam de fora);
-- **25.463 linhas mensais** e **317.774 registros de participação**;
+- **958 projetos no site**, dos quais 346 aceitam contribuição e **30 estão prontos para iniciante**;
+- **39.100 linhas mensais** e **523.716 registros de participação**;
 - **1.190 arquivos** de contribuição e de política de IA.
 
 Os 104 repos grandes têm contagens mensais completas mais uma amostra de PRs. Todos os números são recalculáveis a partir do cache bruto.
@@ -36,7 +37,9 @@ mantenedor, mantenedores ativos, issues para iniciantes, commits, revisões e Sc
 **O Gemma 4 (`gemma-4-26b-a4b-it`) trabalha em três pontos:**
 1. **Oportunidades (offline):** `pipeline/opportunities.py` lê o guia de contribuição de cada projeto e sugere onde ajudar quando o projeto não diz. Exemplo no React: "traduzir a documentação oficial para o português brasileiro".
 2. **Política de IA (offline):** `pipeline/classify_ai_policy.py` classifica se o projeto aceita IA, pede aviso ou proíbe, sempre com uma citação literal do arquivo.
-3. **Explicação (ao vivo):** `/api/explain` explica por que o projeto combina com a pessoa e dá os primeiros passos. Ele começa por observar e conversar, nunca por "abra um PR". A avaliação está em `eval/explain.md`.
+3. **Guia "por onde começar" (offline):** `pipeline/guides.py` escreve, uma vez por projeto, o resumo e os passos por forma de ajuda. O site combina o guia com o perfil da pessoa, sem chamar o modelo. Os passos começam por observar e conversar, nunca por "abra um PR".
+
+A rota `/api/explain` (Gemma ao vivo) continua disponível, mas o site não a usa: o grupo preferiu que tudo fosse gerado antes e ficasse salvo. A avaliação dela está em `eval/explain.md`.
 
 `pipeline/llm.py` fala com o Gemma pela Gemini API ou pelo Ollama local.
 
@@ -68,10 +71,10 @@ tests or issue triage.
 
 ## Estado da demo
 
-- **Dados coletados:** 973 repositórios e 961 projetos no site (números completos em "Dados e IA").
+- **Dados coletados:** 973 repositórios e 958 projetos no site, 30 prontos para iniciante (números completos em "Dados e IA").
 - **Gabarito de políticas:** 28 repositórios rotulados à mão, com as 4 categorias (13 silent, 7 accepts_with_disclosure, 5 accepts e 3 forbids).
-- **Gemma ao vivo:** `/api/explain` em produção. Nas 9 combinações de `eval/explain.md` (3 perfis × 3 projetos), todas as respostas foram válidas, cada uma levando de 30 a 45 s.
-- **Acurácia do classificador K3:** aguarda a implementação de `pipeline/evaluate.py`; o valor não foi estimado neste README sem a comparação oficial.
+- **Gemma:** oportunidades, política de IA (966 de 975 repos classificados) e guias gerados offline. A rota ao vivo `/api/explain` foi avaliada em `eval/explain.md` (9 de 9 respostas válidas, de 30 a 45 s cada).
+- **Acurácia do classificador (K3):** ainda sem o script oficial. Na auditoria de 31/10, 22 de 24 rótulos do gabarito já classificados bateram.
 
 ## Começando
 Requisitos: Python 3.11+ (só biblioteca padrão) e o [GitHub CLI](https://cli.github.com/) logado (`gh auth login`), que fornece o token da API.
