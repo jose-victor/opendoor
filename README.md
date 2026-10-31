@@ -38,10 +38,24 @@ python pipeline/collect.py security    # OpenSSF Scorecard + alertas
 python pipeline/collect.py selftest    # testes da agregação
 ```
 
+## Site (`web/`)
+**No ar:** https://opendoor-fawn.vercel.app
+
+Next.js 16 (App Router) na Vercel. Os dados vêm de `web/public/data/`, gerados por `python pipeline/build.py`.
+
+```bash
+cd web
+cp ../.env.example .env.local   # preencha GEMINI_API_KEY
+npm install
+npm run dev                     # http://localhost:3000
+```
+
 ## Estrutura
 | Caminho | O quê |
 |---|---|
 | `pipeline/collect.py` | coletor (um arquivo, sem dependências) |
+| `pipeline/build.py` | gera `web/public/data/*.json` a partir do banco |
+| `web/` | site Next.js: páginas, `/api/explain`, `lib/types.ts` (tipos do contrato) |
 | `data/ecosystem.db` | banco SQLite com tudo que foi coletado |
 | `docs/dados.md` | dicionário de dados e consultas de exemplo |
 | `docs/tarefas.md` | **tarefas em aberto (cada uma vira uma issue)** |
