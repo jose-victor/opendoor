@@ -1,17 +1,13 @@
 "use client";
-// "Por onde começar?": mostra na hora o guia salvo do projeto (G1, sem chamar o modelo).
-// A versão ao vivo (ExplainBox) fica como opção, e é o caminho quando o projeto ainda não tem guia.
+// "Por onde começar?": tudo vem pronto e salvo (G1). O guia do projeto, gerado antes, é combinado com o
+// perfil sem chamar modelo nenhum. Sem guia salvo, os passos saem das oportunidades.
 import { useState } from "react";
-import { composeGuide } from "@/lib/guide";
+import { aiPolicyNote, composeGuide, guideFor } from "@/lib/guide";
 import { WAY_LABELS } from "@/lib/labels";
 import type { Project, UserProfile } from "@/lib/types";
-import ExplainBox from "./ExplainBox";
 
 export default function StartBox({ project, profile, startOpen = false }: { project: Project; profile: UserProfile; startOpen?: boolean }) {
   const [open, setOpen] = useState(startOpen);
-  const [live, setLive] = useState(false);
-
-  if (!project.guide) return <ExplainBox repo={project.repo} profile={profile} />;
 
   if (!open) {
     return (
@@ -24,13 +20,14 @@ export default function StartBox({ project, profile, startOpen = false }: { proj
     );
   }
 
-  const g = composeGuide(project.guide, profile);
+  const g = composeGuide(guideFor(project), profile);
+  const alerts = [aiPolicyNote(project), g.heads_up].filter(Boolean) as string[];
   return (
     <div className="space-y-3">
       <ol className="space-y-2">
         {g.steps.map((s, i) => (
           <li key={s.text} className="grid grid-cols-[1.5rem_1fr] gap-2 text-sm leading-relaxed">
-            <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600/10 text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+            <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600/15 text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
               {i + 1}
             </span>
             <span>
@@ -40,15 +37,15 @@ export default function StartBox({ project, profile, startOpen = false }: { proj
           </li>
         ))}
       </ol>
-      {g.heads_up && <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">{g.heads_up}</p>}
-      <p className="text-xs text-muted">Guia gerado com IA a partir do guia de contribuição e dos dados do projeto. Confira no projeto antes de agir.</p>
-      {live ? (
-        <ExplainBox repo={project.repo} profile={profile} autoStart />
-      ) : (
-        <button onClick={() => setLive(true)} className="text-xs font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400">
-          Personalizar para o meu perfil (leva uns 40 s)
-        </button>
-      )}
+      {alerts.map((a) => (
+        <p key={a} className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+          {a}
+        </p>
+      ))}
+      <p className="text-xs text-muted">
+        {project.guide ? "Guia gerado com IA a partir do guia de contribuição e dos dados do projeto." : "Passos montados a partir dos dados do projeto."} Confira no
+        projeto antes de agir.
+      </p>
     </div>
   );
 }

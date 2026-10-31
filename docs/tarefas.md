@@ -139,7 +139,12 @@ Todas dependem do E1 e usam o `projects.json` do E2.
   - O botão "Por onde começar?" chama o Gemma ali mesmo, com carregamento e contador, e guarda a resposta para não repetir a chamada.
   - A página do projeto traz todas as oportunidades, a política de IA com a citação, o gráfico de PRs abertos contra aceitos por ano e a mesma caixa do Gemma.
   - O perfil marcado na home vale na página do projeto (`sessionStorage`).
-  - Na revisão em grupo (José, Anna, Kaiky e Pablo), a home virou duas colunas: filtros à esquerda e portas à direita. O card ficou mais leve: resumo em pt-BR do guia, uma frase com o número que explica o perfil e "onde ajudar" em etiquetas. O site não faz propaganda do modelo.
+  - Na revisão em grupo (José, Anna, Kaiky e Pablo), a home virou duas colunas: filtros à esquerda e portas à direita. O card ficou mais leve: resumo em pt-BR do guia, uma frase com o número que explica o perfil e "onde ajudar" em etiquetas. O site não faz propaganda do modelo. Na segunda rodada:
+    - a faixa colorida do card diz **por que** a porta apareceu;
+    - entraram 3 números grandes na cor do perfil;
+    - a página do projeto foi reorganizada em seções;
+    - surgiu um link para as issues "good first issue" (e labels parecidos) no GitHub;
+    - nada é gerado na hora: o guia é salvo antes.
   - Componentes em `web/components/` e rótulos em `web/lib/labels.ts`.
 
 ---

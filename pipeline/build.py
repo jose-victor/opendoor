@@ -37,7 +37,9 @@ def profile_of(dependents, maintainers, openness, newcomer_open, open_issues):
         return "guardiao"      # muita gente depende, 1 ou 2 pessoas cuidam (0 = parado, cai em estável)
     if openness is not None and (openness >= 0.25 or (openness >= 0.1 and newcomer_open > 0)):
         return "porta_aberta"  # PRs de fora são aceitos
-    if open_issues >= 30 and maintainers <= 3 and (newcomer_open > 0 or (openness or 0) > 0):
+    # aceita gente de fora de verdade: 10%+ dos PRs aceitos; sem dados de PR, issues marcadas para iniciantes
+    accepts_outsiders = openness >= 0.1 if openness is not None else newcomer_open > 0
+    if open_issues >= 30 and 1 <= maintainers <= 3 and accepts_outsiders:
         return "precisa_de_maos"
     return "estavel"
 
@@ -216,5 +218,6 @@ if __name__ == "__main__":
     assert profile_of(912_802, 1, None, 0, 10) == "guardiao"          # debug-js/debug
     assert profile_of(110_496, 5, 0.57, 1, 40) == "porta_aberta"      # expressjs/express
     assert profile_of(500_000, 0, None, 0, 3) == "estavel"            # parado há 24 meses
-    assert profile_of(None, 2, 0.05, 2, 120) == "precisa_de_maos"
+    assert profile_of(None, 2, 0.15, 0, 120) == "precisa_de_maos"
+    assert profile_of(None, 1, 0.04, 0, 900) == "estavel"             # open-webui: quase nada de fora entra
     main()

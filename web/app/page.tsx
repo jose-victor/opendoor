@@ -39,7 +39,7 @@ export default function Home() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <header className="mb-10 max-w-3xl space-y-4">
         <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">OpenDoor</p>
-        <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">Uma porta de entrada no open source, do seu tamanho.</h1>
+        <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">Uma porta de entrada no open source, <span className="text-emerald-600 dark:text-emerald-400">do seu tamanho</span>.</h1>
         <p className="text-lg leading-relaxed text-muted">
           Conte o que você sabe e como quer ajudar. A gente mostra poucos projetos que precisam exatamente disso e por onde começar:
           primeiro observar e conversar, depois contribuir.

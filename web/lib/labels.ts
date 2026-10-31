@@ -42,6 +42,14 @@ export const PROFILE_LABELS: Record<Profile, { label: string; hint: string; clas
   },
 };
 
+// Cor de cada perfil, usada no selo, nos números e na faixa do card.
+export const PROFILE_TONE: Record<Profile, { text: string; soft: string; dot: string }> = {
+  porta_aberta: { text: "text-emerald-700 dark:text-emerald-400", soft: "bg-emerald-500/10", dot: "bg-emerald-500" },
+  precisa_de_maos: { text: "text-amber-700 dark:text-amber-400", soft: "bg-amber-500/10", dot: "bg-amber-500" },
+  guardiao: { text: "text-violet-700 dark:text-violet-400", soft: "bg-violet-500/10", dot: "bg-violet-500" },
+  estavel: { text: "text-zinc-600 dark:text-zinc-400", soft: "bg-zinc-500/10", dot: "bg-zinc-400" },
+};
+
 export const AI_LABELS: Record<AiPolicy["classification"], { label: string; className: string } | null> = {
   accepts: { label: "Aceita IA", className: "text-emerald-700 dark:text-emerald-400" },
   accepts_with_disclosure: { label: "IA com aviso", className: "text-amber-700 dark:text-amber-400" },

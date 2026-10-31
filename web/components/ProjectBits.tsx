@@ -1,75 +1,87 @@
-// Peças comuns ao card (S2) e à página do projeto (S3): selos, números de saúde e oportunidades.
-import { AI_LABELS, PROFILE_LABELS, WAY_LABELS } from "@/lib/labels";
-import type { Opportunity, Project } from "@/lib/types";
-
-export function ProfileBadge({ project }: { project: Project }) {
-  const p = PROFILE_LABELS[project.profile];
-  return (
-    <span title={p.hint} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${p.className}`}>
-      {p.label}
-    </span>
-  );
-}
+// Peças comuns ao card (S2) e à página do projeto (S3): selo de IA, faixa do perfil e números.
+import { AI_LABELS, PROFILE_LABELS, PROFILE_TONE } from "@/lib/labels";
+import type { Project } from "@/lib/types";
 
 export function AiBadge({ project }: { project: Project }) {
   const a = AI_LABELS[project.ai_policy.classification];
   if (!a) return null;
   const quote = project.ai_policy.evidence ? `"${project.ai_policy.evidence}" (${project.ai_policy.source_file})` : undefined;
   return (
-    <span title={quote} className={`text-xs font-medium ${a.className}`}>
+    <span title={quote} className={`rounded-full border border-current/25 px-2 py-0.5 text-xs font-medium ${a.className}`}>
       {a.label}
     </span>
   );
 }
 
-function fmt(n: number) {
-  return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(".", ",")} mil` : String(n);
-}
+// Mesmos labels que a coleta conta (NEWCOMER_LABELS em pipeline/collect.py); na busca do GitHub, a vírgula é "ou".
+const NEWCOMER_LABELS = ["good first issue", "good-first-issue", "first-timers-only", "beginner", "easy", "help wanted"];
 
-// Uma frase com o número que explica o perfil, em vez de uma fileira de métricas.
-export function keyFact(p: Project): string {
-  const people = (n: number) => (n === 1 ? "1 pessoa cuida" : `${n} pessoas cuidam`);
-  const newcomer = p.newcomer_open > 0 ? ` Há ${p.newcomer_open === 1 ? "1 issue marcada" : `${p.newcomer_open} issues marcadas`} para quem está começando.` : "";
-  if (p.profile === "guardiao" && p.dependents)
-    return `${fmt(p.dependents)} pacotes dependem dele e ${people(p.maintainers_24m)}. Ajuda com cuidado faz muita diferença.${newcomer}`;
-  if (p.profile === "porta_aberta" && p.openness !== null)
-    return `${Math.round(p.openness * 100)}% dos PRs aceitos no último ano vieram de gente de fora.${newcomer}`;
-  if (p.profile === "precisa_de_maos") return `Muito trabalho acumulado e só ${people(p.maintainers_24m).replace(" cuida", " mantém").replace(" cuidam", " mantêm")}.${newcomer}`;
-  return newcomer.trim();
-}
-
-export function Stats({ project }: { project: Project }) {
-  const items: [string, string][] = [
-    ["mantêm (24 meses)", String(project.maintainers_24m)],
-    ["PRs aceitos de fora", project.openness === null ? "—" : `${Math.round(project.openness * 100)}%`],
-    ["issues para iniciantes", String(project.newcomer_open)],
-    ["Scorecard", project.scorecard === null ? "—" : `${project.scorecard.toFixed(1).replace(".", ",")}/10`],
-  ];
-  if (project.dependents) items.push(["dependentes", fmt(project.dependents)]);
+export function NewcomerLink({ project }: { project: Project }) {
+  if (project.newcomer_open <= 0) return null;
+  const q = `is:issue is:open label:${NEWCOMER_LABELS.map((l) => `"${l}"`).join(",")}`;
   return (
-    <dl className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-      {items.map(([k, v]) => (
-        <div key={k} className="flex items-baseline gap-1">
-          <dt className="sr-only">{k}</dt>
-          <dd className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">{v}</dd>
-          <span aria-hidden>{k}</span>
-        </div>
-      ))}
-    </dl>
+    <a
+      href={`${project.url}/issues?q=${encodeURIComponent(q)}`}
+      target="_blank"
+      rel="noreferrer"
+      className="self-start text-sm font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
+    >
+      Ver {project.newcomer_open === 1 ? "a issue marcada" : `as ${project.newcomer_open} issues marcadas`} para iniciantes no GitHub ↗
+    </a>
   );
 }
 
-export function OpportunityItem({ o }: { o: Opportunity }) {
+export function fmt(n: number) {
+  return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1).replace(".", ",")} mil` : String(n);
+}
+
+// Por que esta porta: o número que explica o perfil, em uma frase.
+export function doorReason(p: Project): string {
+  const pct = p.openness === null ? null : `${Math.round(p.openness * 100)}% dos PRs aceitos vêm de fora`;
+  const people = p.maintainers_24m === 1 ? "1 pessoa mantém" : `${p.maintainers_24m} pessoas mantêm`;
+  const newcomer = p.newcomer_open > 0 ? (p.newcomer_open === 1 ? "1 issue para iniciantes" : `${p.newcomer_open} issues para iniciantes`) : null;
+  const parts =
+    p.profile === "guardiao"
+      ? [p.dependents ? `${fmt(p.dependents)} pacotes dependem dele` : null, people]
+      : p.profile === "precisa_de_maos"
+        ? [`muito trabalho acumulado e ${people}`, pct]
+        : p.profile === "porta_aberta"
+          ? [pct, newcomer]
+          : [PROFILE_LABELS[p.profile].hint];
+  return parts.filter(Boolean).join(" · ");
+}
+
+export function ProfileBand({ project }: { project: Project }) {
+  const tone = PROFILE_TONE[project.profile];
   return (
-    <li className="flex gap-2 text-sm leading-snug">
-      <span className="shrink-0 font-medium">{WAY_LABELS[o.way].label}:</span>
-      <span className="text-zinc-700 dark:text-zinc-300">
-        {o.note}
-        {o.source === "gemma" && (
-          <span className="ml-1.5 rounded bg-sky-50 px-1 py-px text-[11px] font-medium text-sky-700 dark:bg-sky-950 dark:text-sky-300">sugestão da IA</span>
-        )}
-        {o.source === "projeto" && <span className="ml-1.5 text-[11px] text-zinc-400">o projeto pede</span>}
-      </span>
-    </li>
+    <div className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 px-5 py-2 text-xs sm:px-6 ${tone.soft} ${tone.text}`}>
+      <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+      <span className="font-semibold">{PROFILE_LABELS[project.profile].label}</span>
+      <span className="opacity-90">· {doorReason(project)}</span>
+    </div>
+  );
+}
+
+// Números grandes na cor do perfil. "full" mostra todos (página do projeto); senão, os 3 que mais dizem.
+export function BigNumbers({ project: p, full = false }: { project: Project; full?: boolean }) {
+  const tone = PROFILE_TONE[p.profile];
+  const all: [string, string, boolean][] = [
+    [p.dependents ? fmt(p.dependents) : "—", "pacotes dependem dele", p.profile === "guardiao"],
+    [p.openness === null ? "—" : `${Math.round(p.openness * 100)}%`, "dos PRs aceitos vêm de fora", true],
+    [String(p.maintainers_24m), p.maintainers_24m === 1 ? "pessoa mantém" : "pessoas mantêm", true],
+    [String(p.newcomer_open), "issues para iniciantes", p.profile !== "guardiao"],
+    [p.scorecard === null ? "—" : `${p.scorecard.toFixed(1).replace(".", ",")}`, "Scorecard de segurança (0 a 10)", false],
+  ];
+  const items = full ? all.filter(([v]) => v !== "—") : all.filter(([, , show]) => show).slice(0, 3);
+  return (
+    <dl className={`grid gap-3 ${full ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-3"}`}>
+      {items.map(([value, what]) => (
+        <div key={what} className="min-w-0">
+          <dt className="sr-only">{what}</dt>
+          <dd className={`font-display text-2xl font-semibold tabular-nums leading-none ${tone.text}`}>{value}</dd>
+          <span className="mt-1 block text-xs leading-snug text-muted">{what}</span>
+        </div>
+      ))}
+    </dl>
   );
 }

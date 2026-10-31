@@ -14,6 +14,11 @@ const LEVEL_BONUS: Record<Level, Partial<Record<Profile, number>>> = {
 };
 
 // languageIds: ids de skills.json com kind "linguagem". Se a pessoa marcou linguagens, o projeto precisa usar uma delas.
+// Acolhe quem está começando: issues marcadas para iniciantes ou 25%+ dos PRs aceitos vindos de fora.
+export function welcoming(p: Project): boolean {
+  return p.newcomer_open > 0 || (p.openness ?? 0) >= 0.25;
+}
+
 export function rankProjects(projects: Project[], profile: UserProfile, languageIds: ReadonlySet<string> = new Set()): Project[] {
   const wanted = new Set(profile.skills);
   const wantedLangs = profile.skills.filter((s) => languageIds.has(s));
@@ -25,6 +30,7 @@ export function rankProjects(projects: Project[], profile: UserProfile, language
     if (p.profile === "estavel") continue;
     // guardião pede gente experiente e de confiança: não é porta para quem está começando
     if (p.profile === "guardiao" && profile.level === "iniciante") continue;
+    if (profile.level === "iniciante" && !welcoming(p)) continue;
     if (ways.size > 0 && !p.needs.some((w) => ways.has(w))) continue;
     const common = p.skills.filter((s) => wanted.has(s)).length;
     if (wanted.size > 0 && common === 0 && !nonCodeOnly) continue;

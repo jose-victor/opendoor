@@ -115,12 +115,12 @@ O cliente do pipeline (`pipeline/llm.py`) lê o `.env` da raiz e roda com `pytho
 Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
 1. **`guardiao`:** 100 mil dependentes ou mais, e 1 ou 2 pessoas fizeram merge ou commit direto em 24 meses.
 2. **`porta_aberta`:** `openness` de 0,25 ou mais, ou de 0,1 ou mais com issues para iniciantes abertas.
-3. **`precisa_de_maos`:** 30 issues abertas ou mais, até 3 mantenedores ativos, e aceita gente de fora (PR aceito ou issue para iniciantes).
+3. **`precisa_de_maos`:** 30 issues abertas ou mais, de 1 a 3 mantenedores ativos, e aceita gente de fora **de verdade**: 10% ou mais dos PRs aceitos vêm de fora (sem dados de PR, vale ter issues para iniciantes). Antes bastava 1 PR aceito; o open-webui (4%, 1 mantenedor) e o webpack (2%) saíam como "precisa de mãos" e foram para estável.
 4. **`estavel`:** o resto, incluindo pacotes sem nenhum mantenedor ativo em 24 meses.
 
 O `openness` só é calculado com **5 PRs aceitos de humanos ou mais** em 12 meses; abaixo disso é `null`. Mantenedor é quem fez merge ou commit direto em 24 meses. Nos repos grandes, os dois números vêm da amostra (`repo_sample`).
 
-Distribuição em 31/10, com a etapa `large` ainda rodando: 723 estáveis, 142 guardiões, 86 portas abertas e 10 que precisam de mãos.
+Distribuição em 31/10 às 14h, com a coleta da rodada 3 ainda rodando: 580 estáveis, 168 guardiões, 199 portas abertas e 14 que precisam de mãos.
 
 ## Formas de contribuir (`Way`): rótulo sugerido e o que inclui
 | id | Rótulo no site | Inclui |
@@ -151,7 +151,7 @@ type Guide = {
   - se ela não marcou nenhuma e é iniciante, testes, docs e triagem primeiro;
   - senão, as do projeto.
   É determinístico: mesma entrada, mesma saída, e responde na hora.
-- **Ao vivo, opcional:** "Personalizar para o meu perfil" chama o `/api/explain` (30 a 45 s). Também é o caminho quando o projeto ainda não tem guia.
+- **Nada é gerado na hora.** O site não chama o modelo. Um projeto sem guia salvo recebe passos montados a partir das `opportunities` (`guideFor`). O alerta de política de IA vem do dado classificado, com a citação (`aiPolicyNote`). A rota `/api/explain` continua disponível para quem quiser a explicação ao vivo, mas a interface não a usa (decisão do grupo).
 - **No site, o conteúdo da IA é sinalizado** ("gerado com IA", "sugestão da IA"), sem propaganda do modelo. O OpenDoor é para a comunidade, e o modelo é um meio.
 
 ## Oportunidades (D5): `needs` e `opportunities`
@@ -174,6 +174,7 @@ Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos
 - **Exclusões:**
   - `estavel` nunca aparece;
   - `guardiao` não aparece para iniciante;
+  - para iniciante, só projetos **acolhedores**: com issues para iniciantes ou com 25% ou mais dos PRs aceitos vindos de fora (`welcoming`);
   - se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs`;
   - se a pessoa marcou habilidades, o projeto precisa ter pelo menos uma em comum;
   - se ela marcou linguagens, o projeto precisa usar uma delas.

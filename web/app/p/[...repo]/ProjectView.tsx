@@ -1,38 +1,67 @@
 "use client";
-// S3: página do projeto. Tudo do card, mais todas as oportunidades, a política de IA com a citação e o histórico.
+// S3: página do projeto. O que é, por que é uma porta, por onde começar, onde ajudar, política de IA e histórico.
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BigNumbers, NewcomerLink, ProfileBand } from "@/components/ProjectBits";
 import StartBox from "@/components/StartBox";
-import { AiBadge, OpportunityItem, ProfileBadge, Stats } from "@/components/ProjectBits";
-import { AI_LABELS, LEVEL_LABELS, PROFILE_LABELS, WAY_LABELS } from "@/lib/labels";
+import { LEVEL_LABELS, WAY_LABELS } from "@/lib/labels";
 import { EMPTY_PROFILE, loadProfile } from "@/lib/profile-store";
-import type { Project, UserProfile } from "@/lib/types";
+import type { Opportunity, Project, UserProfile } from "@/lib/types";
+
+const SOURCE: Record<Opportunity["source"], { label: string; className: string }> = {
+  projeto: { label: "o projeto pede", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+  dados: { label: "os números mostram", className: "bg-sky-500/10 text-sky-700 dark:text-sky-400" },
+  gemma: { label: "sugestão da IA", className: "bg-violet-500/10 text-violet-700 dark:text-violet-400" },
+};
+
+const AI_TONE: Record<Project["ai_policy"]["classification"], { title: string; className: string }> = {
+  accepts: { title: "Aceita contribuições feitas com ajuda de IA", className: "border-emerald-500/40 bg-emerald-500/5" },
+  accepts_with_disclosure: { title: "Aceita IA, mas pede que você avise quando usar", className: "border-amber-500/40 bg-amber-500/5" },
+  forbids: { title: "Não aceita contribuições feitas com IA", className: "border-red-500/40 bg-red-500/5" },
+  silent: { title: "O guia de contribuição não fala de IA", className: "border-line" },
+  unknown: { title: "Ainda não classificada. Leia o guia de contribuição antes de usar IA.", className: "border-line" },
+};
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4 rounded-xl border border-line bg-card p-5 sm:p-6">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      {children}
+    </section>
+  );
+}
 
 function YearsChart({ project }: { project: Project }) {
   const rows = Object.entries(project.years);
   const max = Math.max(1, ...rows.map(([, y]) => y.prs_opened));
   return (
     <figure className="space-y-2">
-      <figcaption className="text-sm text-zinc-600 dark:text-zinc-400">
-        PRs abertos <span className="inline-block h-2 w-3 rounded-sm bg-zinc-300 align-middle dark:bg-zinc-600" /> e aceitos{" "}
-        <span className="inline-block h-2 w-3 rounded-sm bg-emerald-600 align-middle" /> por ano
+      <figcaption className="flex flex-wrap gap-4 text-sm text-muted">
+        <span>
+          <span className="mr-1.5 inline-block h-2.5 w-3 rounded-sm bg-zinc-400/50 align-middle" />
+          PRs abertos
+        </span>
+        <span>
+          <span className="mr-1.5 inline-block h-2.5 w-3 rounded-sm bg-emerald-500 align-middle" />
+          PRs aceitos
+        </span>
       </figcaption>
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {rows.map(([year, y]) => (
-          <div key={year} className="grid grid-cols-[3rem_1fr_7.5rem] items-center gap-2 text-xs tabular-nums">
-            <span className="text-zinc-500">{year === "2026" ? "2026*" : year}</span>
-            <div className="relative h-4 rounded-sm bg-zinc-100 dark:bg-zinc-900">
-              <div className="absolute inset-y-0 left-0 rounded-sm bg-zinc-300 dark:bg-zinc-600" style={{ width: `${(y.prs_opened / max) * 100}%` }} />
-              <div className="absolute inset-y-0 left-0 rounded-sm bg-emerald-600" style={{ width: `${(y.prs_merged / max) * 100}%` }} />
+          <div key={year} className="grid grid-cols-[3rem_1fr_6.5rem] items-center gap-2 text-xs tabular-nums">
+            <span className="text-muted">{year === "2026" ? "2026*" : year}</span>
+            <div className="relative h-4 rounded-sm bg-foreground/5">
+              <div className="absolute inset-y-0 left-0 rounded-sm bg-zinc-400/50" style={{ width: `${(y.prs_opened / max) * 100}%` }} />
+              <div className="absolute inset-y-0 left-0 rounded-sm bg-emerald-500" style={{ width: `${(y.prs_merged / max) * 100}%` }} />
             </div>
-            <span className="text-right text-zinc-600 dark:text-zinc-400">
+            <span className="text-right text-muted">
               {y.prs_opened.toLocaleString("pt-BR")} / {y.prs_merged.toLocaleString("pt-BR")}
             </span>
           </div>
         ))}
       </div>
-      <p className="text-xs text-zinc-500">* 2026 até setembro (só meses fechados). Dados desde {project.coverage_since}.</p>
+      <p className="text-xs text-muted">* 2026 até setembro (só meses fechados). Dados desde {project.coverage_since}.</p>
     </figure>
   );
 }
@@ -51,7 +80,7 @@ export default function ProjectView() {
       .catch(() => setProject(null));
   }, [repo]);
 
-  if (project === undefined) return <main className="mx-auto max-w-3xl px-4 py-8">Carregando…</main>;
+  if (project === undefined) return <main className="mx-auto max-w-3xl px-4 py-8 text-muted">Carregando…</main>;
   if (project === null)
     return (
       <main className="mx-auto max-w-3xl space-y-3 px-4 py-8">
@@ -62,78 +91,80 @@ export default function ProjectView() {
       </main>
     );
 
+  const [owner, name] = project.repo.split("/");
   const policy = project.ai_policy;
-  const ai = AI_LABELS[policy.classification];
+  const ai = AI_TONE[policy.classification];
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-8 px-4 py-8 sm:py-12">
-      <Link href="/" className="text-sm text-zinc-600 hover:underline dark:text-zinc-400">
+    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-12">
+      <Link href="/" className="text-sm text-muted hover:underline">
         ← Voltar para as portas
       </Link>
 
-      <header className="space-y-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="min-w-0 break-words text-3xl font-semibold tracking-tight">{project.repo}</h1>
-          <ProfileBadge project={project} />
-          <AiBadge project={project} />
+      <header className="overflow-hidden rounded-xl border border-line bg-card">
+        <ProfileBand project={project} />
+        <div className="space-y-5 p-5 sm:p-6">
+          <div>
+            <h1 className="break-words text-3xl font-semibold leading-tight tracking-tight">{name}</h1>
+            <p className="text-sm text-muted">
+              {owner} · ★ {project.stars.toLocaleString("pt-BR")} ·{" "}
+              <a href={project.url} className="underline underline-offset-2">
+                abrir no GitHub
+              </a>
+            </p>
+          </div>
+          {project.guide ? (
+            <p className="text-lg leading-relaxed">{project.guide.summary}</p>
+          ) : (
+            project.description && <p className="text-lg leading-relaxed">{project.description}</p>
+          )}
+          <BigNumbers project={project} full />
         </div>
-        {project.guide && <p className="text-lg leading-relaxed">{project.guide.summary}</p>}
-        {project.description && <p className="text-sm text-muted">No GitHub: {project.description}</p>}
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {PROFILE_LABELS[project.profile].label}: {PROFILE_LABELS[project.profile].hint}.{" "}
-          <a href={project.url} className="underline">
-            Abrir no GitHub
-          </a>
-        </p>
-        <Stats project={project} />
       </header>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Por onde começar</h2>
-        <p className="text-sm text-zinc-500">
-          Para o perfil {LEVEL_LABELS[profile.level].toLowerCase()}
-          {profile.skills.length > 0 && ` em ${profile.skills.join(", ")}`}
-          {profile.ways.length > 0 && `, ajudando com ${profile.ways.map((w) => WAY_LABELS[w].label.toLowerCase()).join(", ")}`}. Mude o perfil na
+      <Section title="Por onde começar">
+        <p className="text-sm text-muted">
+          Para quem é {LEVEL_LABELS[profile.level].toLowerCase()}
+          {profile.ways.length > 0 && ` e quer ajudar com ${profile.ways.map((w) => WAY_LABELS[w].label.toLowerCase()).join(", ")}`}. Mude o perfil na
           página inicial.
         </p>
         <StartBox project={project} profile={profile} startOpen />
-      </section>
+        <NewcomerLink project={project} />
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Onde o projeto precisa de ajuda</h2>
+      <Section title="Onde o projeto precisa de ajuda">
         {project.opportunities.length === 0 ? (
-          <p className="text-sm text-zinc-500">O projeto não pede ajuda e os dados não mostram uma necessidade clara.</p>
+          <p className="text-sm text-muted">O projeto não pede ajuda e os dados não mostram uma necessidade clara.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="divide-y divide-line">
             {project.opportunities.map((o) => (
-              <OpportunityItem key={o.way + o.note} o={o} />
+              <li key={o.way + o.note} className="grid gap-1 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[11rem_1fr] sm:gap-3">
+                <span className="text-sm font-semibold">{WAY_LABELS[o.way].label}</span>
+                <span className="text-sm leading-relaxed">
+                  {o.note}{" "}
+                  <span className={`ml-1 whitespace-nowrap rounded-full px-2 py-px text-[11px] font-medium ${SOURCE[o.source].className}`}>{SOURCE[o.source].label}</span>
+                </span>
+              </li>
             ))}
           </ul>
         )}
-      </section>
+      </Section>
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Política de IA</h2>
-        {ai ? (
-          <>
-            <p className={`text-sm font-medium ${ai.className}`}>{ai.label}</p>
-            {policy.evidence && (
-              <blockquote className="border-l-4 border-zinc-300 pl-3 text-sm italic text-zinc-700 dark:border-zinc-700 dark:text-zinc-300">
-                “{policy.evidence}”
-                <footer className="mt-1 text-xs not-italic text-zinc-500">{policy.source_file}</footer>
-              </blockquote>
-            )}
-          </>
-        ) : (
-          <p className="text-sm text-zinc-500">Ainda não classificada. Leia o CONTRIBUTING do projeto antes de usar IA.</p>
-        )}
-      </section>
+      <Section title="Política de IA">
+        <div className={`space-y-2 rounded-lg border p-4 ${ai.className}`}>
+          <p className="font-medium">{ai.title}</p>
+          {policy.evidence && (
+            <blockquote className="text-sm italic leading-relaxed text-muted">
+              “{policy.evidence}”<span className="ml-2 not-italic">({policy.source_file})</span>
+            </blockquote>
+          )}
+        </div>
+      </Section>
 
       {Object.keys(project.years).length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Atividade</h2>
+        <Section title="PRs abertos e aceitos por ano">
           <YearsChart project={project} />
-        </section>
+        </Section>
       )}
     </main>
   );
