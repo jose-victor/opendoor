@@ -30,8 +30,8 @@ export type YearStats = {
   issues_opened: number;
   issues_closed: number;
   commits: number;
-  direct_commits: number;
-  people: number;
+  direct_commits: number | null; // null em repos grandes (contagem+amostra)
+  people: number | null;         // null em repos grandes (contagem+amostra)
 };
 
 export type Project = {
@@ -51,6 +51,7 @@ export type Project = {
   newcomer_open: number;
   scorecard: number | null;
   ai_policy: AiPolicy;
+  collection: "completo" | "contagem+amostra";
   coverage_since: string;
   years: Record<string, YearStats>;
 };

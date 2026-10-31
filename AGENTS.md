@@ -24,7 +24,9 @@ sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 ## Armadilhas já conhecidas
 - **GH Archive / ClickHouse:** quebrado desde out/2025 (zero PRs mergeados em 2026). Não use para dados recentes.
 - **Estrelas por ano:** a API do GitHub não lista mais quem deu estrela (404). Só existe o total atual.
-- **"Truncado":** repositórios gigantes guardam só os 3 mil itens mais recentes por tipo. Respeite `repos.activity_since` e `commit_coverage.since` antes de comparar anos.
+- **Repos grandes** (`repos.collection_mode = 'contagem+amostra'`, mais de 6 mil issues + PRs): têm contagens mensais completas, mas **não** têm pessoas por ano nem commits diretos (`null` no JSON). A `participation` deles é parcial. Abertura e mantenedores vêm de `repo_sample`.
+- **`authorAssociation` é a de hoje:** quem estreou e teve o PR aceito aparece como `CONTRIBUTOR`. Não dá para contar estreias por ela.
+- **Next 16:** componente cliente com `useParams`/`useSearchParams` precisa de `<Suspense>` em volta, senão o build falha (exemplo em `web/app/p/[...repo]/page.tsx`).
 - **Zero PRs não é erro:** muitos pacotes minúsculos recebem commits diretos do mantenedor. Veja `commit_monthly.direct_commits`.
 - **Espelhos:** GIMP, LibreOffice, Blender e Firefox não vivem no GitHub e estão fora do escopo por enquanto.
 

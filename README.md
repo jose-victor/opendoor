@@ -35,6 +35,9 @@ python pipeline/collect.py activity    # PRs/issues por mês desde 2018
 python pipeline/collect.py commits     # commits por mês, quantos entraram direto sem PR
 python pipeline/collect.py labels      # issues para iniciantes
 python pipeline/collect.py security    # OpenSSF Scorecard + alertas
+python pipeline/collect.py large       # repos grandes: contagens mensais + amostra de pessoas
+python pipeline/collect.py reaggregate # recalcula agregações do cache bruto, sem API
+python pipeline/build.py               # gera web/public/data/*.json para o site
 python pipeline/collect.py selftest    # testes da agregação
 ```
 

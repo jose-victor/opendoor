@@ -20,17 +20,18 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 
 ## Fase 0: Esqueleto — José
 
-### E1. Criar `web/` e publicar na Vercel (M)
+### E1. Criar `web/` e publicar na Vercel (M) — ✅ PR #23, no ar em https://opendoor-fawn.vercel.app
+- ⏳ Falta: conexão automática Vercel ↔ GitHub (pasta raiz `web/`) e `GEMINI_API_KEY` na Vercel.
 - Next.js (App Router, TypeScript), com as pastas e arquivos vazios de `docs/arquitetura.md`. `lib/types.ts` com os tipos do contrato.
 - Projeto na Vercel ligado ao repositório. `GEMINI_API_KEY` configurada lá.
 - **Pronto quando:** a URL da Vercel abre uma página e `npm run build` passa.
 
-### E2. `build.py` v0 com dados reais (M)
+### E2. `build.py` v0 com dados reais (M) — ✅ PR #23
 - Gera `web/public/data/projects.json` a partir do banco, já no formato do contrato. Campos ainda não calculados vêm com valor neutro: `skills: []`, `profile: "precisa_de_maos"`, `ai_policy.classification: "unknown"`.
 - Gera um `skills.json` inicial.
 - **Pronto quando:** o JSON tem todos os projetos e passa na checagem de tipos do site.
 
-### E3. Stub de `/api/explain` (P)
+### E3. Stub de `/api/explain` (P) — ✅ PR #23
 - A rota valida a entrada e devolve uma resposta **fixa** no formato do contrato. Assim o site pode ser construído sem esperar o Gemma.
 - **Pronto quando:** `curl -X POST /api/explain -d '{"repo":"debug-js/debug","profile":{"skills":["javascript"],"level":"iniciante"}}'` devolve `ok: true`.
 
@@ -49,6 +50,10 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 ### D3. Perfil e métricas (M)
 - Calcular `profile`, `openness`, `maintainers_24m` e `years` no `build.py`, com as regras de `docs/visao.md`. Teste com assert em 3 projetos conhecidos.
 - **Pronto quando:** `debug-js/debug` sai como `guardiao` e algum projeto com PRs de fora sai como `porta_aberta`.
+
+### D6. Repos grandes: contagem + amostra (M) — issue #25, PR #24
+- Repos com mais de 6 mil issues + PRs (53) ganham contagens mensais completas desde 2018 pela busca, mais uma amostra de até 300 PRs aceitos dos últimos 12 meses (abertura e quem faz merge). Etapa `collect.py large`.
+- **Atenção, A1 e S3:** nesses repos, `years[ano].people` e `direct_commits` são `null`.
 
 ### D5. Formas de contribuir por projeto (`needs`) (M)
 - Calcular `needs` com os sinais de `docs/visao.md`: issues sem label nem resposta → triagem; PRs abertos esperando revisão → revisão; Scorecard baixo / guardião → segurança; label ou arquivos de docs/i18n → documentação/tradução. Pode precisar de uma coleta extra, barata: labels das issues abertas e PRs abertos sem revisão.
