@@ -6,6 +6,21 @@ Nomes são sugestão. Tamanho: P (até 30 min), M (até 1h).
 
 Prazo: **congelar às 16h**, submeter às **16h30**.
 
+## Situação (31/10, 13h30)
+- **Na `main` e no ar:**
+  - D1 a D5: habilidades, perfis, match e oportunidades;
+  - K1, K2 e A1 a A3: o Gemma no pipeline e ao vivo no `/api/explain`;
+  - P1: o gabarito.
+- **Rodando em segundo plano:**
+  - a coleta da rodada 3 (atividade dos repos PyPI e Go);
+  - as sugestões do Gemma (`opportunities.py`).
+  Depois deles roda a política de IA (`classify_ai_policy.py`), e tudo entra no PR de dados finais (#25).
+- **Falta para a demo:**
+  - S1, S2 e S3 (telas: filtros, cards e página do projeto);
+  - K3 (acurácia);
+  - I1 (integração às 15h);
+  - P2 e P3 (README final, vídeo e submissão).
+
 ## Ordem
 ```
 Fase 0 (esqueleto, bloqueia o site)   E1 ─ E2 ─ E3
@@ -45,12 +60,12 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 - Feito: 62 habilidades (15 linguagens, 20 frameworks, 9 ferramentas, 18 áreas, incluindo IA/ML e dados). As regras de dependência valem para npm, PyPI e Go; `skills.detect(language, topics, deps, texto)` já está pronta para a D2. Selftest: `python pipeline/skills.py`.
 - **Pronto quando:** `skills.json` é gerado a partir dessa lista.
 
-### D2. Habilidades de cada projeto (M)
+### D2. Habilidades de cada projeto (M) — ✅ PRs #33 e #36
 - Detectar pelas dependências (já coletadas), pela linguagem e pelos *topics* (nova coleta, barata). Grava `project_skills(repo, skill, source)`.
 - ✅ Feito (PR #33): etapa `collect.py topics` (`repo_topics`) e detecção no `build.py` (sem tabela `project_skills`: é recalculada a cada build). Após a conversa sobre a UX, o site mostra só **19 filtros** (linguagens e áreas, com 5+ projetos cada; ver `docs/arquitetura.md`). Resultado: 99,7% dos projetos com 1+ habilidade e 64% com 2+. Os outros são bibliotecas utilitárias minúsculas, em que a linguagem é a resposta honesta. Depois, cada projeto passou a contar com todas as linguagens que têm 10% ou mais do código, e 212 projetos ficaram com 2 linguagens ou mais. O critério de 90% com 2+ era para o vocabulário fino e foi trocado por "todo filtro tem 5+ projetos".
 - **Pronto quando:** pelo menos 90% dos projetos têm 2 ou mais habilidades.
 
-### D3. Perfil e métricas (M) — ✅ PR da #6
+### D3. Perfil e métricas (M) — ✅ PR #34
 - Calcular `profile`, `openness`, `maintainers_24m` e `years` no `build.py`, com as regras de `docs/visao.md`. Teste com assert em 3 projetos conhecidos.
 - **Pronto quando:** `debug-js/debug` sai como `guardiao` e algum projeto com PRs de fora sai como `porta_aberta`.
 - Feito: as regras estão em `docs/arquitetura.md` e os asserts rodam com `python pipeline/build.py`. O debug sai guardião; Express, React, VS Code, Godot e llama.cpp saem porta aberta.
@@ -63,12 +78,12 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 - `collect.py --system npm|pypi|go`. Sementes de web (React, TypeScript, Tailwind...), dados e IA (pandas, transformers, LangChain, Ollama...). Apps de IA no GitHub (Ollama, llama.cpp, Open WebUI, ComfyUI).
 - Go e alguns pacotes npm não têm árvore resolvida no deps.dev: o grafo desce 2 níveis pelas dependências declaradas.
 
-### D5. Formas de contribuir por projeto (`needs`) (M) — ✅ PR da #22
+### D5. Formas de contribuir por projeto (`needs`) (M) — ✅ PR #38
 - Calcular `needs` com os sinais de `docs/visao.md`: issues sem label nem resposta → triagem; PRs abertos esperando revisão → revisão; Scorecard baixo / guardião → segurança; label ou arquivos de docs/i18n → documentação/tradução. Pode precisar de uma coleta extra, barata: labels das issues abertas e PRs abertos sem revisão.
 - **Pronto quando:** todo projeto tem pelo menos uma forma em `needs`, e a ordem faz sentido em 5 projetos conferidos à mão.
 - Feito, em duas camadas (ideia do José). (1) O que o guia de contribuição pede (fonte `projeto`), mais os sinais dos números (fonte `dados`), no `build.py`. (2) Sugestões do Gemma 4 para o que o projeto não lista (fonte `gemma`), offline, com `pipeline/opportunities.py`. Campo novo no contrato: `opportunities`. Todo projeto que aparece no match (não estável) tem pelo menos uma oportunidade. Conferidos à mão: express, debug, vscode, godot, obs.
 
-### D4. `match.ts` (M) — ✅ PR da #7 (regras em `docs/arquitetura.md`)
+### D4. `match.ts` (M) — ✅ PR #35 (regras em `docs/arquitetura.md`)
 - Ranking no navegador (regras em `docs/arquitetura.md`), mais um teste com 3 perfis.
 - **Pronto quando:** o teste passa.
 
@@ -80,7 +95,7 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 - Trazer o `llm.py` do esqueleto do Kaiky para `pipeline/llm.py`, com caminhos baseados em `Path(__file__)` e configuração vinda das variáveis de `docs/arquitetura.md`.
 - **Pronto quando:** `python pipeline/llm.py "responda só OK"` responde, com `LLM_BACKEND=gemini`. Ollama é plano B.
 
-### K2. Classificador de política de IA (M) — ✅ PR #40 (Kaiky; revisão do Claude)
+### K2. Classificador de política de IA (M) — ✅ código no PR #40 (Kaiky; revisão do Claude); ⏳ a rodada nos 157 repos entra no PR de dados finais (#25)
 - Trazer o `classify_ai_policy.py` do Kaiky. **Ler os textos da tabela `repo_files`**, sem baixar de novo. Gravar `ai_policy(repo, classification, evidence, source_file, model, classified_at)`.
 - Manter: o filtro por regex antes de chamar o modelo e o descarte quando a evidência não está no texto.
 - O texto dos arquivos é dado de terceiros: o prompt precisa dizer que é conteúdo a analisar, não instruções.
