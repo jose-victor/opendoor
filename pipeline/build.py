@@ -3,8 +3,8 @@
 
   python pipeline/build.py   ->  web/public/data/projects.json e web/public/data/skills.json
 
-Campos ainda não calculados saem com valor neutro e são preenchidos pelas tarefas:
-ai_policy (K2).
+Antes, rode (com cache, só o que falta): pipeline/opportunities.py (sugestões do Gemma) e
+pipeline/classify_ai_policy.py (política de IA); sem eles, os campos saem neutros.
 """
 import json
 import re
@@ -93,6 +93,14 @@ def main():
     tags = defaultdict(list)
     for r in db.execute("SELECT repo, tag FROM repo_tags ORDER BY tag"):
         tags[r["repo"]].append(r["tag"])
+    ai_policy = {
+        r["repo"]: {
+            "classification": r["classification"],
+            "evidence": r["evidence"],
+            "source_file": r["source_file"],
+        }
+        for r in db.execute("SELECT repo, classification, evidence, source_file FROM ai_policy")
+    } if table_exists(db, "ai_policy") else {}
     dependents = dict(db.execute("SELECT repo, MAX(dependents) FROM packages WHERE repo IS NOT NULL GROUP BY repo"))
     scorecard = dict(db.execute("SELECT repo, overall FROM repo_scorecard")) if table_exists(db, "repo_scorecard") else {}
     newcomer = dict(db.execute("SELECT repo, newcomer_open FROM repo_labels")) if table_exists(db, "repo_labels") else {}
@@ -173,7 +181,7 @@ def main():
             "maintainers_24m": maintainers,
             "newcomer_open": newcomer.get(repo) or 0,
             "scorecard": scorecard.get(repo),
-            "ai_policy": {"classification": "unknown", "evidence": "", "source_file": ""},  # K2
+            "ai_policy": ai_policy.get(repo, {"classification": "unknown", "evidence": "", "source_file": ""}),
             "collection": "contagem+amostra" if large else "completo",
             "coverage_since": since,
             # anos anteriores ao início da cobertura ficam de fora para não parecerem "zero atividade"
@@ -190,8 +198,12 @@ def main():
         p["skills"] = [sid for sid in p["skills"] if sid in shown]
     skills = [skill_vocab.public(s) for s in skill_vocab.SKILLS if s["id"] in shown]
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "projects.json").write_text(json.dumps(projects, ensure_ascii=False, separators=(",", ":")))
-    (OUT / "skills.json").write_text(json.dumps(skills, ensure_ascii=False, indent=1))
+    (OUT / "projects.json").write_text(
+        json.dumps(projects, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
+    )
+    (OUT / "skills.json").write_text(
+        json.dumps(skills, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
     size = (OUT / "projects.json").stat().st_size / 1e6
     print(f"{len(projects)} projetos ({size:.1f} MB), {len(skills)} habilidades -> {OUT.relative_to(ROOT)}")
 

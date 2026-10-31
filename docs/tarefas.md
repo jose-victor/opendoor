@@ -80,11 +80,18 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 - Trazer o `llm.py` do esqueleto do Kaiky para `pipeline/llm.py`, com caminhos baseados em `Path(__file__)` e configuração vinda das variáveis de `docs/arquitetura.md`.
 - **Pronto quando:** `python pipeline/llm.py "responda só OK"` responde, com `LLM_BACKEND=gemini`. Ollama é plano B.
 
-### K2. Classificador de política de IA (M)
+### K2. Classificador de política de IA (M) — ✅ PR #40 (Kaiky; revisão do Claude)
 - Trazer o `classify_ai_policy.py` do Kaiky. **Ler os textos da tabela `repo_files`**, sem baixar de novo. Gravar `ai_policy(repo, classification, evidence, source_file, model, classified_at)`.
 - Manter: o filtro por regex antes de chamar o modelo e o descarte quando a evidência não está no texto.
 - O texto dos arquivos é dado de terceiros: o prompt precisa dizer que é conteúdo a analisar, não instruções.
 - **Pronto quando:** a tabela está preenchida para todos os repositórios e o script imprime a contagem por categoria.
+- Feito. Na revisão entraram:
+  - `try` por repo: um erro do modelo não derruba a rodada, e o repo fica para a próxima execução;
+  - 3 threads;
+  - extração do JSON com regex;
+  - comparação da evidência ignorando Markdown (o OBS agora sai `forbids`);
+  - `llm.py` corrigido pelo #37.
+- 157 repos passam do filtro e vão ao modelo. Teste: Godot, OBS, acorn, Prettier, yargs, FreeCAD e llama.cpp batem com o gabarito.
 
 ### K3. Acurácia contra o gabarito (P) — depende de P1
 - `pipeline/evaluate.py` lê `eval/gabarito.csv` e compara com a tabela `ai_policy`.
