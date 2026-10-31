@@ -21,7 +21,8 @@ DB = ROOT / "data" / "ecosystem.db"
 OUT = ROOT / "web" / "public" / "data"
 MIN_PROJECTS_PER_SKILL = 5
 MIN_PRS_FOR_OPENNESS = 5
-MIN_ACCEPTANCE = 0.2  # flask aceitou 4% dos PRs de fora em 12 meses; tornado, 30%
+MIN_ACCEPTANCE = 0.2
+MIN_NEW_PEOPLE = 5  # pessoas novas que abriram PR em 12 meses, para a taxa por pessoa valer  # flask aceitou 4% dos PRs de fora em 12 meses; tornado, 30%
 GUARDIAN_DEPENDENTS = 100_000
 YEAR_FIELDS = ["prs_opened", "prs_merged", "issues_opened", "issues_closed", "commits", "direct_commits", "people"]
 
@@ -93,14 +94,19 @@ def opportunities_of(r, profile, openness, maintainers, newcomer_open, scorecard
     return out
 
 
-def beginner_checks(debuts, acceptance, recent_merged, has_guide):
-    """Pronto para iniciante: os dados mostram que gente nova está conseguindo entrar. Todas as 4 precisam passar."""
+def beginner_checks(debuts, tried, recent_merged, has_guide):
+    """Pronto para iniciante: os dados mostram que gente nova está conseguindo entrar. Todas as 4 precisam passar.
+
+    debuts: pessoas de fora com o 1º PR aceito em 12 meses; tried: pessoas novas que abriram PR em 12 meses.
+    """
+    rate = debuts / tried if debuts is not None and tried and tried >= MIN_NEW_PEOPLE else None
     checks = [
         ("estreias", (debuts or 0) >= 2,
          f"{n_(debuts, 'pessoa teve', 'pessoas tiveram')} o 1º PR aceito no último ano" if debuts is not None
          else "sem dados de estreias (repo grande: só temos uma amostra recente de PRs)"),
-        ("aceite", acceptance is not None and acceptance >= 0.25,
-         f"aceita {round(acceptance * 100)}% dos PRs de quem é de fora" if acceptance is not None else "poucos PRs de fora para medir"),
+        ("aceite", rate is not None and rate >= 0.25,
+         f"{debuts} de {tried} pessoas novas que abriram PR tiveram aceito" if rate is not None
+         else f"poucas pessoas novas tentaram ({tried or 0}) para medir"),
         ("vivo", recent_merged >= 3, f"{n_(recent_merged, 'PR aceito', 'PRs aceitos')} nos últimos 3 meses"),
         ("guia", has_guide, "tem guia de contribuição (CONTRIBUTING)" if has_guide else "não tem guia de contribuição (CONTRIBUTING)"),
     ]
@@ -137,7 +143,8 @@ def main():
     # nos grandes ela vem da amostra de PRs (sem commits diretos). O authorAssociation do GitHub engana
     # (membro com participação privada na organização aparece como CONTRIBUTOR), então só é usado sem participation.
     cut12 = months_ago(12)
-    human = "is_bot = 0 AND login NOT LIKE '%bot'"  # bots com nome de gente (antfubot, prombot) não marcam is_bot
+    bots = "'github-actions','dependabot','dependabot-preview','renovate','greenkeeper','pre-commit-ci','mergify','allcontributors','web-flow','copilot','imgbot','snyk-bot'"
+    human = f"is_bot = 0 AND login NOT LIKE '%bot' AND login NOT IN ({bots})"  # bots com nome de gente (antfubot, prombot) não marcam is_bot
     # quem mantém: fez merge, ou fez 3+ commits diretos em 24 meses (commit de terceiro aplicado à mão fica no nome do autor)
     maintainers_sql = (f"SELECT repo, login FROM participation WHERE {human} AND month >= ? "
                        "AND role IN ('pr_merger', 'direct_committer') GROUP BY repo, login "
@@ -146,7 +153,7 @@ def main():
         f"WITH m AS ({maintainers_sql}) "
         "SELECT p.repo, SUM(p.n), SUM(CASE WHEN m.login IS NULL THEN p.n ELSE 0 END) FROM participation p "
         "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login "
-        "WHERE p.role = 'merged_pr_author' AND p.is_bot = 0 AND p.login NOT LIKE '%bot' AND p.month >= ? GROUP BY p.repo",
+        f"WHERE p.role = 'merged_pr_author' AND p.is_bot = 0 AND p.login NOT LIKE '%bot' AND p.login NOT IN ({bots}) AND p.month >= ? GROUP BY p.repo",
         (cut24, cut12))}
     direct12 = dict(db.execute(f"SELECT repo, SUM(n) FROM participation WHERE role = 'direct_committer' AND {human} "
                                "AND month >= ? GROUP BY repo", (cut12,)))
@@ -156,9 +163,19 @@ def main():
         f"WITH m AS ({maintainers_sql}) SELECT p.repo, SUM(CASE WHEN p.role = 'pr_author' THEN p.n ELSE 0 END), "
         "SUM(CASE WHEN p.role = 'merged_pr_author' THEN p.n ELSE 0 END) FROM participation p "
         "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login WHERE m.login IS NULL AND p.is_bot = 0 "
-        "AND p.login NOT LIKE '%bot' AND p.month >= ? AND p.role IN ('pr_author', 'merged_pr_author') GROUP BY p.repo",
+        f"AND p.login NOT LIKE '%bot' AND p.login NOT IN ({bots}) AND p.month >= ? AND p.role IN ('pr_author', 'merged_pr_author') GROUP BY p.repo",
         (cut24, cut12)) if a >= MIN_PRS_FOR_OPENNESS}
     # Estreias: pessoas de fora cujo primeiro PR aceito (na história coletada) foi nos últimos 12 meses.
+    # Aceite de quem é novo, por pessoa: das pessoas de fora que abriram PR em 12 meses e nunca tinham tido um
+    # aceito antes, quantas tiveram (= estreias). Colaborador antigo sem permissão de merge (kleisauke no
+    # sharp-libvips, 29 de 29) não conta: para quem chega, a pergunta é "gente nova consegue entrar?".
+    tried_new = dict(db.execute(
+        f"WITH m AS ({maintainers_sql}), f AS (SELECT repo, login, MIN(month) first FROM participation "
+        f"WHERE role = 'merged_pr_author' AND {human} GROUP BY repo, login) "
+        f"SELECT p.repo, COUNT(DISTINCT p.login) FROM participation p LEFT JOIN m ON m.repo = p.repo AND m.login = p.login "
+        "LEFT JOIN f ON f.repo = p.repo AND f.login = p.login "
+        f"WHERE p.role = 'pr_author' AND p.{human.replace(' AND login', ' AND p.login')} AND p.month >= ? AND m.login IS NULL "
+        "AND (f.first IS NULL OR f.first >= ?) GROUP BY p.repo", (cut24, cut12, cut12)))
     debuts = dict(db.execute(
         f"WITH m AS ({maintainers_sql}), f AS (SELECT repo, login, MIN(month) first FROM participation "
         f"WHERE role = 'merged_pr_author' AND {human} GROUP BY repo, login) "
@@ -244,7 +261,10 @@ def main():
         rec_merged = rec["prs_merged"] if rec else 0
         profile = profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0,
                              acc, rec_merged)
-        beginner = beginner_checks(None if large else debuts.get(repo, 0), acc, rec_merged, bool(guides.get(repo)))
+        deb = None if large else debuts.get(repo, 0)
+        beginner = beginner_checks(deb, tried_new.get(repo, 0), rec_merged, bool(guides.get(repo)))
+        if profile == "porta_aberta" and deb == 0:
+            profile = "estavel"  # ninguém novo entrou em 12 meses: não é porta aberta para quem chega (sharp-libvips)
         if beginner["ready"] and profile == "estavel":
             profile = "porta_aberta"  # postcss: abertura baixa (muitos commits do mantenedor), mas acolhe bem quem chega
         opps = opportunities_of(r, profile, openness, maintainers, newcomer.get(repo) or 0, scorecard.get(repo), guides[repo],
@@ -309,7 +329,8 @@ if __name__ == "__main__":
     assert profile_of(None, 2, 0.15, 0, 120, 0.3, 0) == "estavel"           # nenhum PR aceito em 3 meses: beco
     assert profile_of(None, 5, 0.42, 3, 300, 0.04, 20) == "estavel"         # flask: 4% dos PRs de fora aceitos
     assert profile_of(None, 1, 0.04, 0, 900) == "estavel"             # open-webui: quase nada de fora entra
-    assert beginner_checks(13, 0.3, 31, True)["ready"]                    # tornado
-    assert not beginner_checks(None, 0.5, 40, True)["ready"]              # repo grande: sem dados de estreias
-    assert not beginner_checks(6, 0.04, 20, True)["ready"]                # flask: 4% de aceite
+    assert beginner_checks(13, 30, 31, True)["ready"]                     # 13 de 30 pessoas novas entraram
+    assert not beginner_checks(None, 30, 40, True)["ready"]               # repo grande: sem dados de estreias
+    assert not beginner_checks(6, 150, 20, True)["ready"]                 # 6 de 150: 4%
+    assert not beginner_checks(0, 1, 30, True)["ready"]                   # sharp-libvips: 0 de 1
     main()

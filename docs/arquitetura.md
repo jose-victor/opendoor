@@ -121,11 +121,13 @@ Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
 
 **Pronto para iniciante (`beginner`)** é a promessa mais importante do site, então é a mais exigente. As 4 verificações precisam passar (`beginner_checks` no `build.py`), e cada uma vai para o JSON com o texto da prova:
 1. **Estreias:** 2 ou mais pessoas de fora tiveram o **primeiro** PR aceito nos últimos 12 meses (`debuts_12m`).
-2. **Aceite:** 25% ou mais dos PRs de quem é de fora foram aceitos em 12 meses (`acceptance`, que precisa ser conhecida).
+2. **Aceite de gente nova (por pessoa):** das pessoas que abriram PR em 12 meses e nunca tinham tido um aceito antes, 25% ou mais conseguiram (precisa de pelo menos 5 pessoas novas). Exemplo: redux, 24 de 28. Contar por pessoa, e só gente nova, evita dois enganos: um colaborador antigo sem permissão de merge inflava a taxa (no sharp-libvips, o kleisauke tinha 29 de 29), e um bot com nome de gente (`github-actions`) também.
 3. **Vivo:** 3 ou mais PRs aceitos nos 3 últimos meses fechados.
 4. **Guia:** existe um CONTRIBUTING.
 
-Repos grandes não passam: deles só temos uma amostra recente de PRs, e não dá para saber quem estreou. Em 31/10 eram 45 projetos prontos.
+Repos grandes não passam: deles só temos uma amostra recente de PRs, e não dá para saber quem estreou. Em 31/10 eram 44 projetos prontos. E porta aberta exige pelo menos 1 estreia no ano quando sabemos as estreias: se ninguém novo entrou em 12 meses, a porta não está aberta para quem chega.
+
+**Bots:** além de `is_bot`, ficam de fora os logins que terminam em `bot` e uma lista de bots conhecidos com nome de gente (`github-actions`, `dependabot`, `renovate`, `pre-commit-ci`, `mergify`, `allcontributors`, `copilot`...).
 
 **Taxa de aceite (`acceptance`)**: dos PRs que gente de fora abriu em 12 meses, a fatia aceita, com mínimo de 5 PRs de fora. A "abertura" diz de onde veio o que entrou; a taxa de aceite diz a chance de um PR de fora entrar. O Flask tem abertura 0,11 e aceita 4%; o Express tem 0,52 e aceita 8%; o Tornado aceita 30%.
 
