@@ -83,7 +83,7 @@ def main():
     done = {r[0] for r in db.execute("SELECT repo FROM repo_opportunities")}
     projects = [p for p in json.loads(PROJECTS.read_text()) if p["profile"] != "estavel" and p["repo"] not in done]
     projects = sorted(projects, key=lambda p: -p["stars"])[:args.limit]
-    print(f"{len(projects)} projetos para o Gemma", flush=True)
+    print(f"{len(projects)} projetos para o modelo", flush=True)
 
     inputs = []  # lê tudo antes: sqlite3 não pode ser dividido entre threads
     for p in projects:
@@ -99,7 +99,7 @@ def main():
             print(f"  {p['repo']}: {e}", file=sys.stderr, flush=True)
             return p["repo"], None
 
-    model = os.environ.get("GEMMA_MODEL", llm.DEFAULT_GEMMA_MODEL)
+    model = os.environ.get("GEMINI_MODEL", llm.DEFAULT_GEMINI_MODEL)
     with ThreadPoolExecutor(args.workers) as ex:
         for i, (repo, sugg) in enumerate(ex.map(work, inputs), 1):
             if sugg is not None:

@@ -40,7 +40,7 @@ sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 ## Site (`web/`)
 - Next.js 16: **leia `web/AGENTS.md`** e os guias em `web/node_modules/next/dist/docs/` antes de escrever código, porque a API mudou em relação ao que você conhece.
 - Os tipos do contrato ficam em `web/lib/types.ts`. Não duplique nem altere esses tipos sem atualizar `docs/arquitetura.md`.
-- `GEMINI_API_KEY` só é usada no servidor (`lib/gemma.ts`, rotas em `app/api/`). Nunca a use em componente com `"use client"`.
+- `GEMINI_API_KEY` só é usada no servidor (`lib/gemini.ts`, rotas em `app/api/`). Nunca a use em componente com `"use client"`.
 - Depois de mudar o pipeline, rode `python pipeline/build.py` para regenerar `web/public/data/`.
 
 ## Segurança e privacidade

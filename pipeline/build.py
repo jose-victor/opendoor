@@ -235,7 +235,7 @@ def main():
     guides = defaultdict(str)  # CONTRIBUTING (qualquer caminho) de cada repo
     for repo, text in db.execute("SELECT repo, text FROM repo_files WHERE path LIKE '%CONTRIBUTING.md'"):
         guides[repo] += text or ""
-    gemma = {r: json.loads(s) for r, s in db.execute("SELECT repo, suggestions FROM repo_opportunities")} \
+    ai_opps = {r: json.loads(s) for r, s in db.execute("SELECT repo, suggestions FROM repo_opportunities")} \
         if table_exists(db, "repo_opportunities") else {}  # D5 camada 2 (pipeline/opportunities.py)
     guide_of = {r: json.loads(g) for r, g in db.execute("SELECT repo, guide FROM project_guides")} \
         if table_exists(db, "project_guides") else {}  # G1 (pipeline/guides.py)
@@ -329,7 +329,7 @@ def main():
         if beginner["ready"] and not any(o["way"] == "codigo" for o in opps):
             opps.append({"way": "codigo", "source": "dados", "note": f"{n_(deb, 'pessoa teve', 'pessoas tiveram')} o 1º PR aceito aqui no último ano"})
         facts = list(dict.fromkeys(o["way"] for o in opps))  # needs: só o que o guia menciona ou os números mostram
-        opps += [g for g in gemma.get(repo, []) if g["way"] not in facts]
+        opps += [g for g in ai_opps.get(repo, []) if g["way"] not in facts]
         projects.append({
             "repo": repo,
             "url": f"https://github.com/{repo}",

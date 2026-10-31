@@ -11,7 +11,7 @@ pipeline/collect.py ──> data/ecosystem.db                    web/
    pipeline/skills.py ──> (build.py)                          ├─ app/api/explain/      Gemma ao vivo (servidor)
                              │                                ├─ lib/types.ts          tipos deste contrato
 pipeline/build.py ──> web/public/data/projects.json ─────────>├─ lib/match.ts          ranking no navegador
-                      web/public/data/skills.json  ─────────> └─ lib/gemma.ts          cliente Gemini API (só servidor)
+                      web/public/data/skills.json  ─────────> └─ lib/gemini.ts          cliente Gemini API (só servidor)
 ```
 - **Os dados dos projetos são estáticos.** São gerados pelo pipeline e versionados em `web/public/data/`.
 - **O match roda no navegador**, em cima do `projects.json`.
@@ -90,8 +90,8 @@ type ExplainResponse =
   | { ok: false; error: "rate_limited" | "not_found" | "bad_request" | "model_error"; message: string };
 ```
 - `why`: 2–3 frases, em português, sobre por que o projeto combina com o perfil.
-- **Implementação** (`lib/gemma.ts`, A1/A2, Anna):
-  - usa o SDK `@google/genai` e o modelo `GEMMA_MODEL` (padrão `gemma-4-26b-a4b-it`);
+- **Implementação** (`lib/gemini.ts`, A1/A2, Anna):
+  - usa o SDK `@google/genai` e o modelo `GEMINI_MODEL` (padrão `gemini-3.5-flash-lite`);
   - **não usa `responseSchema`**, porque ele trava com o Gemma 4;
   - timeout de 60 s;
   - o prompt recebe o perfil, as `opportunities` e a política de IA do projeto;
@@ -106,7 +106,7 @@ type ExplainResponse =
 | Nome | Onde | Para quê |
 |---|---|---|
 | `GEMINI_API_KEY` | Vercel e pipeline | Gemini API (Gemma 4) |
-| `GEMMA_MODEL` | Vercel e pipeline | padrão `gemma-4-26b-a4b-it` |
+| `GEMINI_MODEL` | Vercel e pipeline | padrão `gemini-3.5-flash-lite` |
 | `LLM_BACKEND` | pipeline | `gemini` ou `ollama` (local) |
 | `OLLAMA_MODEL` | pipeline | ex.: `gemma4:e4b` |
 | `OLLAMA_URL` | pipeline | padrão `http://localhost:11434` |
