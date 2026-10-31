@@ -17,6 +17,26 @@ Prazo: **congelar às 16h**, submeter às **16h30**.
   - P3 (vídeo e submissão às 16h30);
   - K3 (acurácia; o gabarito e o classificador estão prontos).
 
+## Como retomar (para a próxima sessão ou pessoa)
+- **Ordem dos merges:** #45 (site) → PR de dados finais (#25). O #47 (logo) já está dentro do #45 e pode ser fechado.
+- **Gerar os dados de novo** (tudo retoma de onde parou e usa cache):
+  ```bash
+  python pipeline/collect.py topics && python pipeline/collect.py labels      # baratos
+  python pipeline/build.py
+  python pipeline/opportunities.py && python pipeline/classify_ai_policy.py && python pipeline/guides.py   # Gemma, offline
+  python pipeline/build.py
+  ```
+  **Atenção:** o `build.py` lê o cache bruto `data/raw/github_activity` para o tempo de resposta, e esse cache não vai para o git. Sem ele, nenhum projeto passa como "pronto para iniciante" (rode o build na pasta que tem o cache, ou faça um link para ela).
+  Os scripts do Gemma gravam por repo e pulam o que já está em cache. Um erro de cota (HTTP 429) só deixa o repo para a próxima execução.
+- **O que confere a qualidade:** `python pipeline/build.py` roda os asserts de perfil e de "pronto para iniciante"; `python pipeline/skills.py` e `python pipeline/collect.py selftest` também. As regras estão em `docs/arquitetura.md`.
+- **Prioridade definida pelo José:** a confiança no selo "pronto para iniciante" vem antes da cobertura. Não afrouxe critério para aparecer mais projeto sem medir falsos positivos.
+- **Próximos passos com maior retorno** (das duas auditorias de 31/10):
+  - achar o CONTRIBUTING em outros caminhos (77 bons projetos caem só por isso);
+  - estreias nos repos grandes com histórico;
+  - atividade dos repos Go;
+  - labels separando good first issue livre;
+  - versão do site em inglês.
+
 ## Ordem
 ```
 Fase 0 (esqueleto, bloqueia o site)   E1 ─ E2 ─ E3
