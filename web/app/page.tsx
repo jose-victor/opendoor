@@ -1,5 +1,6 @@
 "use client";
 // Home. S1 (filtros) e S2 (lista) entram aqui; hoje mostra só os dados reais para validar o esqueleto.
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { rankProjects } from "@/lib/match";
@@ -21,7 +22,10 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-4xl p-6">
-      <h1 className="text-3xl font-bold">OpenDoor</h1>
+      <div className="flex items-center gap-3">
+        <Image src="/logo.png" alt="" width={48} height={48} className="rounded-lg" priority />
+        <h1 className="text-3xl font-bold">OpenDoor</h1>
+      </div>
       <p className="mt-2 text-zinc-500">Portas de entrada para contribuir com open source.</p>
 
       {/* S1: painel de filtros (habilidades, nível, formas de contribuir) */}

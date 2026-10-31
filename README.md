@@ -1,3 +1,5 @@
+<img src="web/public/logo.png" alt="Logo do OpenDoor: o Tux saindo por uma porta" width="160">
+
 # OpenDoor
 
 **Portas de entrada para contribuir com open source.** Você diz o que sabe e o OpenDoor mostra onde e como você pode ajudar: em qual projeto, que tipo de ajuda ele precisa e por onde começar.
