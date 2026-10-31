@@ -1,7 +1,7 @@
 // POST /api/explain — contrato em docs/arquitetura.md.
-// E3: resposta fixa. A2 (Anna) troca o bloco marcado pela chamada a explain() de lib/gemma.ts.
 import { getProject } from "@/lib/projects";
 import { LEVELS, WAYS, type ExplainRequest, type ExplainResponse } from "@/lib/types";
+import { explain } from "@/lib/gemma";
 
 function fail(status: number, error: Extract<ExplainResponse, { ok: false }>["error"], message: string) {
   return Response.json({ ok: false, error, message } satisfies ExplainResponse, { status });
@@ -26,13 +26,8 @@ export async function POST(request: Request) {
   const project = getProject(body.repo);
   if (!project) return fail(404, "not_found", `Projeto ${body.repo} não está no OpenDoor.`);
 
-  // --- início do stub (A2 substitui por: return Response.json(await explain(project, body.profile))) ---
-  return Response.json({
-    ok: true,
-    why: `Resposta de exemplo para ${project.repo}: o Gemma ainda não está ligado (issue A2).`,
-    first_steps: ["Leia o README e o CONTRIBUTING.", "Procure issues marcadas para iniciantes.", "Comente na issue antes de começar."],
-    heads_up: null,
-    model: "stub",
-  } satisfies ExplainResponse);
-  // --- fim do stub ---
+  const explanation = await explain(project, body.profile);
+  const status = explanation.ok ? 200 : (explanation.error === "rate_limited" ? 429 : 500);
+
+  return Response.json(explanation satisfies ExplainResponse, { status });
 }

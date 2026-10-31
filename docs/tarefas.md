@@ -101,19 +101,19 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 
 ## Gemma ao vivo (site) — Anna
 
-### A1. `web/lib/gemma.ts` (M)
+### A1. `web/lib/gemma.ts` (M) — ✅ PR #41 (Anna; revisão do Claude)
 - ⚠️ Gemma 4 pela API: use só as partes **sem** `thought: true` (o raciocínio vem junto); não use `thinkingLevel: "minimal"` (erro 500); cada chamada leva de 10 a 15 s.
 - Função `explain(project: Project, profile: UserProfile): Promise<ExplainResponse>`, que chama a Gemini API com o modelo `GEMMA_MODEL` (SDK `@google/genai`).
 - O prompt em português usa **só** os dados do `Project` (habilidades, perfil, política de IA com a evidência, issues para iniciantes, mantenedores) e pede JSON no formato `why` / `first_steps` / `heads_up`.
 - Dá para começar antes do E1, num arquivo solto testado com `npx tsx`.
 - **Pronto quando:** roda com 1 projeto de exemplo e devolve o formato do contrato.
 
-### A2. Ligar `/api/explain` ao Gemma (P) — depende de E1 e E3
+### A2. Ligar `/api/explain` ao Gemma (P) — ✅ PR #41
 - Trocar a resposta fixa do stub pela `explain()`. Buscar o projeto no `projects.json` pelo `repo`.
 - Erros: 429 da API vira `rate_limited`; repo desconhecido vira `not_found`; resposta fora do formato vira `model_error`.
 - **Pronto quando:** o `curl` do E3 devolve um texto real e um repo inexistente devolve `not_found`.
 
-### A3. Qualidade das respostas (P)
+### A3. Qualidade das respostas (P) — ✅ `eval/explain.md` (9 de 9 válidas, nenhuma começa por PR)
 - Testar 3 perfis (iniciante em JS, experiente em segurança, alguém de docs) em 3 projetos (um guardião, um porta aberta, um app mainstream). Ajustar o prompt.
 - **Pronto quando:** as 9 respostas estão coladas na issue e nenhuma inventa algo que não está nos dados.
 

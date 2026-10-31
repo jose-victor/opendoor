@@ -32,7 +32,7 @@ sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 - **`authorAssociation` é a de hoje:** quem estreou e teve o PR aceito aparece como `CONTRIBUTOR`. Não dá para contar estreias por ela.
 - **Next 16:** componente cliente com `useParams`/`useSearchParams` precisa de `<Suspense>` em volta, senão o build falha (exemplo em `web/app/p/[...repo]/page.tsx`).
 - **Zero PRs não é erro:** muitos pacotes minúsculos recebem commits diretos do mantenedor. Veja `commit_monthly.direct_commits`.
-- **Gemma 4 pela Gemini API:** o raciocínio vem em partes com `thought: true`; use só as outras partes, senão o texto e o JSON vêm sujos. `thinkingLevel: "minimal"` dá erro 500. Cada chamada leva de 10 a 15 s.
+- **Gemma 4 pela Gemini API:** o raciocínio vem em partes com `thought: true`; use só as outras partes, senão o texto e o JSON vêm sujos. `thinkingLevel: "minimal"` dá erro 500. **`responseSchema`/`responseMimeType: "application/json"` travam a chamada** (mais de 90 s sem resposta): peça o JSON no prompt e extraia com `/\{[\s\S]*\}/`. No site, o `response.text` do `@google/genai` já descarta as partes `thought`. Pelo pipeline, cada chamada leva de 10 a 25 s; pelo `/api/explain`, de 30 a 45 s.
 - **deps.dev:** não resolve a árvore de dependências do Go nem de alguns pacotes npm (eslint, electron); o coletor desce 2 níveis pelo endpoint `:requirements`. No PyPI a árvore resolvida é rasa, então o caminho padrão é o mesmo.
 - **Espelhos:** GIMP, LibreOffice, Blender e Firefox não vivem no GitHub e estão fora do escopo por enquanto.
 

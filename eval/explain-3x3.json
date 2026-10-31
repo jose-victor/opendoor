@@ -1,0 +1,173 @@
+[
+ {
+  "repo": "debug-js/debug",
+  "level": "iniciante",
+  "skills": "javascript",
+  "ways": "—",
+  "seconds": 30,
+  "response": {
+   "ok": true,
+   "why": "O `debug` é uma ferramenta essencial usada por muitos desenvolvedores, mas possui apenas um mantenedor para gerenciar um grande volume de pendências. Como você conhece JavaScript, pode ser muito útil ajudando a aliviar essa sobrecarga através da triagem de issues e da validação de correções em PRs abertos.",
+   "first_steps": [
+    "Explore o repositório e a documentação para entender como a biblioteca funciona tanto em Node.js quanto em navegadores.",
+    "Analise as 60 issues abertas para entender os problemas relatados e ajude a organizá-las ou fornecer mais detalhes (triagem).",
+    "Escolha um dos 37 PRs abertos, tente reproduzir o bug localmente e valide se a solução proposta realmente funciona.",
+    "Procure oportunidades para escrever ou melhorar testes, ajudando a aumentar a confiabilidade de um projeto com score de segurança baixo."
+   ],
+   "heads_up": "Atenção: o projeto conta com apenas um mantenedor ativo para uma carga alta de trabalho, portanto, seja paciente com o tempo de resposta.",
+   "model": "gemma-4-26b-a4b-it"
+  }
+ },
+ {
+  "repo": "expressjs/express",
+  "level": "intermediario",
+  "skills": "javascript, backend",
+  "ways": "revisao",
+  "seconds": 47,
+  "response": {
+   "ok": true,
+   "why": "Suas habilidades em JavaScript e backend são ideais para um framework core como o Express. Como você busca atuar com revisão, o projeto possui uma demanda alta de 147 PRs abertos que precisam de validação técnica e reprodução de bugs.",
+   "first_steps": [
+    "Estude a documentação de contribuição e o guia de estilo do projeto para alinhar seus conhecimentos aos padrões do Express.",
+    "Acompanhe as discussões nas issues e PRs para entender o processo de tomada de decisão dos mantenedores.",
+    "Comece auxiliando na triagem das 113 issues abertas ou tentando reproduzir bugs em PRs existentes.",
+    "Ajude a aumentar a cobertura de testes unitários, especialmente nos middlewares, para garantir a estabilidade do framework."
+   ],
+   "heads_up": null,
+   "model": "gemma-4-26b-a4b-it"
+  }
+ },
+ {
+  "repo": "godotengine/godot",
+  "level": "experiente",
+  "skills": "cpp",
+  "ways": "codigo, testes",
+  "seconds": 31,
+  "response": {
+   "ok": true,
+   "why": "Sua experiência em C++ é altamente compatível com o núcleo do Godot, onde o desenvolvimento de alta performance é essencial. Como o projeto demanda ajuda específica em testes e observabilidade, seu perfil pode ajudar diretamente a reduzir o enorme volume de issues e a carga sobre os mantenedores.",
+   "first_steps": [
+    "Explore o roadmap e as discussões recentes no repositório para entender as prioridades de arquitetura da engine.",
+    "Analise o guia de contribuição, focando especificamente nas diretrizes de testes e observabilidade que o projeto solicita.",
+    "Participe das discussões na comunidade para entender o fluxo de revisão e como os mantenedores preferem que novas implementações sejam propostas.",
+    "Identifique bugs reportados e foque em criar casos de teste que ajudem a reproduzir e validar problemas antes de propor correções."
+   ],
+   "heads_up": "O projeto possui uma carga de trabalho extremamente alta para poucos mantenedores (mais de 13 mil issues para 3 pessoas), o que pode resultar em um tempo de resposta lento para suas contribuições.",
+   "model": "gemma-4-26b-a4b-it"
+  }
+ },
+ {
+  "repo": "debug-js/debug",
+  "level": "experiente",
+  "skills": "javascript, seguranca",
+  "ways": "seguranca",
+  "seconds": 31,
+  "response": {
+   "ok": true,
+   "why": "Seu conhecimento em segurança e JavaScript é ideal para elevar o OpenSSF Scorecard do projeto, que atualmente é baixo (2.6/10). Como o `debug` é uma utilidade amplamente utilizada e possui apenas um mantenedor para uma carga alta de trabalho, sua expertise pode ser crucial para garantir a integridade da biblioteca.",
+   "first_steps": [
+    "Analise o repositório e os detalhes do relatório OpenSSF Scorecard para identificar as principais vulnerabilidades ou falta de processos de segurança.",
+    "Examine os 37 PRs abertos para entender o padrão de contribuições e verificar se há correções de segurança aguardando validação.",
+    "Abra uma issue ou utilize as discussões para se apresentar ao mantenedor, comunicando seu interesse em ajudar com auditorias ou triagem de segurança.",
+    "Ajude na triagem das 60 issues abertas, priorizando a identificação de problemas que possam afetar a segurança ou a estabilidade do pacote."
+   ],
+   "heads_up": "O projeto possui apenas um mantenedor ativo, portanto, qualquer contribuição ou sugestão deve ser comunicada previamente para respeitar a capacidade de revisão dele.",
+   "model": "gemma-4-26b-a4b-it"
+  }
+ },
+ {
+  "repo": "expressjs/express",
+  "level": "iniciante",
+  "skills": "javascript",
+  "ways": "documentacao",
+  "seconds": 44,
+  "response": {
+   "ok": true,
+   "why": "Como você possui conhecimentos em JavaScript e interesse em documentação, o Express é uma excelente escolha, pois seu modelo minimalista depende de exemplos claros de roteamento e middlewares. Contribuir com a clareza dos guias ajudará a reduzir a carga de suporte dos mantenedores, que possuem um alto volume de issues pendentes.",
+   "first_steps": [
+    "Explore o repositório e leia a documentação atual para entender o padrão de escrita e o tom de voz do projeto.",
+    "Acompanhe as discussões e as issues abertas para identificar quais partes do framework geram mais dúvidas nos usuários.",
+    "Identifique exemplos práticos de middlewares ou roteamento que poderiam ser mais detalhados ou atualizados.",
+    "Proponha sua ideia de melhoria em uma discussão ou issue existente para validar a necessidade com os mantenedores antes de escrever o conteúdo."
+   ],
+   "heads_up": null,
+   "model": "gemma-4-26b-a4b-it"
+  }
+ },
+ {
+  "repo": "godotengine/godot",
+  "level": "iniciante",
+  "skills": "cpp",
+  "ways": "traducao",
+  "seconds": 33,
+  "response": {
+   "ok": true,
+   "why": "O Godot Engine solicita ajuda específica com tradução, o que se alinha diretamente ao seu interesse. Como você possui conhecimento em C++, começar pela tradução permitirá que você aprenda a terminologia técnica do motor antes de intervir no código principal.",
+   "first_steps": [
+    "Leia o guia de contribuição oficial para entender o fluxo de tradução e localização utilizado pelo projeto.",
+    "Participe das discussões na comunidade para entender como as necessidades de tradução são comunicadas.",
+    "Explore a documentação do projeto para identificar termos que precisam de tradução ou ajuste.",
+    "Ajude na triagem de issues ou na reprodução de bugs para ganhar contexto sobre o funcionamento do motor."
+   ],
+   "heads_up": "Cuidado: há um volume massivo de issues para poucos mantenedores e a política de uso de IA é desconhecida.",
+   "model": "gemma-4-26b-a4b-it"
+  }
+ },
+ {
+  "repo": "debug-js/debug",
+  "level": "intermediario",
+  "skills": "javascript, testes",
+  "ways": "testes",
+  "seconds": 29,
+  "response": {
+   "ok": true,
+   "why": "Como você tem experiência com JavaScript e testes, pode ser um grande apoio para o `debug`, que possui 60 issues pendentes e apenas um mantenedor ativo. Seu conhecimento é ideal para validar correções em PRs abertos e ajudar na triagem de problemas de estabilidade.",
+   "first_steps": [
+    "Explore o repositório e entenda a estrutura de testes atual para garantir que você consiga reproduzir bugs localmente.",
+    "Analise as 60 issues abertas para identificar problemas que precisem de novos casos de teste ou de passos de reprodução mais claros.",
+    "Avalie os 37 PRs abertos, tentando rodar os testes propostos para validar se as correções realmente funcionam conforme o esperado.",
+    "Inicie uma conversa em uma issue ou PR sobre suas descobertas para alinhar sua forma de ajudar com as prioridades do mantenedor."
+   ],
+   "heads_up": "O projeto conta com apenas um mantenedor ativo para um volume alto de demandas, então foque em ajudar na validação e triagem para não sobrecarregá-lo.",
+   "model": "gemma-4-26b-a4b-it"
+  }
+ },
+ {
+  "repo": "expressjs/express",
+  "level": "experiente",
+  "skills": "javascript, backend",
+  "ways": "seguranca",
+  "seconds": 32,
+  "response": {
+   "ok": true,
+   "why": "Como desenvolvedor experiente em backend e JavaScript, sua expertise é fundamental para fortalecer a segurança de um framework que serve de base para o ecossistema Node.js. Dado o alto volume de issues e a criticidade do Express, sua capacidade analítica pode ajudar a identificar riscos antes que se tornem vulnerabilidades em larga escala.",
+   "first_steps": [
+    "Explore o histórico de discussões e o roadmap do repositório para entender as decisões arquiteturais e a filosofia de segurança do projeto.",
+    "Realize uma triagem nas 113 issues abertas, focando em identificar padrões de comportamento inesperado em middlewares ou roteamento.",
+    "Analise os 147 PRs em aberto para observar como os mantenedores validam correções e quais são os critérios de segurança aplicados nas revisões.",
+    "Participe das conversas da comunidade para entender o fluxo oficial de reporte de vulnerabilidades e como o time de manutenção prioriza correções críticas."
+   ],
+   "heads_up": "A política de uso de IA para este projeto é desconhecida e o alto volume de issues para o número de mantenedores indica que o projeto está sob grande pressão, exigindo contribuições muito bem fundamentadas.",
+   "model": "gemma-4-26b-a4b-it"
+  }
+ },
+ {
+  "repo": "godotengine/godot",
+  "level": "intermediario",
+  "skills": "cpp, multimidia",
+  "ways": "triagem",
+  "seconds": 33,
+  "response": {
+   "ok": true,
+   "why": "Suas habilidades em C++ e multimídia são essenciais para o núcleo do Godot, e sua disposição para triagem é vital dado o volume de mais de 13 mil issues para apenas 3 mantenedores. Ao ajudar a organizar e validar problemas, você atua diretamente no gargalo que impede o projeto de avançar mais rápido.",
+   "first_steps": [
+    "Leia o guia de contribuição do Godot para entender os padrões de qualidade e o workflow de comunicação do projeto.",
+    "Observe as issues e discussões para entender como os bugs de multimídia e C++ são reportados e categorizados.",
+    "Participe das discussões da comunidade para entender como os mantenedores esperam que novas informações de triagem sejam inseridas.",
+    "Comece tentando reproduzir bugs reportados, fornecendo passos claros, logs ou vídeos que ajudem a validar se a issue é real e como ela ocorre."
+   ],
+   "heads_up": "O projeto possui uma carga de trabalho massiva, com mais de 13 mil issues abertas para apenas 3 mantenedores, o que pode resultar em tempos de resposta lentos.",
+   "model": "gemma-4-26b-a4b-it"
+  }
+ }
+]
