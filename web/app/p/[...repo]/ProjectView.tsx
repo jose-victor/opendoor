@@ -145,7 +145,7 @@ export default function ProjectView() {
 
       <Section title="Onde o projeto precisa de ajuda">
         {project.opportunities.length === 0 ? (
-          <p className="text-sm text-muted">O projeto não pede ajuda e os dados não mostram uma necessidade clara.</p>
+          <p className="text-sm text-muted">O guia de contribuição não menciona e os números não mostram uma necessidade clara.</p>
         ) : (
           <ul className="divide-y divide-line">
             {project.opportunities.map((o) => (

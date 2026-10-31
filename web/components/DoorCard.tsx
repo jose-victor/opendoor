@@ -32,8 +32,10 @@ export default function DoorCard({ project, profile }: { project: Project; profi
 
         {project.needs.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 text-xs text-muted">Onde ajudar:</span>
-            {project.needs.map((w) => (
+            <span className="mr-1 text-xs text-muted" title="Em verde, as formas de ajudar que você marcou e que o projeto precisa">
+              Onde ajudar{profile.ways.some((w) => project.needs.includes(w)) ? " (em verde, o que você marcou)" : ""}:
+            </span>
+            {[...project.needs].sort((a, b) => Number(profile.ways.includes(b)) - Number(profile.ways.includes(a))).map((w) => (
               <span
                 key={w}
                 className={`rounded-full px-2.5 py-0.5 text-xs ${profile.ways.includes(w) ? "bg-emerald-600 text-white" : "border border-line text-foreground/80"}`}

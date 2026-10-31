@@ -22,12 +22,12 @@ export const WAY_LABELS: Record<Way, { label: string; hint: string }> = {
 export const PROFILE_LABELS: Record<Profile, { label: string; hint: string; className: string }> = {
   porta_aberta: {
     label: "Porta aberta",
-    hint: "aceita PRs de quem é de fora",
+    hint: "recebe bem quem é de fora: boa parte do que entra vem de fora e PRs de fora costumam ser aceitos",
     className: "bg-emerald-50 text-emerald-800 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-400/30",
   },
   precisa_de_maos: {
     label: "Precisa de mãos",
-    hint: "muitas issues para poucas pessoas que mantêm",
+    hint: "sobrecarregado: muito trabalho para 1 a 3 pessoas; triagem e revisão aliviam quem mantém",
     className: "bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-400/30",
   },
   guardiao: {

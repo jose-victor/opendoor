@@ -60,7 +60,9 @@ export function ProfileBand({ project }: { project: Project }) {
   return (
     <div className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 px-5 py-2 text-xs sm:px-6 ${tone.soft} ${tone.text}`}>
       <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
-      <span className="font-semibold">{PROFILE_LABELS[project.profile].label}</span>
+      <span className="cursor-help font-semibold underline decoration-dotted underline-offset-2" title={PROFILE_LABELS[project.profile].hint}>
+        {PROFILE_LABELS[project.profile].label}
+      </span>
       {proof ? (
         <>
           <span className="rounded-full bg-emerald-600 px-2 py-px font-semibold text-white">✓ Pronto para iniciante</span>

@@ -59,7 +59,7 @@ export function SortSelect({
   onChange: (f: ResultFilter) => void;
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-muted">
+    <label className="flex shrink-0 items-center gap-2 text-sm text-muted">
       Ordenar por
       <select
         id="sort"

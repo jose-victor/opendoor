@@ -101,8 +101,8 @@ export default function Home() {
             <p className="text-muted">Carregando os projetos…</p>
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm text-muted">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="min-w-0 flex-1 pt-1 text-sm text-muted">
                   {doors.length > 0 ? (
                     <>
                       <span className="font-semibold text-foreground">
@@ -111,7 +111,7 @@ export default function Home() {
                           : `${doors.length} projetos combinam`}{" "}
                         com você
                       </span>
-                      , entre {total} que pedem ajuda
+                      , entre {total} que aceitam contribuição
                       {list.length !== doors.length &&
                         ` · ${list.length} com os filtros`}
                     </>
