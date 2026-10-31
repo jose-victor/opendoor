@@ -75,9 +75,11 @@ export default function Home() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <nav className="mb-12 flex items-center justify-between border-b border-line pb-4">
-        <span className="flex items-center gap-2.5 font-display text-lg font-semibold">
-          <Image src="/logo.svg" alt="" width={36} height={36} className="rounded-lg" priority />
-          OpenDoor
+        <span className="flex items-center gap-3.5">
+          <Image src="/logo.svg" alt="" width={56} height={56} className="rounded-xl" priority />
+          <span className="text-2xl font-semibold tracking-tight" style={{ fontFamily: "var(--font-unbounded), var(--font-geist-sans), sans-serif" }}>
+            OpenDoor
+          </span>
         </span>
         <a href="https://github.com/jose-victor/opendoor" className="text-sm text-muted hover:text-foreground">
           Código aberto no GitHub ↗
