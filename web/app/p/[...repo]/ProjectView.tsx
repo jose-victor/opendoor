@@ -108,7 +108,7 @@ export default function ProjectView() {
             <h1 className="break-words text-3xl font-semibold leading-tight tracking-tight">{name}</h1>
             <p className="text-sm text-muted">
               {owner} · ★ {project.stars.toLocaleString("pt-BR")} ·{" "}
-              <a href={project.url} className="underline underline-offset-2">
+              <a href={project.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
                 abrir no GitHub
               </a>
             </p>
