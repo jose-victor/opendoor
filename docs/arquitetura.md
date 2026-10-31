@@ -87,6 +87,14 @@ type ExplainResponse =
   | { ok: false; error: "rate_limited" | "not_found" | "bad_request" | "model_error"; message: string };
 ```
 - `why`: 2–3 frases, em português, sobre por que o projeto combina com o perfil.
+- **Implementação** (`lib/gemma.ts`, A1/A2, Anna):
+  - usa o SDK `@google/genai` e o modelo `GEMMA_MODEL` (padrão `gemma-4-26b-a4b-it`);
+  - **não usa `responseSchema`**, porque ele trava com o Gemma 4;
+  - timeout de 60 s;
+  - o prompt recebe o perfil, as `opportunities` e a política de IA do projeto;
+  - uma resposta fora do formato vira `model_error`, nunca um texto inventado;
+  - cada resposta leva de 30 a 45 s, então o site mostra um estado de carregamento.
+  A avaliação de 3 perfis × 3 projetos está em `eval/explain.md`.
 - `first_steps`: de 3 a 5 passos concretos, seguindo a filosofia de `docs/visao.md`: começam por observar o projeto (roadmap, issues, discussões) e conversar com a comunidade; para iniciantes, a primeira contribuição sugerida é de testes, docs ou triagem. Nunca "abra um PR" como primeiro passo.
 - `heads_up`: um alerta, por exemplo a política de IA do projeto ou "mantido por 1 pessoa, seja paciente".
 - Com erro, o site mostra a `message` e continua funcionando.
