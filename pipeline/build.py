@@ -41,6 +41,14 @@ def main():
     tags = defaultdict(list)
     for r in db.execute("SELECT repo, tag FROM repo_tags ORDER BY tag"):
         tags[r["repo"]].append(r["tag"])
+    ai_policy = {
+        r["repo"]: {
+            "classification": r["classification"],
+            "evidence": r["evidence"],
+            "source_file": r["source_file"],
+        }
+        for r in db.execute("SELECT repo, classification, evidence, source_file FROM ai_policy")
+    } if table_exists(db, "ai_policy") else {}
     dependents = dict(db.execute("SELECT repo, MAX(dependents) FROM packages WHERE repo IS NOT NULL GROUP BY repo"))
     scorecard = dict(db.execute("SELECT repo, overall FROM repo_scorecard")) if table_exists(db, "repo_scorecard") else {}
     newcomer = dict(db.execute("SELECT repo, newcomer_open FROM repo_labels")) if table_exists(db, "repo_labels") else {}
@@ -89,7 +97,7 @@ def main():
             "maintainers_24m": (smp["mergers"] if smp else 0) if large else maint.get(repo, 0),
             "newcomer_open": newcomer.get(repo) or 0,
             "scorecard": scorecard.get(repo),
-            "ai_policy": {"classification": "unknown", "evidence": "", "source_file": ""},  # K2
+            "ai_policy": ai_policy.get(repo, {"classification": "unknown", "evidence": "", "source_file": ""}),
             "collection": "contagem+amostra" if large else "completo",
             "coverage_since": since,
             # anos anteriores ao início da cobertura ficam de fora para não parecerem "zero atividade"
@@ -98,8 +106,12 @@ def main():
 
     skills = [{"id": slug(l), "label": l, "kind": "linguagem"} for l in sorted(languages)]  # D1 amplia
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "projects.json").write_text(json.dumps(projects, ensure_ascii=False, separators=(",", ":")))
-    (OUT / "skills.json").write_text(json.dumps(skills, ensure_ascii=False, indent=1))
+    (OUT / "projects.json").write_text(
+        json.dumps(projects, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
+    )
+    (OUT / "skills.json").write_text(
+        json.dumps(skills, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
     size = (OUT / "projects.json").stat().st_size / 1e6
     print(f"{len(projects)} projetos ({size:.1f} MB), {len(skills)} habilidades -> {OUT.relative_to(ROOT)}")
 
