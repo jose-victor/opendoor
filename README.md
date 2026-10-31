@@ -7,6 +7,8 @@ Projeto do [Hacktoberfest Hack Day São José dos Campos](https://www.mlh.com/ev
 ## Por quê
 "Abra um projeto que você usa e veja no que pode contribuir" é um conselho genérico demais, e a barreira para começar é grande. Enquanto isso, pacotes pequenos dos quais metade da internet depende são mantidos por uma ou duas pessoas (event-stream, xz-utils, chalk/debug...).
 
+Mas entrar não é sair abrindo PR sem entender o projeto: muitos projetos estão recebendo PRs que resolvem um problema e criam outros. O OpenDoor guia por um caminho responsável: escolher **um** projeto, observar, conversar com a comunidade, entender o código e começar por testes ou docs (ver [docs/visao.md](docs/visao.md#filosofia-contribuir-com-responsabilidade)).
+
 O OpenDoor mapeia o ecossistema, mede a saúde e a abertura de cada projeto e casa isso com o perfil de quem quer contribuir.
 
 ## Como funciona
