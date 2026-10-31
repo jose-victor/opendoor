@@ -3,7 +3,7 @@
 Cada habilidade: id, label, kind (linguagem | framework | ferramenta | area), parent opcional e regras.
 O site só mostra linguagens e áreas: quem tem parent (React, Flask, PyTorch...) conta como a área-mãe
 (ver top()), para o filtro não virar uma lista longa e fragmentada.
-  langs  - linguagem principal no GitHub
+  langs  - linguagens do GitHub (a principal e as que têm 10% ou mais do código)
   deps   - dependências diretas em npm, PyPI ou Go (nome exato, ou prefixo terminado em "/", ex.: "@babel/", "k8s.io/")
   topics - topics do repositório no GitHub
   words  - palavras na descrição ou no nome (regex, sem diferenciar maiúsculas)
@@ -87,13 +87,13 @@ def public(skill):
     return {k: skill[k] for k in ("id", "label", "kind")}
 
 
-def detect(language, topics, deps, text):
+def detect(languages, topics, deps, text):
     """Habilidades de um projeto: {id: fonte}. deps = dependências diretas (qualquer ecossistema); text = nome + descrição."""
     found = {}
     topics, deps = set(topics), set(deps)
     for s in SKILLS:
         sid = s["id"]
-        if language and language in s.get("langs", []):
+        if set(languages) & set(s.get("langs", [])):
             found.setdefault(sid, "language")
         if topics & set(s.get("topics", [])):
             found.setdefault(sid, "topic")
@@ -115,10 +115,10 @@ if __name__ == "__main__":
     assert top({"react": "dependency", "flask": "topic", "go": "language"}) == ["backend", "frontend", "go"]
     ids = [s["id"] for s in SKILLS]
     assert len(ids) == len(set(ids)), "id repetido"
-    assert detect("TypeScript", [], ["@babel/core", "react"], "A tiny HTTP router") == {
+    assert detect(["TypeScript"], [], ["@babel/core", "react"], "A tiny HTTP router") == {
         "typescript": "language", "react": "dependency", "babel": "dependency", "backend": "text"}
-    assert detect("Go", ["kubernetes"], ["github.com/spf13/cobra", "k8s.io/client-go"], "") == {
+    assert detect(["Go"], ["kubernetes"], ["github.com/spf13/cobra", "k8s.io/client-go"], "") == {
         "go": "language", "cobra": "dependency", "kubernetes": "topic"}
-    assert {"python", "pytorch", "ia"} <= set(detect("Python", [], ["torch"], "LLM inference"))
-    assert "polyfills" in detect("JavaScript", [], [], "ES spec-compliant shim for Object.hasOwn")
+    assert {"cpp", "python", "pytorch", "ia"} <= set(detect(["C++", "Python"], [], ["torch"], "LLM inference"))
+    assert "polyfills" in detect(["JavaScript"], [], [], "ES spec-compliant shim for Object.hasOwn")
     print(f"{len(SKILLS)} habilidades, selftest ok")

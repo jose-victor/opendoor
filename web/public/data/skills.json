@@ -35,6 +35,11 @@
   "kind": "linguagem"
  },
  {
+  "id": "shell",
+  "label": "Shell",
+  "kind": "linguagem"
+ },
+ {
   "id": "frontend",
   "label": "Frontend web",
   "kind": "area"
