@@ -299,7 +299,9 @@ def cmd_repos(db, args):
             if not x:
                 db.execute("INSERT OR REPLACE INTO repos(repo, found, fetched_at) VALUES(?,0,?)", (repo, now()))
                 continue
-            db.execute("INSERT OR REPLACE INTO repos VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL)", (
+            db.execute("INSERT OR REPLACE INTO repos(repo, found, description, language, license, created_at, pushed_at, "
+                       "archived, stars, forks, open_issues, total_issues, open_prs, total_prs, fetched_at) "
+                       "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
                 repo, 1, x["description"], (x["primaryLanguage"] or {}).get("name"),
                 (x["licenseInfo"] or {}).get("spdxId"), x["createdAt"], x["pushedAt"], int(x["isArchived"]),
                 x["stargazerCount"], x["forkCount"], x["openIssues"]["totalCount"], x["allIssues"]["totalCount"],
