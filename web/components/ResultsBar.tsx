@@ -96,10 +96,12 @@ export default function ResultsBar({
   filter,
   onChange,
   counts,
+  newcomerCount,
 }: {
   filter: ResultFilter;
   onChange: (f: ResultFilter) => void;
   counts: Record<Profile, number>;
+  newcomerCount: number; // quantos da lista têm issue "good first issue"/"help wanted" aberta
 }) {
   const toggle = (p: Profile) =>
     onChange({
@@ -145,8 +147,10 @@ export default function ResultsBar({
             onChange({ ...filter, newcomerOnly: !filter.newcomerOnly })
           }
           className={chip(filter.newcomerOnly)}
+          title="Só projetos com issues abertas marcadas como good first issue ou help wanted"
         >
-          Com good first issue
+          {filter.newcomerOnly ? "✓ " : ""}Com good first issue
+          <span className="tabular-nums opacity-70">{newcomerCount}</span>
         </button>
         <select
           id="ai-filter"

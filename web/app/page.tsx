@@ -133,6 +133,7 @@ export default function Home() {
                 <ResultsBar
                   filter={filter}
                   counts={counts}
+                  newcomerCount={doors.filter((p) => p.newcomer_open > 0).length}
                   onChange={(f) => {
                     setFilter(f);
                     setShown(PAGE);
