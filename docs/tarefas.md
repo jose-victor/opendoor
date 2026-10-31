@@ -40,8 +40,9 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 
 ## Dados — José
 
-### D1. Vocabulário de habilidades (P)
+### D1. Vocabulário de habilidades (P) — ✅ PR da #4
 - `pipeline/skills.py`: lista de ~40 habilidades (`id`, `label`, `kind`) e, para cada uma, as regras de detecção: nomes de dependências npm, linguagens do GitHub, *topics*.
+- Feito: 61 habilidades (15 linguagens, 20 frameworks, 9 ferramentas, 17 áreas, incluindo IA/ML e dados). As regras de dependência valem para npm, PyPI e Go; `skills.detect(language, topics, deps, texto)` já está pronta para a D2. Selftest: `python pipeline/skills.py`.
 - **Pronto quando:** `skills.json` é gerado a partir dessa lista.
 
 ### D2. Habilidades de cada projeto (M)

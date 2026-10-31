@@ -7,11 +7,12 @@ Campos ainda não calculados saem com valor neutro e são preenchidos pelas tare
 skills (D2), profile/openness (D3), needs (D5), ai_policy (K2).
 """
 import json
-import re
 import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+
+import skills as skill_vocab
 
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "ecosystem.db"
@@ -23,10 +24,6 @@ def months_ago(n):
     now = datetime.now(timezone.utc)
     y, m = divmod(now.year * 12 + now.month - 1 - n, 12)
     return f"{y}-{m + 1:02d}"
-
-
-def slug(s):
-    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
 def table_exists(db, name):
@@ -62,7 +59,7 @@ def main():
                         "WHERE is_bot = 0 GROUP BY repo, y"):
         years[r["repo"]][r["y"]]["people"] = r["n"]
 
-    projects, languages = [], set()
+    projects = []
     for r in db.execute("SELECT * FROM repos WHERE found = 1 AND (archived = 0 OR archived IS NULL) ORDER BY repo"):
         repo = r["repo"]
         large = r["collection_mode"] == "contagem+amostra"
@@ -71,8 +68,6 @@ def main():
             for v in years[repo].values():
                 v.update(people=None, direct_commits=None)
         since = max(filter(None, [r["activity_since"] or "2018-01", commit_since.get(repo)]))
-        if r["language"]:
-            languages.add(r["language"])
         projects.append({
             "repo": repo,
             "url": f"https://github.com/{repo}",
@@ -96,7 +91,7 @@ def main():
             "years": {y: v for y, v in sorted(years[repo].items()) if y >= since[:4]},
         })
 
-    skills = [{"id": slug(l), "label": l, "kind": "linguagem"} for l in sorted(languages)]  # D1 amplia
+    skills = [skill_vocab.public(s) for s in skill_vocab.SKILLS]
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "projects.json").write_text(json.dumps(projects, ensure_ascii=False, separators=(",", ":")))
     (OUT / "skills.json").write_text(json.dumps(skills, ensure_ascii=False, indent=1))
