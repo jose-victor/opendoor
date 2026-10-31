@@ -69,6 +69,7 @@ npm run dev                     # http://localhost:3000
 | `pipeline/llm.py` | cliente mínimo do Gemma (Gemini API ou Ollama) |
 | `web/` | site Next.js: páginas, `/api/explain`, `lib/types.ts` (tipos do contrato) |
 | `data/ecosystem.db` | banco SQLite com tudo que foi coletado |
+| `eval/` | `gabarito.csv` (política de IA rotulada à mão) e `explain.md` (avaliação das respostas do Gemma) |
 | `docs/dados.md` | dicionário de dados e consultas de exemplo |
 | `docs/tarefas.md` | **tarefas em aberto (cada uma vira uma issue)** |
 | `docs/arquitetura.md` | contratos: formato do JSON, tipos, API do Gemma |
