@@ -63,6 +63,7 @@ type Project = {
   openness: number | null;    // 0..1, do que entrou em 12 meses (PRs aceitos + commits diretos), a fatia de quem é de fora; null = poucos dados
   maintainers_24m: number;    // pessoas que fizeram merge, ou 3+ commits diretos, em 24 meses (sem bots)
   recent: Recent | null;      // issues e PRs dos 3 últimos meses fechados
+  review: { median_days: number; stale_open: number; prs: number } | null; // 1º retorno em PRs de fora (12 meses)
   newcomer_open: number;      // issues abertas para iniciantes
   scorecard: number | null;   // OpenSSF 0..10
   ai_policy: AiPolicy;
@@ -119,13 +120,14 @@ Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
 3. **`precisa_de_maos`:** 30 issues abertas ou mais, de 1 a 3 mantenedores ativos, 10% ou mais do que entra vindo de fora, taxa de aceite de 0,2 ou mais (quando conhecida) **e pelo menos 1 PR aceito nos 3 últimos meses**. A auditoria de 31/10 mostrou que 9 de 19 "precisa de mãos" não aceitavam nenhum PR havia 3 meses: eram becos, não portas.
 4. **`estavel`:** o resto, incluindo pacotes sem nenhum mantenedor ativo em 24 meses.
 
-**Pronto para iniciante (`beginner`)** é a promessa mais importante do site, então é a mais exigente. As 4 verificações precisam passar (`beginner_checks` no `build.py`), e cada uma vai para o JSON com o texto da prova:
+**Pronto para iniciante (`beginner`)** é a promessa mais importante do site, então é a mais exigente. As 5 verificações precisam passar (`beginner_checks` no `build.py`), e cada uma vai para o JSON com o texto da prova:
 1. **Estreias:** 2 ou mais pessoas de fora tiveram o **primeiro** PR aceito nos últimos 12 meses (`debuts_12m`).
 2. **Aceite de gente nova (por pessoa):** das pessoas que abriram PR em 12 meses e nunca tinham tido um aceito antes, 25% ou mais conseguiram (precisa de pelo menos 5 pessoas novas). Exemplo: redux, 24 de 28. Contar por pessoa, e só gente nova, evita dois enganos: um colaborador antigo sem permissão de merge inflava a taxa (no sharp-libvips, o kleisauke tinha 29 de 29), e um bot com nome de gente (`github-actions`) também.
 3. **Vivo para quem chega:** 2 ou mais PRs de **gente de fora** aceitos nos 3 últimos meses fechados. Merges internos e de bots não contam: o nbformat era "vivo" só pelos PRs internos.
-4. **Guia:** existe um CONTRIBUTING.
+4. **Resposta:** metade dos PRs de gente de fora recebe o primeiro retorno (revisão de outra pessoa, merge ou fechamento) em **até 14 dias**, e no máximo **25%** deles estão parados há mais de 30 dias sem revisão (`review`, calculado do cache bruto da etapa `activity`). Feedback de uma pessoa com bastante experiência em open source, no evento: PR esperando muito tempo sem análise não é uma boa porta. O sqlparse tinha 13 estreias, mas 25 dias até o retorno e 41 de 107 PRs parados, e saiu.
+5. **Guia:** existe um CONTRIBUTING.
 
-Repos grandes não passam: deles só temos uma amostra recente de PRs, e não dá para saber quem estreou. Guardiões nunca recebem o selo (críticos e com 1 ou 2 pessoas cuidando). Em 31/10 às 15h eram 38 projetos prontos, e são exatamente os que o iniciante vê. Na conta "X de Y pessoas novas", quem abriu o PR antes da janela e estreou dentro dela também conta como "tentou". Um projeto pronto sem nenhuma oportunidade ganha a nota "N pessoas tiveram o 1º PR aceito aqui no último ano". E porta aberta exige pelo menos 1 estreia no ano quando sabemos as estreias: se ninguém novo entrou em 12 meses, a porta não está aberta para quem chega.
+Repos grandes não passam: deles só temos uma amostra recente de PRs, e não dá para saber quem estreou. Guardiões nunca recebem o selo (críticos e com 1 ou 2 pessoas cuidando). Em 31/10 às 15h eram 30 projetos prontos, e são exatamente os que o iniciante vê. Na conta "X de Y pessoas novas", quem abriu o PR antes da janela e estreou dentro dela também conta como "tentou". Um projeto pronto sem nenhuma oportunidade ganha a nota "N pessoas tiveram o 1º PR aceito aqui no último ano". E porta aberta exige pelo menos 1 estreia no ano quando sabemos as estreias: se ninguém novo entrou em 12 meses, a porta não está aberta para quem chega.
 
 **Bots:** além de `is_bot`, ficam de fora os logins que terminam em `bot` e uma lista de bots conhecidos com nome de gente (`github-actions`, `dependabot`, `renovate`, `pre-commit-ci`, `mergify`, `allcontributors`, `copilot`...).
 

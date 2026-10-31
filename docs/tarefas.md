@@ -165,6 +165,7 @@ Todas dependem do E1 e usam o `projects.json` do E2.
     - "vivo" medido por PRs de gente de fora;
     - nota de código nos projetos prontos.
     Resultado: 38 projetos prontos para iniciante (os que o iniciante vê), com precisão estimada de 85 a 90%.
+  - Feedback de uma pessoa experiente em open source, no evento: entrou o **tempo até o primeiro retorno** em PRs de fora e a contagem de **PRs parados** (30+ dias sem revisão), no card, na página e como 5º critério de iniciante. Ficaram 30 prontos.
   - Componentes em `web/components/` e rótulos em `web/lib/labels.ts`.
 
 ---

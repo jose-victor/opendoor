@@ -7,7 +7,9 @@ Antes, rode (com cache, só o que falta): pipeline/opportunities.py (sugestões 
 pipeline/classify_ai_policy.py (política de IA) e pipeline/guides.py (guia por projeto);
 sem eles, os campos saem neutros.
 """
+import gzip
 import json
+import statistics
 import re
 import sqlite3
 from collections import defaultdict
@@ -94,7 +96,7 @@ def opportunities_of(r, profile, openness, maintainers, newcomer_open, scorecard
     return out
 
 
-def beginner_checks(debuts, tried, outside_recent, has_guide):
+def beginner_checks(debuts, tried, outside_recent, has_guide, review=None):
     """Pronto para iniciante: os dados mostram que gente nova está conseguindo entrar. Todas as 4 precisam passar.
 
     debuts: pessoas de fora com o 1º PR aceito em 12 meses; tried: pessoas novas que abriram PR em 12 meses.
@@ -111,9 +113,42 @@ def beginner_checks(debuts, tried, outside_recent, has_guide):
          else f"poucas pessoas novas tentaram ({tried or 0}) para medir"),
         # vivo para quem chega: PRs de gente de fora aceitos agora (merges internos e de bots não contam; nbformat)
         ("vivo", outside_recent >= 2, f"{n_(outside_recent, 'PR de gente de fora aceito', 'PRs de gente de fora aceitos')} nos últimos 3 meses"),
+        # quem chega precisa de retorno: metade dos PRs de fora respondida em até 14 dias e no máximo 25% parados
+        ("resposta", review is not None and review["median_days"] <= 14 and review["stale_open"] <= 0.25 * review["prs"],
+         (("metade dos PRs de fora tem retorno no mesmo dia" if review["median_days"] == 0 else
+           f"metade dos PRs de fora tem retorno em até {review['median_days']} {'dia' if review['median_days'] == 1 else 'dias'}")
+          + (f"; {review['stale_open']} de {review['prs']} estão parados há mais de 30 dias sem revisão" if review["stale_open"] else ""))
+         if review is not None else "sem dados de tempo de resposta"),
         ("guia", has_guide, "tem guia de contribuição (CONTRIBUTING)" if has_guide else "não tem guia de contribuição (CONTRIBUTING)"),
     ]
     return {"ready": all(ok for _, ok, _ in checks), "checks": [{"key": k, "ok": ok, "text": t} for k, ok, t in checks]}
+
+
+def review_of(path, maintainers, bots, now):
+    """Retorno aos PRs de gente de fora abertos em 12 meses, do cache bruto da etapa activity.
+
+    Primeiro retorno = primeira revisão de outra pessoa, merge ou fechamento. PR sem retorno conta com o tempo
+    que já esperou. Parado = aberto há mais de 30 dias sem nenhuma revisão.
+    """
+    parse = lambda t: datetime.strptime(t, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    waits, stale = [], 0
+    for pr in json.load(gzip.open(path))["prs"]:
+        author = pr.get("author") or {}
+        login = author.get("login") or ""
+        if author.get("__typename") == "Bot" or login.endswith("bot") or login in bots or login in maintainers:
+            continue
+        created = parse(pr["createdAt"])
+        if (now - created).days > 365:
+            continue
+        times = [parse(r["submittedAt"]) for r in (pr.get("reviews") or {}).get("nodes", [])
+                 if r.get("submittedAt") and (r.get("author") or {}).get("login") != login]
+        times += [parse(t) for t in (pr.get("mergedAt"), pr.get("closedAt")) if t]
+        first = min(times) if times else None
+        waits.append(((first or now) - created).days)
+        stale += pr["state"] == "OPEN" and first is None and (now - created).days > 30
+    if len(waits) < MIN_PRS_FOR_OPENNESS:
+        return None
+    return {"median_days": int(statistics.median(waits)), "stale_open": stale, "prs": len(waits)}
 
 
 def table_exists(db, name):
@@ -227,6 +262,17 @@ def main():
         "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login WHERE p.role = 'merged_pr_author' AND m.login IS NULL "
         f"AND p.{human.replace(' AND login', ' AND p.login')} AND p.month >= ? GROUP BY p.repo", (cut24, recent_from)))
 
+    # Tempo até o primeiro retorno nos PRs de gente de fora (só repos com o cache bruto da activity).
+    maintainer_sets = defaultdict(set)
+    for repo, login in db.execute(maintainers_sql, (cut24,)):
+        maintainer_sets[repo].add(login)
+    raw = Path(DB).parent / "raw" / "github_activity"
+    known_bots = {b.strip("'") for b in bots.split(",")}
+    reviews = {}
+    for path in raw.glob("*.json.gz"):
+        repo = path.name[:-len(".json.gz")].replace("__", "/", 1).lower()
+        reviews[repo] = review_of(path, maintainer_sets[repo], known_bots, datetime.now(timezone.utc))
+
     years = defaultdict(lambda: defaultdict(lambda: dict.fromkeys(YEAR_FIELDS, 0)))
     for r in db.execute("SELECT repo, substr(month, 1, 4) y, SUM(prs_opened) po, SUM(prs_merged) pm, "
                         "SUM(issues_opened) io, SUM(issues_closed) ic FROM repo_monthly GROUP BY repo, y"):
@@ -270,7 +316,8 @@ def main():
         profile = profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0,
                              acc, rec_merged)
         deb = None if large else debuts.get(repo, 0)
-        beginner = beginner_checks(deb, tried_new.get(repo, 0), outside_recent.get(repo) or 0, bool(guides.get(repo)))
+        review = reviews.get(repo)
+        beginner = beginner_checks(deb, tried_new.get(repo, 0), outside_recent.get(repo) or 0, bool(guides.get(repo)), review)
         if profile == "guardiao":
             beginner["ready"] = False  # crítico e com 1 ou 2 pessoas cuidando: não é lugar para aprender
         if profile == "porta_aberta" and deb == 0:
@@ -302,6 +349,7 @@ def main():
             "acceptance": acc,
             "debuts_12m": None if large else debuts.get(repo, 0),
             "beginner": beginner,
+            "review": review,
             "recent": recent.get(repo),
             "maintainers_24m": maintainers,
             "newcomer_open": newcomer.get(repo) or 0,
@@ -341,9 +389,11 @@ if __name__ == "__main__":
     assert profile_of(None, 2, 0.15, 0, 120, 0.3, 0) == "estavel"           # nenhum PR aceito em 3 meses: beco
     assert profile_of(None, 5, 0.42, 3, 300, 0.04, 20) == "estavel"         # flask: 4% dos PRs de fora aceitos
     assert profile_of(None, 1, 0.04, 0, 900) == "estavel"             # open-webui: quase nada de fora entra
-    assert beginner_checks(13, 30, 9, True)["ready"]                      # 13 de 30 pessoas novas entraram
-    assert not beginner_checks(13, 30, 1, True)["ready"]                  # só 1 PR de fora aceito em 3 meses (nbformat)
-    assert "20 de 20" in beginner_checks(20, 19, 9, True)["checks"][1]["text"]  # nunca "20 de 19"
+    ok_review = {"median_days": 3, "stale_open": 2, "prs": 50}
+    assert beginner_checks(13, 30, 9, True, ok_review)["ready"]           # 13 de 30 pessoas novas entraram
+    assert not beginner_checks(13, 30, 9, True, {"median_days": 24, "stale_open": 41, "prs": 107})["ready"]  # sqlparse
+    assert not beginner_checks(13, 30, 1, True, ok_review)["ready"]                  # só 1 PR de fora aceito em 3 meses (nbformat)
+    assert "20 de 20" in beginner_checks(20, 19, 9, True, ok_review)["checks"][1]["text"]  # nunca "20 de 19"
     assert not beginner_checks(None, 30, 40, True)["ready"]               # repo grande: sem dados de estreias
     assert not beginner_checks(6, 150, 20, True)["ready"]                 # 6 de 150: 4%
     assert not beginner_checks(0, 1, 30, True)["ready"]                   # sharp-libvips: 0 de 1
