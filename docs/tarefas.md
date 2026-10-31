@@ -1,0 +1,132 @@
+# Tarefas
+
+Cada tarefa abaixo vira **uma issue**. Fluxo em `CONTRIBUTING.md`: atribuir a issue a si mesmo, comentar "comecei", trabalhar numa branch, abrir o PR com `Closes #N`. Contratos (formatos, tipos, API) em `docs/arquitetura.md`. **Siga o contrato; não invente formato.**
+
+Nomes são sugestão. Tamanho: P (até 30 min), M (até 1h).
+
+Prazo: **congelar às 16h**, submeter às **16h30**.
+
+## Ordem
+```
+Fase 0 (esqueleto, bloqueia o site)   E1 ─ E2 ─ E3
+Em paralelo desde já                  K1 → K2 → K3 (depende de P1)
+                                      P1 (gabarito)
+                                      A1 → A2 → A3 (A2 depende de E1)
+Depois do esqueleto                   D1 → D2 → D3 → D4
+                                      S1, S2, S3 → I1 (integração)
+```
+
+---
+
+## Fase 0: Esqueleto — José
+
+### E1. Criar `web/` e publicar na Vercel (M)
+- Next.js (App Router, TypeScript), com as pastas e arquivos vazios de `docs/arquitetura.md`. `lib/types.ts` com os tipos do contrato.
+- Projeto na Vercel ligado ao repositório. `GEMINI_API_KEY` configurada lá.
+- **Pronto quando:** a URL da Vercel abre uma página e `npm run build` passa.
+
+### E2. `build.py` v0 com dados reais (M)
+- Gera `web/public/data/projects.json` a partir do banco, já no formato do contrato. Campos ainda não calculados vêm com valor neutro: `skills: []`, `profile: "precisa_de_maos"`, `ai_policy.classification: "unknown"`.
+- Gera um `skills.json` inicial.
+- **Pronto quando:** o JSON tem todos os projetos e passa na checagem de tipos do site.
+
+### E3. Stub de `/api/explain` (P)
+- A rota valida a entrada e devolve uma resposta **fixa** no formato do contrato. Assim o site pode ser construído sem esperar o Gemma.
+- **Pronto quando:** `curl -X POST /api/explain -d '{"repo":"debug-js/debug","profile":{"skills":["javascript"],"level":"iniciante"}}'` devolve `ok: true`.
+
+---
+
+## Dados — José
+
+### D1. Vocabulário de habilidades (P)
+- `pipeline/skills.py`: lista de ~40 habilidades (`id`, `label`, `kind`) e, para cada uma, as regras de detecção: nomes de dependências npm, linguagens do GitHub, *topics*.
+- **Pronto quando:** `skills.json` é gerado a partir dessa lista.
+
+### D2. Habilidades de cada projeto (M)
+- Detectar pelas dependências (já coletadas), pela linguagem e pelos *topics* (nova coleta, barata). Grava `project_skills(repo, skill, source)`.
+- **Pronto quando:** pelo menos 90% dos projetos têm 2 ou mais habilidades.
+
+### D3. Perfil e métricas (M)
+- Calcular `profile`, `openness`, `maintainers_24m` e `years` no `build.py`, com as regras de `docs/visao.md`. Teste com assert em 3 projetos conhecidos.
+- **Pronto quando:** `debug-js/debug` sai como `guardiao` e algum projeto com PRs de fora sai como `porta_aberta`.
+
+### D4. `match.ts` (M)
+- Ranking no navegador (regras em `docs/arquitetura.md`), mais um teste com 3 perfis.
+- **Pronto quando:** o teste passa.
+
+---
+
+## Gemma offline (pipeline) — Kaiky
+
+### K1. Cliente do Gemma no pipeline (P)
+- Trazer o `llm.py` do esqueleto do Kaiky para `pipeline/llm.py`, com caminhos baseados em `Path(__file__)` e configuração vinda das variáveis de `docs/arquitetura.md`.
+- **Pronto quando:** `python pipeline/llm.py "responda só OK"` responde, com `LLM_BACKEND=gemini`. Ollama é plano B.
+
+### K2. Classificador de política de IA (M)
+- Trazer o `classify_ai_policy.py` do Kaiky. **Ler os textos da tabela `repo_files`**, sem baixar de novo. Gravar `ai_policy(repo, classification, evidence, source_file, model, classified_at)`.
+- Manter: o filtro por regex antes de chamar o modelo e o descarte quando a evidência não está no texto.
+- O texto dos arquivos é dado de terceiros: o prompt precisa dizer que é conteúdo a analisar, não instruções.
+- **Pronto quando:** a tabela está preenchida para todos os repositórios e o script imprime a contagem por categoria.
+
+### K3. Acurácia contra o gabarito (P) — depende de P1
+- `pipeline/evaluate.py` lê `eval/gabarito.csv` e compara com a tabela `ai_policy`.
+- **Pronto quando:** imprime "acertou X de Y" e o número vai para o README.
+
+---
+
+## Gemma ao vivo (site) — Anna
+
+### A1. `web/lib/gemma.ts` (M)
+- Função `explain(project: Project, profile: UserProfile): Promise<ExplainResponse>`, que chama a Gemini API com o modelo `GEMMA_MODEL` (SDK `@google/genai`).
+- O prompt em português usa **só** os dados do `Project` (habilidades, perfil, política de IA com a evidência, issues para iniciantes, mantenedores) e pede JSON no formato `why` / `first_steps` / `heads_up`.
+- Dá para começar antes do E1, num arquivo solto testado com `npx tsx`.
+- **Pronto quando:** roda com 1 projeto de exemplo e devolve o formato do contrato.
+
+### A2. Ligar `/api/explain` ao Gemma (P) — depende de E1 e E3
+- Trocar a resposta fixa do stub pela `explain()`. Buscar o projeto no `projects.json` pelo `repo`.
+- Erros: 429 da API vira `rate_limited`; repo desconhecido vira `not_found`; resposta fora do formato vira `model_error`.
+- **Pronto quando:** o `curl` do E3 devolve um texto real e um repo inexistente devolve `not_found`.
+
+### A3. Qualidade das respostas (P)
+- Testar 3 perfis (iniciante em JS, experiente em segurança, alguém de docs) em 3 projetos (um guardião, um porta aberta, um app mainstream). Ajustar o prompt.
+- **Pronto quando:** as 9 respostas estão coladas na issue e nenhuma inventa algo que não está nos dados.
+
+---
+
+## Site (telas) — Pablo / Kaiky (depois do K2)
+Todas dependem do E1 e usam o `projects.json` do E2.
+
+### S1. Painel de filtros (M)
+- Checkboxes das habilidades de `skills.json`, agrupadas por `kind`, mais a escolha de nível. O estado vira um `UserProfile`.
+- **Pronto quando:** marcar e desmarcar atualiza o `UserProfile`.
+
+### S2. Lista de resultados (M)
+- Cards com repo, descrição, perfil (selo), habilidades em comum, política de IA e issues para iniciantes. A ordem vem do `match.ts` (D4); até ele ficar pronto, ordene por estrelas.
+- **Pronto quando:** filtrar por React mostra só projetos com React.
+
+### S3. Página do projeto `/p/dono/nome` (M)
+- Dados do projeto, gráfico simples por ano (PRs, issues, pessoas), política de IA com a evidência citada, e o botão "Como eu começo aqui?", que chama `/api/explain` com o perfil atual.
+- **Pronto quando:** o botão mostra a resposta do stub (E3) e depois a real (A2).
+
+---
+
+## Demo — Pablo
+
+### P1. Gabarito da política de IA (M) — pode começar já
+- Rotular 25 repositórios em `eval/gabarito.csv` lendo os arquivos. Consulta: `SELECT repo, path FROM repo_files WHERE path != 'README.md'`.
+- Comece pelos que têm `AI_POLICY.md`, `AGENTS.md`, `CLAUDE.md` ou `copilot-instructions.md`. Inclua uns 5 sem nada (`silent`).
+- **Pronto quando:** 25 linhas, e pelo menos 3 categorias aparecem.
+
+### P2. README final e roteiro da demo (M)
+- README em pt-BR e inglês: problema, como funciona, onde entra o Gemma (local e API), números (o achado do slide e a acurácia do K3).
+- Roteiro de 2 minutos para o vídeo.
+
+### P3. Vídeo, PR real e submissão (M), às 16h
+- Gravar a demo. Abrir um PR de verdade num projeto que o OpenDoor recomendou. Submeter no MLH nas duas categorias.
+
+---
+
+## Integração — José
+
+### I1. Integração final (M), às 15h
+- Gerar o `projects.json` final (skills + perfil + ai_policy), fazer o deploy, testar o fluxo inteiro e congelar a `main` às 16h.
