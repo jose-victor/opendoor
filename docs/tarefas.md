@@ -67,7 +67,7 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 - Calcular `needs` com os sinais de `docs/visao.md`: issues sem label nem resposta → triagem; PRs abertos esperando revisão → revisão; Scorecard baixo / guardião → segurança; label ou arquivos de docs/i18n → documentação/tradução. Pode precisar de uma coleta extra, barata: labels das issues abertas e PRs abertos sem revisão.
 - **Pronto quando:** todo projeto tem pelo menos uma forma em `needs`, e a ordem faz sentido em 5 projetos conferidos à mão.
 
-### D4. `match.ts` (M)
+### D4. `match.ts` (M) — ✅ PR da #7 (regras em `docs/arquitetura.md`)
 - Ranking no navegador (regras em `docs/arquitetura.md`), mais um teste com 3 perfis.
 - **Pronto quando:** o teste passa.
 

@@ -113,9 +113,16 @@ O `openness` só é calculado com **5 PRs aceitos de humanos ou mais** em 12 mes
 Distribuição em 31/10, com a etapa `large` ainda rodando: 723 estáveis, 142 guardiões, 86 portas abertas e 10 que precisam de mãos.
 
 ## Regras de ranking (`web/lib/match.ts`)
-Implementação do José. Resumo para quem consome:
-- **Formas de contribuir:** se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs`. Formas que não são código (triagem, docs, tradução) **não exigem** habilidade técnica em comum.
-- **Habilidades:** pontua quantas habilidades marcadas o projeto tem.
-- **Nível:** iniciante favorece `porta_aberta` com `newcomer_open > 0`; experiente favorece `guardiao` e `precisa_de_maos`.
-- **Exclusões:** `estavel` não aparece.
-- **Empate:** desempata por `openness`.
+`rankProjects(projects, profile, languageIds)` devolve **no máximo 5 portas** (`MAX_DOORS`). O `languageIds` são os ids de `skills.json` com `kind: "linguagem"`; o S1 já carrega esse arquivo e passa o conjunto.
+- **Exclusões:**
+  - `estavel` nunca aparece;
+  - `guardiao` não aparece para iniciante;
+  - se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs` (enquanto a D5 não preenche `needs`, um `needs` vazio não exclui);
+  - se a pessoa marcou habilidades, o projeto precisa ter pelo menos uma em comum;
+  - se ela marcou linguagens, o projeto precisa usar uma delas.
+- **Exceção:** quem marcou só formas que não são código (triagem, refinamento, documentação, tradução) **não precisa** ter habilidade nem linguagem em comum.
+- **Pontuação:**
+  - 5 por habilidade em comum;
+  - bônus do nível: iniciante favorece `porta_aberta`, mais 2 se `newcomer_open > 0`; intermediário favorece `precisa_de_maos`; experiente favorece `guardiao`;
+  - mais 1 por forma de contribuir em comum.
+- **Empate:** desempata por `openness` e depois por estrelas.
