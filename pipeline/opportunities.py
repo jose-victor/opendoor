@@ -24,6 +24,15 @@ DB = ROOT / "data" / "ecosystem.db"
 PROJECTS = ROOT / "web" / "public" / "data" / "projects.json"
 WAYS = ["codigo", "triagem", "revisao", "refinamento", "documentacao", "traducao", "seguranca", "testes"]
 MAX_DOC = 6000
+# O que cada forma inclui (mesmos textos de docs/arquitetura.md, "Formas de contribuir")
+WAY_HELP = """- codigo: correções e funcionalidades pequenas, de preferência issues marcadas como "good first issue"
+- triagem: reproduzir bugs relatados, pedir informações que faltam, achar duplicadas, responder dúvidas da comunidade
+- revisao: revisar PRs abertos: rodar localmente, reproduzir o bug e validar se o fix resolve
+- refinamento: transformar issues vagas em issues com passos de reprodução e critério de pronto
+- documentacao: documentação, exemplos e tutoriais
+- traducao: tradução e localização
+- seguranca: revisar dependências e alertas, melhorar práticas do OpenSSF Scorecard, auditar código sensível
+- testes: testes de regressão, cobertura e observabilidade (logs, métricas, tracing)"""
 
 PROMPT = """Você ajuda pessoas a encontrar como contribuir com responsabilidade em projetos open source.
 Projeto: {repo} — {description}
@@ -37,7 +46,9 @@ Abaixo, entre <documento> e </documento>, está o guia de contribuição ou o RE
 </documento>
 
 Sugira de 1 a 3 oportunidades concretas de contribuição que AINDA NÃO estão na lista acima, com base no documento
-e nos números. Formas possíveis: {ways}. Cada nota em português do Brasil, até 120 caracteres, específica deste
+e nos números. Formas possíveis:
+{ways}
+Cada nota em português do Brasil, até 120 caracteres, específica deste
 projeto (ex.: "traduzir a documentação de instalação", "testes para o parser de YAML"). Nunca sugira abrir PRs em massa.
 Responda APENAS com JSON: {{"suggestions": [{{"way": "<forma>", "note": "<nota>"}}]}}"""
 
@@ -58,7 +69,7 @@ def ask(p, doc, repo_row):
     prompt = PROMPT.format(repo=p["repo"], description=p["description"] or "", profile=p["profile"],
                            maintainers=p["maintainers_24m"], open_issues=repo_row[0], open_prs=repo_row[1],
                            known=", ".join(p["needs"]) or "nenhuma", doc=doc[:MAX_DOC] or "(sem documento)",
-                           ways=", ".join(WAYS))
+                           ways=WAY_HELP)
     return parse(llm.generate(prompt), known)
 
 

@@ -48,8 +48,9 @@ ASKS = {
                      "o guia de contribuição pede ajuda com documentação"),
     "traducao": (re.compile(r"\b(translat\w*|locali[sz]ation|i18n|l10n|crowdin|weblate|transifex)\b", re.I),
                  "o guia de contribuição fala de tradução"),
-    "testes": (re.compile(r"\b(add|write|writing|adding|improv\w*|more)\b.{0,20}\btests?\b|\btest coverage\b", re.I | re.S),
-               "o guia de contribuição pede testes"),
+    "testes": (re.compile(r"\b(add|write|writing|adding|improv\w*|more)\b.{0,20}\btests?\b|\btest coverage\b|"
+                          r"\b(observability|telemetry|tracing|opentelemetry)\b", re.I | re.S),
+               "o guia de contribuição pede testes ou observabilidade"),
     "revisao": (re.compile(r"\breview(ing)? (pull requests|prs|other)\b", re.I),
                 "o guia de contribuição convida a revisar PRs"),
 }
@@ -73,7 +74,7 @@ def opportunities_of(r, profile, openness, maintainers, newcomer_open, scorecard
     if open_issues >= 100 or (open_issues >= 30 and maintainers <= 3):
         out.append({"way": "triagem", "source": "dados", "note": f"{open_issues} issues abertas para {n_(maintainers, 'pessoa que mantém', 'pessoas que mantêm')}"})
     if open_prs >= 20 and not any(o["way"] == "revisao" for o in out):
-        out.append({"way": "revisao", "source": "dados", "note": f"{open_prs} PRs abertos esperando revisão"})
+        out.append({"way": "revisao", "source": "dados", "note": f"{open_prs} PRs abertos: dá para rodar, reproduzir o bug e validar o fix"})
     if profile == "guardiao" or (scorecard is not None and scorecard < 5):
         note = f"OpenSSF Scorecard {scorecard:.1f}/10" if scorecard is not None else "muita gente depende, 1 ou 2 pessoas cuidam"
         out.append({"way": "seguranca", "source": "dados", "note": note})

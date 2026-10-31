@@ -113,6 +113,20 @@ O `openness` só é calculado com **5 PRs aceitos de humanos ou mais** em 12 mes
 
 Distribuição em 31/10, com a etapa `large` ainda rodando: 723 estáveis, 142 guardiões, 86 portas abertas e 10 que precisam de mãos.
 
+## Formas de contribuir (`Way`): rótulo sugerido e o que inclui
+| id | Rótulo no site | Inclui |
+|---|---|---|
+| `codigo` | Código | correções e funcionalidades pequenas, de preferência issues "good first issue" |
+| `triagem` | Triagem e suporte | reproduzir bugs relatados, pedir informações, achar duplicadas, responder dúvidas da comunidade |
+| `revisao` | Revisão de PRs | rodar o PR localmente, reproduzir o bug e validar se o fix resolve |
+| `refinamento` | Refinamento de issues | issues vagas viram issues com passos de reprodução e critério de pronto |
+| `documentacao` | Documentação | docs, exemplos, tutoriais |
+| `traducao` | Tradução | tradução e localização |
+| `seguranca` | Segurança | dependências e alertas, práticas do OpenSSF Scorecard, auditoria |
+| `testes` | Testes e observabilidade | testes de regressão, cobertura, logs, métricas, tracing |
+
+O prompt do Gemma (`pipeline/opportunities.py`) usa essas mesmas descrições. Acessibilidade, design/UX, empacotamento e performance ficaram para depois de hoje, porque mudariam o contrato.
+
 ## Oportunidades (D5): `needs` e `opportunities`
 ```ts
 type Opportunity = { way: Way; source: "projeto" | "dados" | "gemma"; note: string };
@@ -122,7 +136,7 @@ Cada projeto lista as formas de ajuda e o motivo (`note`, em pt-BR), nesta ordem
 2. **`dados`:** os números mostram:
    - `codigo`: 10% ou mais dos PRs aceitos vêm de fora;
    - `triagem`: 100 issues abertas ou mais, ou 30 ou mais com até 3 mantenedores;
-   - `revisao`: 20 PRs abertos ou mais;
+   - `revisao`: 20 PRs abertos ou mais (nota: rodar, reproduzir o bug e validar o fix);
    - `seguranca`: guardião ou Scorecard abaixo de 5.
 3. **`gemma`:** sugestão do Gemma 4, gerada **offline** por `pipeline/opportunities.py`. Ele lê o guia de contribuição ou o README e os números, e só sugere formas que ainda não estão na lista. O resultado fica em cache em `repo_opportunities`. **No site, mostrar como "sugestão da IA", não como fato.**
 
