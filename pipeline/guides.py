@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""G1: o Gemma escreve, uma vez por projeto, o guia "por onde começar" (offline, em cache no banco).
+"""G1: a LLM escreve, uma vez por projeto, o guia "por onde começar" (offline, em cache no banco).
 
   python pipeline/build.py && python pipeline/guides.py && python pipeline/build.py
 
-Para cada projeto que aparece no match (perfil diferente de "estavel"), o Gemma lê o guia de contribuição
+Para cada projeto que aparece no match (perfil diferente de "estavel"), a LLM lê o guia de contribuição
 (ou o README), as oportunidades e os números, e devolve: resumo, passos comuns, passos por forma de ajuda
 e um alerta. Fica em project_guides; o site combina com o perfil da pessoa sem chamar o modelo
 (web/lib/guide.ts), então a mesma pessoa vê sempre o mesmo guia.
@@ -88,7 +88,7 @@ def main():
     done = {r[0] for r in db.execute("SELECT repo FROM project_guides")}
     projects = [p for p in json.loads(PROJECTS.read_text()) if p["profile"] != "estavel" and p["repo"] not in done]
     projects = sorted(projects, key=lambda p: -p["stars"])[:args.limit]
-    print(f"{len(projects)} projetos para o Gemma", flush=True)
+    print(f"{len(projects)} projetos para o modelo", flush=True)
 
     inputs = []  # lê tudo antes: sqlite3 não pode ser dividido entre threads
     for p in projects:
@@ -106,7 +106,7 @@ def main():
             print(f"  {p['repo']}: {e}", file=sys.stderr, flush=True)
             return p["repo"], None
 
-    model = os.environ.get("GEMMA_MODEL", llm.DEFAULT_GEMMA_MODEL)
+    model = os.environ.get("GEMINI_MODEL", llm.DEFAULT_GEMINI_MODEL)
     with ThreadPoolExecutor(args.workers) as ex:
         for i, (repo, guide) in enumerate(ex.map(work, inputs), 1):
             if guide is not None:

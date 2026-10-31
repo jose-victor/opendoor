@@ -1,7 +1,7 @@
 // POST /api/explain — contrato em docs/arquitetura.md.
 import { getProject } from "@/lib/projects";
 import { LEVELS, WAYS, type ExplainRequest, type ExplainResponse } from "@/lib/types";
-import { explain } from "@/lib/gemma";
+import { explain } from "@/lib/gemini";
 
 function fail(status: number, error: Extract<ExplainResponse, { ok: false }>["error"], message: string) {
   return Response.json({ ok: false, error, message } satisfies ExplainResponse, { status });

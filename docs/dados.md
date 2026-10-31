@@ -18,7 +18,7 @@ Repositório sempre identificado como `dono/nome` em minúsculas. Meses no forma
 | `ai_policy(repo, classification, evidence, source_file, model, classified_at)` | classificação da política de IA a partir dos textos de `repo_files`; `evidence` é literal, `source_file` e `evidence` ficam vazios quando não há regra confirmada, e `model` é nulo quando o filtro por regex dispensa o modelo |
 | `repo_labels(repo, newcomer_open)` | issues abertas com "good first issue", "help wanted" e parecidas |
 | `project_guides(repo, model, guide)` | guia "por onde começar" de cada projeto (JSON de `Guide`), gerado por `pipeline/guides.py`; cada repo é consultado uma vez |
-| `repo_opportunities(repo, model, suggestions)` | sugestões do Gemma (lista JSON de `Opportunity` com `source: "gemma"`), geradas por `pipeline/opportunities.py`; cada repo é consultado uma vez |
+| `repo_opportunities(repo, model, suggestions)` | sugestões do Gemma (lista JSON de `Opportunity` com `source: "gemini"`), geradas por `pipeline/opportunities.py`; cada repo é consultado uma vez |
 | `repo_topics(repo, topics, languages)` | topics do GitHub (lista JSON) e linguagens com bytes (`{"C++": 639…}`); etapa `topics`, entra na detecção de habilidades |
 | `repo_scorecard(repo, overall, date)` / `scorecard_checks(repo, check_name, score, reason)` | OpenSSF Scorecard (0–10) e cada verificação (Maintained, Code-Review, Branch-Protection...) |
 | `package_advisories(system, name, version, advisory)` | alertas de vulnerabilidade da versão atual |

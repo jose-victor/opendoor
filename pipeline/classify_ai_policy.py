@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from llm import DEFAULT_GEMMA_MODEL, DEFAULT_OLLAMA_MODEL, generate
+from llm import DEFAULT_GEMINI_MODEL, DEFAULT_OLLAMA_MODEL, generate
 
 
 WORKERS = 3
@@ -49,7 +49,7 @@ def _model_name():
     if backend == "ollama":
         name = os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
     else:
-        name = os.environ.get("GEMMA_MODEL", DEFAULT_GEMMA_MODEL)
+        name = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
     return f"{backend}:{name}"
 
 

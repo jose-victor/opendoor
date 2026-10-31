@@ -39,9 +39,9 @@ mantenedor, mantenedores ativos, issues para iniciantes, commits, revisões e Sc
 2. **Política de IA (offline):** `pipeline/classify_ai_policy.py` classifica se o projeto aceita IA, pede aviso ou proíbe, sempre com uma citação literal do arquivo.
 3. **Guia "por onde começar" (offline):** `pipeline/guides.py` escreve, uma vez por projeto, o resumo e os passos por forma de ajuda. O site combina o guia com o perfil da pessoa, sem chamar o modelo. Os passos começam por observar e conversar, nunca por "abra um PR".
 
-A rota `/api/explain` (Gemma ao vivo) continua disponível, mas o site não a usa: o grupo preferiu que tudo fosse gerado antes e ficasse salvo. A avaliação dela está em `eval/explain.md`.
+A rota `/api/explain` (modelo ao vivo, hoje `gemini-3.5-flash-lite`) continua disponível, mas o site não a usa: o grupo preferiu que tudo fosse gerado antes e ficasse salvo. A avaliação dela está em `eval/explain.md`.
 
-`pipeline/llm.py` fala com o Gemma pela Gemini API ou pelo Ollama local.
+`pipeline/llm.py` fala com o modelo pela Gemini API (`GEMINI_MODEL`, padrão `gemini-3.5-flash-lite`) ou pelo Ollama local. Os dados publicados hoje foram gerados com o Gemma 4.
 
 ## Roteiro da demo — 2 minutos
 

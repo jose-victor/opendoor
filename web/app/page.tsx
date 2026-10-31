@@ -177,7 +177,7 @@ export default function Home() {
 
       <footer className="mt-16 border-t border-line pt-5 text-xs text-muted">
         Dados de deps.dev, GitHub e OpenSSF Scorecard. Resumos e guias gerados
-        com IA (Gemma 4, um modelo aberto) a partir dos guias de contribuição de
+        com uma LLM a partir dos guias de contribuição de
         cada projeto. Código aberto (GPL-3.0) em{" "}
         <a className="underline" href="https://github.com/jose-victor/opendoor" target="_blank" rel="noreferrer">
           github.com/jose-victor/opendoor

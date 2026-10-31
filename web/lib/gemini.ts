@@ -1,15 +1,15 @@
-// A1 (Anna): cliente da Gemini API (Gemma 4). Só roda no servidor: usa process.env.GEMINI_API_KEY.
+// A1 (Anna): cliente da Gemini API. Só roda no servidor: usa process.env.GEMINI_API_KEY.
 // Contrato da saída: ExplainResponse em lib/types.ts e docs/arquitetura.md.
 import { GoogleGenAI } from "@google/genai";
 import type { ExplainResponse, Project, UserProfile } from "./types";
 
-const DEFAULT_MODEL = "gemma-4-26b-a4b-it";
+const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 const TIMEOUT_MS = 60_000; // cada chamada leva de 10 a 25 s; acima disso algo travou
 
-// Sem responseSchema: com ele, o Gemma 4 pela Gemini API trava (testado em 31/10). O JSON vem pelo prompt.
+// Sem responseSchema: com ele, o modelo anterior travava (testado em 31/10). O JSON vem pelo prompt.
 function buildPrompt(project: Project, profile: UserProfile): string {
   const opportunities = (project.opportunities ?? [])
-    .map((o) => `  - ${o.way} (${o.source === "gemma" ? "sugestão da IA" : o.source}): ${o.note}`)
+    .map((o) => `  - ${o.way} (${o.source === "gemini" ? "sugestão da IA" : o.source}): ${o.note}`)
     .join("\n");
   return `Você é o assistente do OpenDoor. Ajude uma pessoa a começar a contribuir com responsabilidade num projeto open source.
 
@@ -58,11 +58,11 @@ export async function explain(project: Project, profile: UserProfile): Promise<E
     console.error("GEMINI_API_KEY não configurada no servidor");
     return { ok: false, error: "model_error", message: "O modelo não está configurado no servidor." };
   }
-  const model = process.env.GEMMA_MODEL || DEFAULT_MODEL;
+  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
   const ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: TIMEOUT_MS } });
 
   try {
-    // response.text já descarta as partes de raciocínio (thought: true) do Gemma 4
+    // response.text já descarta as partes de raciocínio (thought: true)
     const response = await ai.models.generateContent({ model, contents: buildPrompt(project, profile) });
     const parsed = parse(response.text ?? "");
     if (!parsed) {

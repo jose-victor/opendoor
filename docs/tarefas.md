@@ -53,7 +53,7 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 ## Fase 0: Esqueleto — José
 
 ### E1. Criar `web/` e publicar na Vercel (M) — ✅ PR #23, no ar em https://opendoor-fawn.vercel.app
-- ✅ Vercel conectada ao GitHub (pasta raiz `web/`): a `main` faz deploy sozinha e **cada PR ganha um preview**. `GEMINI_API_KEY` e `GEMMA_MODEL` configuradas.
+- ✅ Vercel conectada ao GitHub (pasta raiz `web/`): a `main` faz deploy sozinha e **cada PR ganha um preview**. `GEMINI_API_KEY` e `GEMINI_MODEL` configuradas.
 - Next.js (App Router, TypeScript), com as pastas e arquivos vazios de `docs/arquitetura.md`. `lib/types.ts` com os tipos do contrato.
 - Projeto na Vercel ligado ao repositório. `GEMINI_API_KEY` configurada lá.
 - **Pronto quando:** a URL da Vercel abre uma página e `npm run build` passa.
@@ -132,9 +132,9 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 
 ## Gemma ao vivo (site) — Anna
 
-### A1. `web/lib/gemma.ts` (M) — ✅ PR #41 (Anna; revisão do Claude)
+### A1. `web/lib/gemini.ts` (M) — ✅ PR #41 (Anna; revisão do Claude)
 - ⚠️ Gemma 4 pela API: use só as partes **sem** `thought: true` (o raciocínio vem junto); não use `thinkingLevel: "minimal"` (erro 500); cada chamada leva de 10 a 15 s.
-- Função `explain(project: Project, profile: UserProfile): Promise<ExplainResponse>`, que chama a Gemini API com o modelo `GEMMA_MODEL` (SDK `@google/genai`).
+- Função `explain(project: Project, profile: UserProfile): Promise<ExplainResponse>`, que chama a Gemini API com o modelo `GEMINI_MODEL` (SDK `@google/genai`).
 - O prompt em português usa **só** os dados do `Project` (habilidades, perfil, política de IA com a evidência, issues para iniciantes, mantenedores) e pede JSON no formato `why` / `first_steps` / `heads_up`.
 - Dá para começar antes do E1, num arquivo solto testado com `npx tsx`.
 - **Pronto quando:** roda com 1 projeto de exemplo e devolve o formato do contrato.
