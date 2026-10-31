@@ -97,9 +97,9 @@ type ExplainResponse =
 | `GEMMA_MODEL` | Vercel e pipeline | padrão `gemma-4-26b-a4b-it` |
 | `LLM_BACKEND` | pipeline | `gemini` ou `ollama` (local) |
 | `OLLAMA_MODEL` | pipeline | ex.: `gemma4:e4b` |
+| `OLLAMA_URL` | pipeline | padrão `http://localhost:11434` |
 
-O cliente do pipeline pode ser executado com `python pipeline/llm.py "seu prompt"`.
-O backend padrão é `gemini`; para usar o Ollama local, defina `LLM_BACKEND=ollama`.
+O cliente do pipeline (`pipeline/llm.py`) lê o `.env` da raiz e roda com `python pipeline/llm.py "seu prompt"`. O backend padrão é `gemini`; para o Gemma local, use `LLM_BACKEND=ollama`.
 
 ## Como o `build.py` calcula o perfil (D3)
 Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
