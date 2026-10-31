@@ -30,7 +30,7 @@ Prazo: **congelar às 16h**, submeter às **16h30**.
   Os scripts do Gemma gravam por repo e pulam o que já está em cache. Um erro de cota (HTTP 429) só deixa o repo para a próxima execução.
 - **O que confere a qualidade:** `python pipeline/build.py` roda os asserts de perfil e de "pronto para iniciante"; `python pipeline/skills.py` e `python pipeline/collect.py selftest` também. As regras estão em `docs/arquitetura.md`.
 - **Prioridade definida pelo José:** a confiança no selo "pronto para iniciante" vem antes da cobertura. Não afrouxe critério para aparecer mais projeto sem medir falsos positivos.
-- **Próximos passos com maior retorno** (das duas auditorias de 31/10):
+- **Próximos passos com maior retorno** (das duas auditorias de 31/10; issues #49 a #71 em "Depois de hoje"):
   - achar o CONTRIBUTING em outros caminhos (77 bons projetos caem só por isso);
   - estreias nos repos grandes com histórico;
   - atividade dos repos Go;
@@ -226,21 +226,30 @@ Todas dependem do E1 e usam o `projects.json` do E2.
 ---
 
 ## Depois de hoje
-- **Versão do site em inglês** (pedido do José). Título: "An Open Door for you to contribute to the Open Source world".
-- **Necessidades mais específicas** (auditoria de 31/10):
-  - coletar todos os labels de cada repo e separar "good first issue" livre e recente de "help wanted";
-  - medir o tempo até a primeira resposta e os PRs de fora parados (do cache bruto);
-  - segurança por verificação do Scorecard (`scorecard_checks`, já coletado);
-  - detectar a infraestrutura de tradução (crowdin, weblate, `locales/`);
-  - prompt do Gemma ancorado em labels e PRs parados;
-  - um gabarito de necessidades rotulado à mão;
-  - estreias também nos repos grandes;
-  - guardar o `nameWithOwner` da API para resolver redirecionamentos.
-  - o CONTRIBUTING em outros caminhos (`.rst`, `docs/`, `.github` da organização, variações de caixa): 77 projetos caem no selo de iniciante só por isso;
-  - `authorAssociation` no cache, para saber quem é funcionário da empresa;
-  - atividade dos repos Go (só 4 de 151 cobertos);
-  - estreias nos repos grandes que têm histórico desde 2022 (axios, babel, jest, mocha, sharp, zod...);
-  - exigir que o repo tenha mais de 24 meses para valer o selo (num repo novo, todo mundo "estreia").
-- **G1. Guia de contribuição de cada projeto** (issue #21). **Parte feita hoje**, ideia do José: o guia "por onde começar" escrito uma vez por projeto pelo modelo (`pipeline/guides.py`) e combinado com o perfil sem chamar o modelo (`web/lib/guide.ts`). Validado numa amostra de 6 projetos. **Fica para depois:** ambiente, regras do projeto (DCO, estilo de commit), quem revisa e quanto tempo leva.
+Cada item virou uma issue com o label `depois` (registradas em 31/10). Também seguem abertas a #21 (resto do G1: ambiente, regras, quem revisa) e a #10 (K3, acurácia do classificador).
+
+- #49 [F1] Migrar o banco de dados para fora do git
+- #50 [F2] Versão do site em inglês
+- #51 [F3] Achar o guia de contribuição em outros caminhos
+- #52 [F4] Estreias nos repos grandes com histórico
+- #53 [F5] Coletar a atividade dos repos Go
+- #54 [F6] Labels completos: separar good first issue livre de help wanted
+- #55 [F7] Segurança por verificação do Scorecard
+- #56 [F8] Detectar a infraestrutura de tradução
+- #57 [F9] Gemma ancorado: sugestões e guias citando algo do projeto
+- #58 [F10] Gabarito de necessidades rotulado à mão
+- #59 [F11] Saber quem é funcionário da empresa (authorAssociation no cache)
+- #60 [F12] Resolver redirecionamentos de repositório pelo nameWithOwner
+- #61 [F13] Selo de iniciante só para repos com mais de 24 meses
+- #62 [F14] Completar os guias e as políticas de IA que faltaram
+- #63 [F15] Revisores na conta de quem mantém
+- #64 [F16] Tempo de resposta e PRs parados nos repos grandes
+- #65 [F17] Guardião como "projeto crítico", não como porta
+- #66 [F18] Mais formas de contribuir: acessibilidade, design/UX, empacotamento e performance
+- #67 [F19] Testes automatizados do site (match e guia)
+- #68 [F20] Decidir o futuro do /api/explain
+- #69 [F21] Cadastro de projetos pelos mantenedores
+- #70 [F22] Monitor de inserções maliciosas
+- #71 [F23] Coletores para GitLab, Gerrit e Gitea
 
 As issues no GitHub têm o código da tarefa no título (`[E1]`, `[K2]`...), e as dependências já apontam para o número da issue.
