@@ -4,28 +4,46 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
-
+ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GEMMA_MODEL = "gemma-4-26b-a4b-it"
 DEFAULT_OLLAMA_MODEL = "gemma4:e4b"
 REQUEST_TIMEOUT = 60
+RETRY_STATUS = {429, 500, 503}  # limite do plano grátis e instabilidade: tenta de novo com espera crescente
 
 
-def _post_json(url, payload):
+def _load_env(path=ROOT / ".env"):
+    """Lê o .env da raiz (formato CHAVE=valor) sem sobrescrever o que já está no ambiente."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+def _post_json(url, payload, headers=None, tries=4):
     request = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", **(headers or {})},
         method="POST",
     )
     try:
         with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"A API do modelo respondeu com HTTP {exc.code}.") from exc
+        if exc.code in RETRY_STATUS and tries > 1:
+            time.sleep(int(exc.headers.get("Retry-After") or 0) or 2 ** (5 - tries) * 5)
+            return _post_json(url, payload, headers, tries - 1)
+        detail = exc.read().decode("utf-8", "replace")[:300]  # a mensagem do Google diz se foi limite, modelo, chave...
+        raise RuntimeError(f"A API do modelo respondeu com HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"Não foi possível conectar à API do modelo: {exc.reason}.") from exc
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -39,12 +57,9 @@ def _generate_gemini(prompt):
 
     model = os.environ.get("GEMMA_MODEL", DEFAULT_GEMMA_MODEL)
     encoded_model = urllib.parse.quote(model, safe="")
-    query = urllib.parse.urlencode({"key": api_key})
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{encoded_model}:generateContent?{query}"
-    )
-    data = _post_json(url, {"contents": [{"parts": [{"text": prompt}]}]})
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{encoded_model}:generateContent"
+    # chave no cabeçalho, não na URL: URLs acabam em logs e mensagens de erro
+    data = _post_json(url, {"contents": [{"parts": [{"text": prompt}]}]}, {"x-goog-api-key": api_key})
 
     try:
         parts = data["candidates"][0]["content"]["parts"]
@@ -55,7 +70,8 @@ def _generate_gemini(prompt):
     text = "".join(
         part["text"]
         for part in parts
-        if isinstance(part, dict) and isinstance(part.get("text"), str)
+        # o Gemma 4 devolve o raciocínio interno em partes com "thought": true; só a resposta interessa
+        if isinstance(part, dict) and isinstance(part.get("text"), str) and not part.get("thought")
     )
     if not text:
         raise RuntimeError("A resposta do Gemini não contém texto gerado.")
@@ -65,7 +81,7 @@ def _generate_gemini(prompt):
 def _generate_ollama(prompt):
     model = os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
     data = _post_json(
-        "http://localhost:11434/api/generate",
+        os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/") + "/api/generate",
         {"model": model, "prompt": prompt, "stream": False},
     )
     text = data.get("response") if isinstance(data, dict) else None
@@ -78,6 +94,7 @@ def generate(prompt):
     """Envia um prompt ao backend configurado e retorna o texto gerado."""
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("O prompt não pode ser vazio.")
+    _load_env()
 
     backend = os.environ.get("LLM_BACKEND", "gemini").strip().lower()
     if backend == "gemini":
