@@ -46,7 +46,7 @@ Itens marcados com **[não confirmado]** vieram de fontes secundárias ou não e
 ### 2.3 Como as duas se relacionam
 - As duas pedem IA aberta como parte central do projeto.
 - Um projeto que usa Gemma 4 (open-weight) tende a se encaixar nas duas. A categoria 1 não cita Gemma, mas pede "modelo open-weight".
-- Falta confirmar com os organizadores se usar o Gemma pela Gemini API conta como "open-weight" para a categoria 1.
+- **Confirmado com a organização (31/10, à tarde):** a categoria 1 não exige modelo open-weight; basta o projeto ser open source. O OpenDoor (GPL-3.0) se encaixa com qualquer modelo.
 
 ## 3. Gemma 4 — o que o modelo faz
 
@@ -103,7 +103,7 @@ Não há comparação oficial com a mesma metodologia. Números de fontes secund
 ## 6. Pendências para decidir
 
 - [x] Qual projeto construir: **OpenDoor** (ver `README.md` e `docs/visao.md`).
-- [ ] Confirmar com os organizadores o que conta como "open-weight" na categoria 1 e quais são os critérios de julgamento das duas.
+- [x] Confirmar com os organizadores o que conta como "open-weight" na categoria 1 (não precisa: projeto open source basta) e quais são os critérios de julgamento das duas.
 - [ ] Ver os limites do Gemma 4 no AI Studio.
 - [ ] Ler os links "Build with DigitalOcean" e "Build with Gemma 4" no navegador (créditos, tutoriais, regras).
 - [ ] Preparar a submissão antes das 17h.
