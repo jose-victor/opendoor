@@ -110,7 +110,7 @@ export function BigNumbers({ project: p, full = false }: { project: Project; ful
   ];
   const items = full ? all.filter(([v]) => v !== "—") : all.filter(([, , show]) => show).slice(0, 3);
   return (
-    <dl className={`grid gap-3 ${full ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-3"}`}>
+    <dl className={`grid gap-3 ${full ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-3"}`}>
       {items.map(([value, what]) => (
         <div key={what} className="min-w-0">
           <dt className="sr-only">{what}</dt>
