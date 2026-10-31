@@ -46,16 +46,19 @@ Cada projeto precisa de tipos diferentes de ajuda, e cada pessoa pode oferecer t
 
 | Forma | Sinal de que o projeto precisa |
 |---|---|
-| Código | issues abertas com label de bug/feature, PRs de fora sendo aceitos |
-| Triagem de issues | muitas issues abertas sem label e sem resposta |
-| Revisão de PRs | PRs abertos esperando, poucos revisores ativos |
+| Código | issues "good first issue" e parecidas, PRs de fora sendo aceitos |
+| Triagem e suporte (reproduzir bugs relatados, responder dúvidas) | muitas issues abertas para poucos mantenedores |
+| Revisão de PRs (rodar, reproduzir o bug e validar o fix) | PRs abertos esperando, poucos revisores ativos |
 | Refinamento de issues | issues vagas: sem passos de reprodução, sem label, sem critério de pronto |
 | Documentação | label de docs, README/CONTRIBUTING fracos ou ausentes |
 | Tradução / localização | arquivos de i18n, label de tradução |
 | Segurança | Scorecard baixo, perfil guardião, commits diretos sem revisão |
-| Testes | label de testes, pouca cobertura (quando dá para saber) |
+| Testes e observabilidade (regressão, cobertura, logs, métricas) | o guia pede testes ou observabilidade, pouca cobertura |
+
+Quando o projeto não lista o que precisa, o Gemma 4 sugere oportunidades (marcadas como sugestão da IA). Detalhes em `docs/arquitetura.md`.
 
 ## Fora do MVP de hoje
 - Cadastro de projetos pelos mantenedores (marketplace/rede social).
 - Monitor de inserções maliciosas (ver `ideias.md`).
+- Mais formas de contribuir: acessibilidade, design/UX, empacotamento e performance.
 - Coletores para GitLab, Gerrit e Gitea (GIMP, LibreOffice, Blender, Firefox).

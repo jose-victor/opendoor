@@ -12,6 +12,7 @@ python pipeline/collect.py selftest     # rode depois de mexer na agregação
 python pipeline/collect.py stats        # resumo do banco
 python pipeline/collect.py graph --system pypi  # etapas de grafo e security aceitam npm | pypi | go
 python pipeline/llm.py "prompt"         # Gemma pelo pipeline (lê o .env da raiz)
+python pipeline/opportunities.py        # Gemma sugere oportunidades por projeto (cache em repo_opportunities)
 sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 ```
 

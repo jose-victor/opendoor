@@ -642,6 +642,28 @@ def cmd_labels(db, args):
         log(f"  {min(start + 20, len(todo))}/{len(todo)} repositórios")
 
 
+def cmd_topics(db, args):
+    """Topics e linguagens (com bytes) de cada repositório (D2: entram na detecção de habilidades)."""
+    db.execute("CREATE TABLE IF NOT EXISTS repo_topics(repo TEXT PRIMARY KEY, topics TEXT, fetched_at TEXT)")
+    if "languages" not in {r[1] for r in db.execute("PRAGMA table_info(repo_topics)")}:
+        db.execute("ALTER TABLE repo_topics ADD COLUMN languages TEXT")  # {"C++": bytes, ...}
+    todo = [r[0] for r in db.execute(
+        "SELECT r.repo FROM repos r LEFT JOIN repo_topics t ON t.repo = r.repo "
+        "WHERE r.found = 1 AND (t.repo IS NULL OR t.languages IS NULL)")]
+    for start in range(0, len(todo), 50):
+        batch = todo[start:start + 50]
+        parts = [f'r{i}: repository(owner:{json.dumps(r.split("/")[0])}, name:{json.dumps(r.split("/")[1])})'
+                 '{repositoryTopics(first:30){nodes{topic{name}}} '
+                 'languages(first:10, orderBy:{field:SIZE, direction:DESC}){edges{size node{name}}}}' for i, r in enumerate(batch)]
+        data = gh("query{ rateLimit{remaining resetAt} " + " ".join(parts) + " }").get("data") or {}
+        with db:
+            db.executemany("INSERT OR REPLACE INTO repo_topics(repo, topics, fetched_at, languages) VALUES(?,?,?,?)", [
+                (r, json.dumps([n["topic"]["name"] for n in x["repositoryTopics"]["nodes"]]), now(),
+                 json.dumps({e["node"]["name"]: e["size"] for e in x["languages"]["edges"]}))
+                for i, r in enumerate(batch) if (x := data.get(f"r{i}"))])
+        log(f"  {min(start + 50, len(todo))}/{len(todo)} repositórios")
+
+
 def cmd_security(db, args):
     """deps.dev: OpenSSF Scorecard de cada repo + alertas de vulnerabilidade da versão atual de cada pacote."""
     db.executescript("""
@@ -723,7 +745,7 @@ def cmd_selftest(db, args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "security", "apps", "reaggregate", "large", "stats", "selftest"])
+    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest"])
     ap.add_argument("--limit", type=int, default=300, help="activity: quantos repos (os com mais dependentes primeiro)")
     ap.add_argument("--workers", type=int, default=4, help="activity: repos em paralelo")
     ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: ecossistema do deps.dev")
