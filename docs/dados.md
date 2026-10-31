@@ -5,9 +5,9 @@ Repositório sempre identificado como `dono/nome` em minúsculas. Meses no forma
 ## Mapa
 | Tabela | Conteúdo |
 |---|---|
-| `repo_tags(repo, tag)` | de onde o repo veio: `npm-graph` (grafo de dependências) ou `mainstream-app` (lista feita à mão) |
+| `repo_tags(repo, tag)` | de onde o repo veio: `npm-graph`, `pypi-graph` ou `go-graph` (grafo de dependências de cada ecossistema) ou `mainstream-app` (lista feita à mão) |
 | `seeds(system, name, version)` | pacotes-semente do grafo |
-| `packages(system, name, version, repo, dependents, direct_dependents)` | cada pacote do grafo; `dependents` = quantos pacotes dependem dele (deps.dev) |
+| `packages(system, name, version, repo, dependents, direct_dependents)` — `system`: `npm`, `pypi` ou `go` | cada pacote do grafo; `dependents` = quantos pacotes dependem dele (deps.dev) |
 | `dep_edges(system, seed, from_name, to_name)` | quem depende de quem, por semente |
 
 ## Foto atual
