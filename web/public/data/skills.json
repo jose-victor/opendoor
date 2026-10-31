@@ -1,47 +1,12 @@
 [
  {
-  "id": "c",
-  "label": "C",
-  "kind": "linguagem"
- },
- {
-  "id": "c",
-  "label": "C#",
-  "kind": "linguagem"
- },
- {
-  "id": "c",
-  "label": "C++",
-  "kind": "linguagem"
- },
- {
-  "id": "clojure",
-  "label": "Clojure",
-  "kind": "linguagem"
- },
- {
-  "id": "coffeescript",
-  "label": "CoffeeScript",
-  "kind": "linguagem"
- },
- {
-  "id": "dart",
-  "label": "Dart",
-  "kind": "linguagem"
- },
- {
-  "id": "go",
-  "label": "Go",
-  "kind": "linguagem"
- },
- {
   "id": "javascript",
   "label": "JavaScript",
   "kind": "linguagem"
  },
  {
-  "id": "php",
-  "label": "PHP",
+  "id": "typescript",
+  "label": "TypeScript",
   "kind": "linguagem"
  },
  {
@@ -50,8 +15,18 @@
   "kind": "linguagem"
  },
  {
-  "id": "ruby",
-  "label": "Ruby",
+  "id": "c",
+  "label": "C",
+  "kind": "linguagem"
+ },
+ {
+  "id": "cpp",
+  "label": "C++",
+  "kind": "linguagem"
+ },
+ {
+  "id": "go",
+  "label": "Go",
   "kind": "linguagem"
  },
  {
@@ -65,8 +40,63 @@
   "kind": "linguagem"
  },
  {
-  "id": "typescript",
-  "label": "TypeScript",
-  "kind": "linguagem"
+  "id": "frontend",
+  "label": "Frontend web",
+  "kind": "area"
+ },
+ {
+  "id": "backend",
+  "label": "Backend / servidores",
+  "kind": "area"
+ },
+ {
+  "id": "cli",
+  "label": "Ferramentas de linha de comando",
+  "kind": "area"
+ },
+ {
+  "id": "build",
+  "label": "Build, compiladores e tooling JS",
+  "kind": "area"
+ },
+ {
+  "id": "testes",
+  "label": "Testes, debug e qualidade",
+  "kind": "area"
+ },
+ {
+  "id": "parsing",
+  "label": "Parsers e formatos de dados",
+  "kind": "area"
+ },
+ {
+  "id": "seguranca",
+  "label": "Segurança e criptografia",
+  "kind": "area"
+ },
+ {
+  "id": "multimidia",
+  "label": "Áudio, vídeo, imagem e jogos",
+  "kind": "area"
+ },
+ {
+  "id": "infra",
+  "label": "Infraestrutura e DevOps",
+  "kind": "area"
+ },
+ {
+  "id": "ia",
+  "label": "IA e ciência de dados",
+  "kind": "area"
+ },
+ {
+  "id": "desktop",
+  "label": "Apps desktop e produtividade",
+  "kind": "area"
+ },
+ {
+  "id": "redes",
+  "label": "Redes e protocolos",
+  "kind": "area"
  }
 ]

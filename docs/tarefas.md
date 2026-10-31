@@ -12,7 +12,8 @@ Fase 0 (esqueleto, bloqueia o site)   E1 ─ E2 ─ E3
 Em paralelo desde já                  K1 → K2 → K3 (depende de P1)
                                       P1 (gabarito)
                                       A1 → A2 → A3 (A2 depende de E1)
-Depois do esqueleto                   D1 → D2 → D3 → D4
+Depois do esqueleto                   D1 → D2 → D3 → D5 → D4
+Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA)
                                       S1, S2, S3 → I1 (integração)
 ```
 
@@ -21,7 +22,7 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 ## Fase 0: Esqueleto — José
 
 ### E1. Criar `web/` e publicar na Vercel (M) — ✅ PR #23, no ar em https://opendoor-fawn.vercel.app
-- ⏳ Falta: conexão automática Vercel ↔ GitHub (pasta raiz `web/`) e `GEMINI_API_KEY` na Vercel.
+- ✅ Vercel conectada ao GitHub (pasta raiz `web/`): a `main` faz deploy sozinha e **cada PR ganha um preview**. `GEMINI_API_KEY` e `GEMMA_MODEL` configuradas.
 - Next.js (App Router, TypeScript), com as pastas e arquivos vazios de `docs/arquitetura.md`. `lib/types.ts` com os tipos do contrato.
 - Projeto na Vercel ligado ao repositório. `GEMINI_API_KEY` configurada lá.
 - **Pronto quando:** a URL da Vercel abre uma página e `npm run build` passa.
@@ -39,27 +40,35 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 
 ## Dados — José
 
-### D1. Vocabulário de habilidades (P)
+### D1. Vocabulário de habilidades (P) — ✅ PR #33
 - `pipeline/skills.py`: lista de ~40 habilidades (`id`, `label`, `kind`) e, para cada uma, as regras de detecção: nomes de dependências npm, linguagens do GitHub, *topics*.
+- Feito: 62 habilidades (15 linguagens, 20 frameworks, 9 ferramentas, 18 áreas, incluindo IA/ML e dados). As regras de dependência valem para npm, PyPI e Go; `skills.detect(language, topics, deps, texto)` já está pronta para a D2. Selftest: `python pipeline/skills.py`.
 - **Pronto quando:** `skills.json` é gerado a partir dessa lista.
 
 ### D2. Habilidades de cada projeto (M)
 - Detectar pelas dependências (já coletadas), pela linguagem e pelos *topics* (nova coleta, barata). Grava `project_skills(repo, skill, source)`.
+- ✅ Feito (PR #33): etapa `collect.py topics` (`repo_topics`) e detecção no `build.py` (sem tabela `project_skills`: é recalculada a cada build). Após a conversa sobre a UX, o site mostra só **19 filtros** (linguagens e áreas, com 5+ projetos cada; ver `docs/arquitetura.md`). Resultado: 99,7% dos projetos com 1+ habilidade e 64% com 2+. Os outros são bibliotecas utilitárias minúsculas, em que a linguagem é a resposta honesta. Depois, cada projeto passou a contar com todas as linguagens que têm 10% ou mais do código, e 212 projetos ficaram com 2 linguagens ou mais. O critério de 90% com 2+ era para o vocabulário fino e foi trocado por "todo filtro tem 5+ projetos".
 - **Pronto quando:** pelo menos 90% dos projetos têm 2 ou mais habilidades.
 
-### D3. Perfil e métricas (M)
+### D3. Perfil e métricas (M) — ✅ PR da #6
 - Calcular `profile`, `openness`, `maintainers_24m` e `years` no `build.py`, com as regras de `docs/visao.md`. Teste com assert em 3 projetos conhecidos.
 - **Pronto quando:** `debug-js/debug` sai como `guardiao` e algum projeto com PRs de fora sai como `porta_aberta`.
+- Feito: as regras estão em `docs/arquitetura.md` e os asserts rodam com `python pipeline/build.py`. O debug sai guardião; Express, React, VS Code, Godot e llama.cpp saem porta aberta.
 
-### D6. Repos grandes: contagem + amostra (M) — issue #25, PR #24
+### D6. Repos grandes: contagem + amostra (M) — issue #25, PR #24 ⏳ rodando nos 104 grandes
 - Repos com mais de 6 mil issues + PRs (53) ganham contagens mensais completas desde 2018 pela busca, mais uma amostra de até 300 PRs aceitos dos últimos 12 meses (abertura e quem faz merge). Etapa `collect.py large`.
 - **Atenção, A1 e S3:** nesses repos, `years[ano].people` e `direct_commits` são `null`.
 
-### D5. Formas de contribuir por projeto (`needs`) (M)
+### D7. Novos ecossistemas: PyPI e Go, mais web e IA (M) — issue #27 ✅ código (PR #28); ⏳ dados em coleta
+- `collect.py --system npm|pypi|go`. Sementes de web (React, TypeScript, Tailwind...), dados e IA (pandas, transformers, LangChain, Ollama...). Apps de IA no GitHub (Ollama, llama.cpp, Open WebUI, ComfyUI).
+- Go e alguns pacotes npm não têm árvore resolvida no deps.dev: o grafo desce 2 níveis pelas dependências declaradas.
+
+### D5. Formas de contribuir por projeto (`needs`) (M) — ✅ PR da #22
 - Calcular `needs` com os sinais de `docs/visao.md`: issues sem label nem resposta → triagem; PRs abertos esperando revisão → revisão; Scorecard baixo / guardião → segurança; label ou arquivos de docs/i18n → documentação/tradução. Pode precisar de uma coleta extra, barata: labels das issues abertas e PRs abertos sem revisão.
 - **Pronto quando:** todo projeto tem pelo menos uma forma em `needs`, e a ordem faz sentido em 5 projetos conferidos à mão.
+- Feito, em duas camadas (ideia do José). (1) O que o guia de contribuição pede (fonte `projeto`), mais os sinais dos números (fonte `dados`), no `build.py`. (2) Sugestões do Gemma 4 para o que o projeto não lista (fonte `gemma`), offline, com `pipeline/opportunities.py`. Campo novo no contrato: `opportunities`. Todo projeto que aparece no match (não estável) tem pelo menos uma oportunidade. Conferidos à mão: express, debug, vscode, godot, obs.
 
-### D4. `match.ts` (M)
+### D4. `match.ts` (M) — ✅ PR da #7 (regras em `docs/arquitetura.md`)
 - Ranking no navegador (regras em `docs/arquitetura.md`), mais um teste com 3 perfis.
 - **Pronto quando:** o teste passa.
 
@@ -67,7 +76,7 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 
 ## Gemma offline (pipeline) — Kaiky
 
-### K1. Cliente do Gemma no pipeline (P)
+### K1. Cliente do Gemma no pipeline (P) — ✅ PR #29
 - Trazer o `llm.py` do esqueleto do Kaiky para `pipeline/llm.py`, com caminhos baseados em `Path(__file__)` e configuração vinda das variáveis de `docs/arquitetura.md`.
 - **Pronto quando:** `python pipeline/llm.py "responda só OK"` responde, com `LLM_BACKEND=gemini`. Ollama é plano B.
 
@@ -86,6 +95,7 @@ Depois do esqueleto                   D1 → D2 → D3 → D4
 ## Gemma ao vivo (site) — Anna
 
 ### A1. `web/lib/gemma.ts` (M)
+- ⚠️ Gemma 4 pela API: use só as partes **sem** `thought: true` (o raciocínio vem junto); não use `thinkingLevel: "minimal"` (erro 500); cada chamada leva de 10 a 15 s.
 - Função `explain(project: Project, profile: UserProfile): Promise<ExplainResponse>`, que chama a Gemini API com o modelo `GEMMA_MODEL` (SDK `@google/genai`).
 - O prompt em português usa **só** os dados do `Project` (habilidades, perfil, política de IA com a evidência, issues para iniciantes, mantenedores) e pede JSON no formato `why` / `first_steps` / `heads_up`.
 - Dá para começar antes do E1, num arquivo solto testado com `npx tsx`.

@@ -24,6 +24,10 @@ export type AiPolicy = {
   source_file: string;
 };
 
+// D5: por que o projeto precisa dessa forma de ajuda. "projeto" = o guia de contribuição pede;
+// "dados" = os números mostram; "gemma" = sugestão da IA (mostrar como sugestão, não como fato).
+export type Opportunity = { way: Way; source: "projeto" | "dados" | "gemma"; note: string };
+
 export type YearStats = {
   prs_opened: number;
   prs_merged: number;
@@ -37,7 +41,7 @@ export type YearStats = {
 export type Project = {
   repo: string;
   url: string;
-  tags: ("npm-graph" | "mainstream-app")[];
+  tags: ("npm-graph" | "pypi-graph" | "go-graph" | "mainstream-app")[];
   description: string | null;
   language: string | null;
   license: string | null;
@@ -45,6 +49,7 @@ export type Project = {
   dependents: number | null;
   profile: Profile;
   needs: Way[];
+  opportunities: Opportunity[];
   skills: string[];
   openness: number | null;
   maintainers_24m: number;

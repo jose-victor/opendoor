@@ -5,9 +5,9 @@ Repositório sempre identificado como `dono/nome` em minúsculas. Meses no forma
 ## Mapa
 | Tabela | Conteúdo |
 |---|---|
-| `repo_tags(repo, tag)` | de onde o repo veio: `npm-graph` (grafo de dependências) ou `mainstream-app` (lista feita à mão) |
+| `repo_tags(repo, tag)` | de onde o repo veio: `npm-graph`, `pypi-graph` ou `go-graph` (grafo de dependências de cada ecossistema) ou `mainstream-app` (lista feita à mão) |
 | `seeds(system, name, version)` | pacotes-semente do grafo |
-| `packages(system, name, version, repo, dependents, direct_dependents)` | cada pacote do grafo; `dependents` = quantos pacotes dependem dele (deps.dev) |
+| `packages(system, name, version, repo, dependents, direct_dependents)` — `system`: `npm`, `pypi` ou `go` | cada pacote do grafo; `dependents` = quantos pacotes dependem dele (deps.dev) |
 | `dep_edges(system, seed, from_name, to_name)` | quem depende de quem, por semente |
 
 ## Foto atual
@@ -16,6 +16,8 @@ Repositório sempre identificado como `dono/nome` em minúsculas. Meses no forma
 | `repos` | descrição, linguagem, licença, criação, último push, arquivado, estrelas, forks, issues/PRs abertos e totais; `found=0` = não existe mais |
 | `repo_files(repo, path, oid, text)` | CONTRIBUTING, AGENTS, CLAUDE, AI_POLICY, copilot-instructions, README. `oid` muda quando o arquivo muda |
 | `repo_labels(repo, newcomer_open)` | issues abertas com "good first issue", "help wanted" e parecidas |
+| `repo_opportunities(repo, model, suggestions)` | sugestões do Gemma (lista JSON de `Opportunity` com `source: "gemma"`), geradas por `pipeline/opportunities.py`; cada repo é consultado uma vez |
+| `repo_topics(repo, topics, languages)` | topics do GitHub (lista JSON) e linguagens com bytes (`{"C++": 639…}`); etapa `topics`, entra na detecção de habilidades |
 | `repo_scorecard(repo, overall, date)` / `scorecard_checks(repo, check_name, score, reason)` | OpenSSF Scorecard (0–10) e cada verificação (Maintained, Code-Review, Branch-Protection...) |
 | `package_advisories(system, name, version, advisory)` | alertas de vulnerabilidade da versão atual |
 
@@ -58,6 +60,7 @@ SELECT w.repo,
        SUM(CASE WHEN m.login IS NULL THEN w.n ELSE 0 END) AS de_fora,
        ROUND(1.0 * SUM(CASE WHEN m.login IS NULL THEN w.n ELSE 0 END) / SUM(w.n), 2) AS abertura
 FROM win w LEFT JOIN mergers m ON m.repo = w.repo AND m.login = w.login
+JOIN repos r ON r.repo = w.repo AND r.collection_mode IS NULL  -- grandes: usar repo_sample
 WHERE w.role = 'merged_pr_author'
 GROUP BY w.repo HAVING prs_aceitos >= 5 ORDER BY abertura DESC;
 ```
