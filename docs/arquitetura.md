@@ -101,6 +101,17 @@ type ExplainResponse =
 O cliente do pipeline pode ser executado com `python pipeline/llm.py "seu prompt"`.
 O backend padrão é `gemini`; para usar o Ollama local, defina `LLM_BACKEND=ollama`.
 
+## Como o `build.py` calcula o perfil (D3)
+Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
+1. **`guardiao`:** 100 mil dependentes ou mais, e 1 ou 2 pessoas fizeram merge ou commit direto em 24 meses.
+2. **`porta_aberta`:** `openness` de 0,25 ou mais, ou de 0,1 ou mais com issues para iniciantes abertas.
+3. **`precisa_de_maos`:** 30 issues abertas ou mais, até 3 mantenedores ativos, e aceita gente de fora (PR aceito ou issue para iniciantes).
+4. **`estavel`:** o resto, incluindo pacotes sem nenhum mantenedor ativo em 24 meses.
+
+O `openness` só é calculado com **5 PRs aceitos de humanos ou mais** em 12 meses; abaixo disso é `null`. Mantenedor é quem fez merge ou commit direto em 24 meses. Nos repos grandes, os dois números vêm da amostra (`repo_sample`).
+
+Distribuição em 31/10, com a etapa `large` ainda rodando: 723 estáveis, 142 guardiões, 86 portas abertas e 10 que precisam de mãos.
+
 ## Regras de ranking (`web/lib/match.ts`)
 Implementação do José. Resumo para quem consome:
 - **Formas de contribuir:** se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs`. Formas que não são código (triagem, docs, tradução) **não exigem** habilidade técnica em comum.

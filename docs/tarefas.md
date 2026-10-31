@@ -50,9 +50,10 @@ Dados (em paralelo)                   D6 (repos grandes), D7 (PyPI, Go, web e IA
 - ✅ Feito (PR #33): etapa `collect.py topics` (`repo_topics`) e detecção no `build.py` (sem tabela `project_skills`: é recalculada a cada build). Após a conversa sobre a UX, o site mostra só **19 filtros** (linguagens e áreas, com 5+ projetos cada; ver `docs/arquitetura.md`). Resultado: 99,7% dos projetos com 1+ habilidade e 64% com 2+. Os outros são bibliotecas utilitárias minúsculas, em que a linguagem é a resposta honesta. O critério de 90% com 2+ era para o vocabulário fino e foi trocado por "todo filtro tem 5+ projetos".
 - **Pronto quando:** pelo menos 90% dos projetos têm 2 ou mais habilidades.
 
-### D3. Perfil e métricas (M)
+### D3. Perfil e métricas (M) — ✅ PR da #6
 - Calcular `profile`, `openness`, `maintainers_24m` e `years` no `build.py`, com as regras de `docs/visao.md`. Teste com assert em 3 projetos conhecidos.
 - **Pronto quando:** `debug-js/debug` sai como `guardiao` e algum projeto com PRs de fora sai como `porta_aberta`.
+- Feito: as regras estão em `docs/arquitetura.md` e os asserts rodam com `python pipeline/build.py`. O debug sai guardião; Express, React, VS Code, Godot e llama.cpp saem porta aberta.
 
 ### D6. Repos grandes: contagem + amostra (M) — issue #25, PR #24 ⏳ rodando nos 104 grandes
 - Repos com mais de 6 mil issues + PRs (53) ganham contagens mensais completas desde 2018 pela busca, mais uma amostra de até 300 PRs aceitos dos últimos 12 meses (abertura e quem faz merge). Etapa `collect.py large`.

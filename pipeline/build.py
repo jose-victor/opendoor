@@ -4,7 +4,7 @@
   python pipeline/build.py   ->  web/public/data/projects.json e web/public/data/skills.json
 
 Campos ainda não calculados saem com valor neutro e são preenchidos pelas tarefas:
-profile/openness (D3), needs (D5), ai_policy (K2).
+needs (D5), ai_policy (K2).
 """
 import json
 import sqlite3
@@ -18,6 +18,8 @@ ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "ecosystem.db"
 OUT = ROOT / "web" / "public" / "data"
 MIN_PROJECTS_PER_SKILL = 5
+MIN_PRS_FOR_OPENNESS = 5
+GUARDIAN_DEPENDENTS = 100_000
 YEAR_FIELDS = ["prs_opened", "prs_merged", "issues_opened", "issues_closed", "commits", "direct_commits", "people"]
 
 
@@ -25,6 +27,17 @@ def months_ago(n):
     now = datetime.now(timezone.utc)
     y, m = divmod(now.year * 12 + now.month - 1 - n, 12)
     return f"{y}-{m + 1:02d}"
+
+
+def profile_of(dependents, maintainers, openness, newcomer_open, open_issues):
+    """Os 4 perfis de docs/visao.md, nesta ordem de prioridade."""
+    if (dependents or 0) >= GUARDIAN_DEPENDENTS and 1 <= maintainers <= 2:
+        return "guardiao"      # muita gente depende, 1 ou 2 pessoas cuidam (0 = parado, cai em estável)
+    if openness is not None and (openness >= 0.25 or (openness >= 0.1 and newcomer_open > 0)):
+        return "porta_aberta"  # PRs de fora são aceitos
+    if open_issues >= 30 and maintainers <= 3 and (newcomer_open > 0 or (openness or 0) > 0):
+        return "precisa_de_maos"
+    return "estavel"
 
 
 def table_exists(db, name):
@@ -44,6 +57,13 @@ def main():
     newcomer = dict(db.execute("SELECT repo, newcomer_open FROM repo_labels")) if table_exists(db, "repo_labels") else {}
     sample = {r["repo"]: r for r in db.execute("SELECT * FROM repo_sample")} if table_exists(db, "repo_sample") else {}
     commit_since = dict(db.execute("SELECT repo, since FROM commit_coverage")) if table_exists(db, "commit_coverage") else {}
+    # abertura (completos): fatia dos PRs aceitos nos últimos 12 meses cujo autor não fez merge nem commit direto em 24 meses
+    merged12 = dict(db.execute(
+        "WITH m AS (SELECT DISTINCT repo, login FROM participation WHERE is_bot = 0 AND month >= ? "
+        "AND role IN ('pr_merger', 'direct_committer')) "
+        "SELECT p.repo, SUM(p.n) || ',' || SUM(CASE WHEN m.login IS NULL THEN p.n ELSE 0 END) FROM participation p "
+        "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login "
+        "WHERE p.role = 'merged_pr_author' AND p.is_bot = 0 AND p.month >= ? GROUP BY p.repo", (cut24, months_ago(12))))
     maint = dict(db.execute(
         "SELECT repo, COUNT(DISTINCT login) FROM participation WHERE is_bot = 0 AND month >= ? "
         "AND role IN ('pr_merger', 'direct_committer') GROUP BY repo", (cut24,)))
@@ -75,6 +95,12 @@ def main():
             for v in years[repo].values():
                 v.update(people=None, direct_commits=None)
         since = max(filter(None, [r["activity_since"] or "2018-01", commit_since.get(repo)]))
+        if large:
+            human, outside = (smp["human_prs"], smp["outsider_prs"]) if smp else (0, 0)
+        else:
+            human, outside = map(int, merged12.get(repo, "0,0").split(","))
+        openness = round(outside / human, 2) if human >= MIN_PRS_FOR_OPENNESS else None
+        maintainers = (smp["mergers"] if smp else 0) if large else maint.get(repo, 0)
         projects.append({
             "repo": repo,
             "url": f"https://github.com/{repo}",
@@ -84,12 +110,12 @@ def main():
             "license": r["license"],
             "stars": r["stars"] or 0,
             "dependents": dependents.get(repo),
-            "profile": "precisa_de_maos",  # D3
+            "profile": profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0),
             "needs": [],                    # D5
             "skills": skill_vocab.top(skill_vocab.detect(r["language"], topics.get(repo, []), deps[repo],
                                               f'{repo} {r["description"] or ""}')),
-            "openness": round(smp["outsider_prs"] / smp["human_prs"], 2) if large and smp and smp["human_prs"] >= 5 else None,  # D3: completos
-            "maintainers_24m": (smp["mergers"] if smp else 0) if large else maint.get(repo, 0),
+            "openness": openness,
+            "maintainers_24m": maintainers,
             "newcomer_open": newcomer.get(repo) or 0,
             "scorecard": scorecard.get(repo),
             "ai_policy": {"classification": "unknown", "evidence": "", "source_file": ""},  # K2
@@ -116,4 +142,8 @@ def main():
 
 
 if __name__ == "__main__":
+    assert profile_of(912_802, 1, None, 0, 10) == "guardiao"          # debug-js/debug
+    assert profile_of(110_496, 5, 0.57, 1, 40) == "porta_aberta"      # expressjs/express
+    assert profile_of(500_000, 0, None, 0, 3) == "estavel"            # parado há 24 meses
+    assert profile_of(None, 2, 0.05, 2, 120) == "precisa_de_maos"
     main()
