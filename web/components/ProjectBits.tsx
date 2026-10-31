@@ -26,7 +26,7 @@ export function NewcomerLink({ project }: { project: Project }) {
       rel="noreferrer"
       className="self-start text-sm font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
     >
-      Ver {project.newcomer_open === 1 ? "a issue marcada" : `as ${project.newcomer_open} issues marcadas`} para iniciantes no GitHub ↗
+      Ver {project.newcomer_open === 1 ? "a issue" : `as ${project.newcomer_open} issues`} &quot;good first issue&quot; ou &quot;help wanted&quot; no GitHub ↗
     </a>
   );
 }
@@ -39,25 +39,58 @@ export function fmt(n: number) {
 export function doorReason(p: Project): string {
   const pct = p.openness === null ? null : `${Math.round(p.openness * 100)}% dos PRs aceitos vêm de fora`;
   const people = p.maintainers_24m === 1 ? "1 pessoa mantém" : `${p.maintainers_24m} pessoas mantêm`;
-  const newcomer = p.newcomer_open > 0 ? (p.newcomer_open === 1 ? "1 issue para iniciantes" : `${p.newcomer_open} issues para iniciantes`) : null;
+  const newcomer = p.newcomer_open > 0 ? `${p.newcomer_open} ${p.newcomer_open === 1 ? "issue" : "issues"} good first issue/help wanted` : null;
+  const acc = p.acceptance === null ? null : `aceita ${Math.round(p.acceptance * 100)}% dos PRs de fora`;
+  const debuts = p.debuts_12m ? `${p.debuts_12m} ${p.debuts_12m === 1 ? "estreia" : "estreias"} no último ano` : null;
   const parts =
     p.profile === "guardiao"
       ? [p.dependents ? `${fmt(p.dependents)} pacotes dependem dele` : null, people]
       : p.profile === "precisa_de_maos"
-        ? [`muito trabalho acumulado e ${people}`, pct]
+        ? [`muito trabalho acumulado e ${people}`, acc ?? pct]
         : p.profile === "porta_aberta"
-          ? [pct, newcomer]
+          ? [acc ?? pct, debuts ?? newcomer]
           : [PROFILE_LABELS[p.profile].hint];
   return parts.filter(Boolean).join(" · ");
 }
 
 export function ProfileBand({ project }: { project: Project }) {
   const tone = PROFILE_TONE[project.profile];
+  // pronto para iniciante vem primeiro: é a promessa mais importante do site, e mostra as provas
+  const proof = project.beginner.ready ? project.beginner.checks.filter((c) => c.key === "estreias" || c.key === "aceite").map((c) => c.text) : null;
   return (
     <div className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 px-5 py-2 text-xs sm:px-6 ${tone.soft} ${tone.text}`}>
       <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
       <span className="font-semibold">{PROFILE_LABELS[project.profile].label}</span>
-      <span className="opacity-90">· {doorReason(project)}</span>
+      {proof ? (
+        <>
+          <span className="rounded-full bg-emerald-600 px-2 py-px font-semibold text-white">✓ Pronto para iniciante</span>
+          <span className="opacity-90">{proof.join(" · ")}</span>
+        </>
+      ) : (
+        <span className="opacity-90">· {doorReason(project)}</span>
+      )}
+    </div>
+  );
+}
+
+// As 4 verificações de "pronto para iniciante", com ✓ ou ✗ e o número de cada uma.
+export function BeginnerChecks({ project }: { project: Project }) {
+  const b = project.beginner;
+  return (
+    <div className="space-y-3">
+      <p className={`font-medium ${b.ready ? "text-emerald-700 dark:text-emerald-400" : "text-muted"}`}>
+        {b.ready ? "Sim: os dados mostram que gente nova está conseguindo contribuir aqui." : "Ainda não dá para garantir. Veja o que falta:"}
+      </p>
+      <ul className="space-y-1.5">
+        {b.checks.map((c) => (
+          <li key={c.key} className="flex gap-2 text-sm">
+            <span aria-hidden className={c.ok ? "text-emerald-600" : "text-red-500"}>
+              {c.ok ? "✓" : "✗"}
+            </span>
+            <span className={c.ok ? "" : "text-muted"}>{c.text}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -65,11 +98,14 @@ export function ProfileBand({ project }: { project: Project }) {
 // Números grandes na cor do perfil. "full" mostra todos (página do projeto); senão, os 3 que mais dizem.
 export function BigNumbers({ project: p, full = false }: { project: Project; full?: boolean }) {
   const tone = PROFILE_TONE[p.profile];
+  const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)}%`);
   const all: [string, string, boolean][] = [
     [p.dependents ? fmt(p.dependents) : "—", "pacotes dependem dele", p.profile === "guardiao"],
-    [p.openness === null ? "—" : `${Math.round(p.openness * 100)}%`, "dos PRs aceitos vêm de fora", true],
+    [pct(p.acceptance), "dos PRs de quem é de fora são aceitos (12 meses)", true],
+    [pct(p.openness), "do que entrou no último ano veio de fora", full],
     [String(p.maintainers_24m), p.maintainers_24m === 1 ? "pessoa mantém" : "pessoas mantêm", true],
-    [String(p.newcomer_open), "issues para iniciantes", p.profile !== "guardiao"],
+    [p.debuts_12m === null ? "—" : String(p.debuts_12m), "pessoas novas tiveram o 1º PR aceito no ano", full],
+    [String(p.newcomer_open), "issues good first issue / help wanted", p.profile !== "guardiao"],
     [p.scorecard === null ? "—" : `${p.scorecard.toFixed(1).replace(".", ",")}`, "Scorecard de segurança (0 a 10)", false],
   ];
   const items = full ? all.filter(([v]) => v !== "—") : all.filter(([, , show]) => show).slice(0, 3);

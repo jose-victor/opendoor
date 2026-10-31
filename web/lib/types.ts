@@ -40,6 +40,9 @@ export type Guide = {
 // Atividade dos 3 últimos meses fechados (since/until = "AAAA-MM"): o projeto responde ou acumula?
 export type Recent = { since: string; until: string; issues_opened: number; issues_closed: number; prs_opened: number; prs_merged: number };
 
+// Pronto para iniciante: as 4 verificações precisam passar (estreias, aceite, vivo, guia). Ver docs/arquitetura.md.
+export type Beginner = { ready: boolean; checks: { key: "estreias" | "aceite" | "vivo" | "guia"; ok: boolean; text: string }[] };
+
 export type YearStats = {
   prs_opened: number;
   prs_merged: number;
@@ -64,6 +67,9 @@ export type Project = {
   opportunities: Opportunity[];
   guide: Guide | null;
   recent: Recent | null;      // últimos 3 meses fechados
+  acceptance: number | null;  // dos PRs que gente de fora abriu em 12 meses, a fatia aceita; null = menos de 5
+  debuts_12m: number | null;  // pessoas de fora com o primeiro PR aceito nos últimos 12 meses; null nos repos grandes
+  beginner: Beginner;         // pronto para iniciante, com as provas
   skills: string[];
   openness: number | null;
   maintainers_24m: number;

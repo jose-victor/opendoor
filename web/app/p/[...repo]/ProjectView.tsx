@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BigNumbers, NewcomerLink, ProfileBand, RecentActivity, ScorecardLink } from "@/components/ProjectBits";
+import { BeginnerChecks, BigNumbers, NewcomerLink, ProfileBand, RecentActivity, ScorecardLink } from "@/components/ProjectBits";
 import StartBox from "@/components/StartBox";
 import { LEVEL_LABELS, WAY_LABELS } from "@/lib/labels";
 import { EMPTY_PROFILE, loadProfile } from "@/lib/profile-store";
 import type { Opportunity, Project, UserProfile } from "@/lib/types";
 
 const SOURCE: Record<Opportunity["source"], { label: string; className: string }> = {
-  projeto: { label: "o projeto pede", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+  projeto: { label: "o guia menciona", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
   dados: { label: "os números mostram", className: "bg-sky-500/10 text-sky-700 dark:text-sky-400" },
   gemma: { label: "sugestão da IA", className: "bg-violet-500/10 text-violet-700 dark:text-violet-400" },
 };
@@ -122,6 +122,10 @@ export default function ProjectView() {
           <ScorecardLink project={project} />
         </div>
       </header>
+
+      <Section title="É bom para quem está começando?">
+        <BeginnerChecks project={project} />
+      </Section>
 
       <Section title="Por onde começar">
         <p className="text-sm text-muted">

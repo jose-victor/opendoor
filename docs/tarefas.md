@@ -150,6 +150,15 @@ Todas dependem do E1 e usam o `projects.json` do E2.
     - atividade dos últimos 3 meses;
     - link para o relatório do OpenSSF Scorecard;
     - abertura e mantenedores recalculados (commits diretos contam; o rótulo do GitHub deixou de ser a fonte principal nos repos grandes).
+  - Depois da auditoria dos dados (subagente, 31/10):
+    - critério "pronto para iniciante" com 4 provas (estreias, aceite, vivo, guia);
+    - taxa de aceite de PRs de fora;
+    - "precisa de mãos" sem becos;
+    - "o guia menciona" no lugar de "o projeto pede";
+    - sugestões do Gemma fora do filtro;
+    - duplicatas removidas;
+    - filtros da lista refeitos.
+    As propostas para depois do hackathon estão na seção "Depois de hoje".
   - Componentes em `web/components/` e rótulos em `web/lib/labels.ts`.
 
 ---
@@ -179,6 +188,15 @@ Todas dependem do E1 e usam o `projects.json` do E2.
 ---
 
 ## Depois de hoje
+- **Necessidades mais específicas** (auditoria de 31/10):
+  - coletar todos os labels de cada repo e separar "good first issue" livre e recente de "help wanted";
+  - medir o tempo até a primeira resposta e os PRs de fora parados (do cache bruto);
+  - segurança por verificação do Scorecard (`scorecard_checks`, já coletado);
+  - detectar a infraestrutura de tradução (crowdin, weblate, `locales/`);
+  - prompt do Gemma ancorado em labels e PRs parados;
+  - um gabarito de necessidades rotulado à mão;
+  - estreias também nos repos grandes;
+  - guardar o `nameWithOwner` da API para resolver redirecionamentos.
 - **G1. Guia de contribuição de cada projeto** (issue #21). **Parte feita hoje**, ideia do José: o guia "por onde começar" escrito uma vez por projeto pelo modelo (`pipeline/guides.py`) e combinado com o perfil sem chamar o modelo (`web/lib/guide.ts`). Validado numa amostra de 6 projetos. **Fica para depois:** ambiente, regras do projeto (DCO, estilo de commit), quem revisa e quanto tempo leva.
 
 As issues no GitHub têm o código da tarefa no título (`[E1]`, `[K2]`...), e as dependências já apontam para o número da issue.

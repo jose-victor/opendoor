@@ -115,14 +115,26 @@ O cliente do pipeline (`pipeline/llm.py`) lê o `.env` da raiz e roda com `pytho
 ## Como o `build.py` calcula o perfil (D3)
 Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
 1. **`guardiao`:** 100 mil dependentes ou mais, e 1 ou 2 pessoas fizeram merge ou commit direto em 24 meses.
-2. **`porta_aberta`:** `openness` de 0,25 ou mais, ou de 0,1 ou mais com issues para iniciantes abertas.
-3. **`precisa_de_maos`:** 30 issues abertas ou mais, de 1 a 3 mantenedores ativos, e aceita gente de fora **de verdade**: 10% ou mais dos PRs aceitos vêm de fora (sem dados de PR, vale ter issues para iniciantes). Antes bastava 1 PR aceito; o open-webui (4%, 1 mantenedor) e o webpack (2%) saíam como "precisa de mãos" e foram para estável.
+2. **`porta_aberta`:** `openness` de 0,25 ou mais (ou de 0,1 ou mais com issues "good first issue"/"help wanted") **e** taxa de aceite (`acceptance`) de 0,2 ou mais, quando conhecida. Também entra quem está **pronto para iniciante** (ver abaixo), mesmo com a abertura baixa por causa de muitos commits do mantenedor (caso do postcss).
+3. **`precisa_de_maos`:** 30 issues abertas ou mais, de 1 a 3 mantenedores ativos, 10% ou mais do que entra vindo de fora, taxa de aceite de 0,2 ou mais (quando conhecida) **e pelo menos 1 PR aceito nos 3 últimos meses**. A auditoria de 31/10 mostrou que 9 de 19 "precisa de mãos" não aceitavam nenhum PR havia 3 meses: eram becos, não portas.
 4. **`estavel`:** o resto, incluindo pacotes sem nenhum mantenedor ativo em 24 meses.
+
+**Pronto para iniciante (`beginner`)** é a promessa mais importante do site, então é a mais exigente. As 4 verificações precisam passar (`beginner_checks` no `build.py`), e cada uma vai para o JSON com o texto da prova:
+1. **Estreias:** 2 ou mais pessoas de fora tiveram o **primeiro** PR aceito nos últimos 12 meses (`debuts_12m`).
+2. **Aceite:** 25% ou mais dos PRs de quem é de fora foram aceitos em 12 meses (`acceptance`, que precisa ser conhecida).
+3. **Vivo:** 3 ou mais PRs aceitos nos 3 últimos meses fechados.
+4. **Guia:** existe um CONTRIBUTING.
+
+Repos grandes não passam: deles só temos uma amostra recente de PRs, e não dá para saber quem estreou. Em 31/10 eram 45 projetos prontos.
+
+**Taxa de aceite (`acceptance`)**: dos PRs que gente de fora abriu em 12 meses, a fatia aceita, com mínimo de 5 PRs de fora. A "abertura" diz de onde veio o que entrou; a taxa de aceite diz a chance de um PR de fora entrar. O Flask tem abertura 0,11 e aceita 4%; o Express tem 0,52 e aceita 8%; o Tornado aceita 30%.
 
 **Quem é de dentro e de fora:**
 - **Mantenedor (de dentro):** quem fez merge de um PR em 24 meses, ou fez 3 ou mais commits diretos na branch principal. Um commit isolado não conta, porque o commit de terceiro aplicado à mão fica no nome do autor. Bots ficam de fora, inclusive os com nome de gente, como `antfubot` (filtro `login NOT LIKE '%bot'`).
 - **`openness`:** do que entrou no projeto em 12 meses (PRs aceitos + commits diretos de quem mantém), a fatia que veio de quem é de fora. Precisa de 5 mudanças ou mais; abaixo disso é `null`. Antes contava só PRs, e o sharp aparecia com 100% de fora; contando os 177 commits diretos do mantenedor, são 17%.
 - **Repos grandes:** usam a mesma regra sobre a amostra de PRs aceitos (quem fez merge é de dentro). O `authorAssociation` do GitHub só entra quando não há essa participação, porque quem participa da organização de forma privada aparece como `CONTRIBUTOR`. No Mastodon, isso dava 100% de fora, e o certo é 25%. Se o `authorAssociation` dá 95% ou mais de fora, o valor vira `null` (era o caso do Tailwind).
+- **Cobertura:** sem os commits diretos coletados (`commit_coverage`), a abertura de um repo completo vira `null`, porque sairia inflada (o csstree aparecia com 100%, e o real é ~33%). Nos grandes cuja participação cobre menos de 12 meses, abertura e mantenedores vêm da amostra (`repo_sample`).
+- **Duplicatas:** repos que mudaram de dono (`facebook/react` → `react/react`) aparecem uma vez só, com o nome atual.
 - **`recent`:** soma de `repo_monthly` nos 3 últimos meses fechados. Exemplo: o debug teve 18 PRs abertos e nenhum aceito de julho a setembro.
 
 Distribuição em 31/10 às 14h, com a coleta da rodada 3 ainda rodando: 580 estáveis, 168 guardiões, 199 portas abertas e 14 que precisam de mãos.
@@ -164,7 +176,7 @@ type Guide = {
 type Opportunity = { way: Way; source: "projeto" | "dados" | "gemma"; note: string };
 ```
 Cada projeto lista as formas de ajuda e o motivo (`note`, em pt-BR), nesta ordem:
-1. **`projeto`:** o guia de contribuição pede (documentação, tradução, testes, revisão) ou há issues para iniciantes. Só procuramos palavras no texto, nunca seguimos instruções dele.
+1. **`projeto`:** o guia de contribuição **menciona** documentação, tradução, testes ou revisão (é uma regex; a interface diz "o guia menciona", não "o projeto pede"), ou há issues com "good first issue"/"help wanted". A tradução sai quando o guia diz que não aceita ("we do not merge … translations", caso do tdesktop). Só procuramos palavras no texto, nunca seguimos instruções dele.
 2. **`dados`:** os números mostram:
    - `codigo`: 10% ou mais dos PRs aceitos vêm de fora;
    - `triagem`: 100 issues abertas ou mais, ou 30 ou mais com até 3 mantenedores;
@@ -179,7 +191,8 @@ Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos
 - **Exclusões:**
   - `estavel` nunca aparece;
   - `guardiao` não aparece para iniciante;
-  - para iniciante, só projetos **acolhedores**: com issues para iniciantes ou com 25% ou mais dos PRs aceitos vindos de fora (`welcoming`);
+  - para iniciante, só projetos **prontos para iniciante** (`beginner.ready`; ver acima);
+  - `needs` só tem o que o guia menciona ou os números mostram; as sugestões do Gemma aparecem na página, mas não colocam o projeto no filtro de formas de ajuda;
   - se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs`;
   - se a pessoa marcou habilidades, o projeto precisa ter pelo menos uma em comum;
   - se ela marcou linguagens, o projeto precisa usar uma delas.
@@ -188,4 +201,4 @@ Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos
   - 5 por habilidade em comum;
   - bônus do nível: iniciante favorece `porta_aberta`, mais 2 se `newcomer_open > 0`; intermediário favorece `precisa_de_maos`; experiente favorece `guardiao`;
   - mais 1 por forma de contribuir em comum.
-- **Empate:** desempata por `openness` e depois por estrelas.
+- **Empate:** desempata por estreias no último ano, depois pela taxa de aceite e depois pelas estrelas. A abertura sozinha engana em projeto de uma pessoa só.

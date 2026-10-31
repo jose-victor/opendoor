@@ -21,6 +21,7 @@ DB = ROOT / "data" / "ecosystem.db"
 OUT = ROOT / "web" / "public" / "data"
 MIN_PROJECTS_PER_SKILL = 5
 MIN_PRS_FOR_OPENNESS = 5
+MIN_ACCEPTANCE = 0.2  # flask aceitou 4% dos PRs de fora em 12 meses; tornado, 30%
 GUARDIAN_DEPENDENTS = 100_000
 YEAR_FIELDS = ["prs_opened", "prs_merged", "issues_opened", "issues_closed", "commits", "direct_commits", "people"]
 
@@ -31,15 +32,20 @@ def months_ago(n):
     return f"{y}-{m + 1:02d}"
 
 
-def profile_of(dependents, maintainers, openness, newcomer_open, open_issues):
-    """Os 4 perfis de docs/visao.md, nesta ordem de prioridade."""
+def profile_of(dependents, maintainers, openness, newcomer_open, open_issues, acceptance=None, recent_merged=None):
+    """Os 4 perfis de docs/visao.md, nesta ordem de prioridade.
+
+    acceptance: dos PRs que gente de fora abriu em 12 meses, a fatia aceita (None = menos de 5 PRs de fora).
+    recent_merged: PRs aceitos nos 3 últimos meses fechados (None = sem dados).
+    """
     if (dependents or 0) >= GUARDIAN_DEPENDENTS and 1 <= maintainers <= 2:
         return "guardiao"      # muita gente depende, 1 ou 2 pessoas cuidam (0 = parado, cai em estável)
-    if openness is not None and (openness >= 0.25 or (openness >= 0.1 and newcomer_open > 0)):
-        return "porta_aberta"  # PRs de fora são aceitos
-    # aceita gente de fora de verdade: 10%+ dos PRs aceitos; sem dados de PR, issues marcadas para iniciantes
-    accepts_outsiders = openness >= 0.1 if openness is not None else newcomer_open > 0
-    if open_issues >= 30 and 1 <= maintainers <= 3 and accepts_outsiders:
+    accepts = acceptance is None or acceptance >= MIN_ACCEPTANCE  # quando se sabe, PR de fora precisa ter chance real
+    if accepts and openness is not None and (openness >= 0.25 or (openness >= 0.1 and newcomer_open > 0)):
+        return "porta_aberta"
+    # precisa de mãos: aceita gente de fora de verdade e ainda aceita PRs (não é um beco)
+    outsiders = openness >= 0.1 if openness is not None else newcomer_open > 0
+    if open_issues >= 30 and 1 <= maintainers <= 3 and outsiders and accepts and (recent_merged or 0) > 0:
         return "precisa_de_maos"
     return "estavel"
 
@@ -48,40 +54,57 @@ def profile_of(dependents, maintainers, openness, newcomer_open, open_issues):
 ASKS = {
     "documentacao": (re.compile(r"\b(documentation|docs?)\b.{0,40}\b(help|contribut\w*|improv\w*|welcome|fix\w*)|"
                                 r"\b(help|contribut\w*|improv\w*|welcome)\b.{0,40}\b(documentation|docs)\b", re.I | re.S),
-                     "o guia de contribuição pede ajuda com documentação"),
+                     "o guia de contribuição menciona documentação"),
     "traducao": (re.compile(r"\b(translat\w*|locali[sz]ation|i18n|l10n|crowdin|weblate|transifex)\b", re.I),
-                 "o guia de contribuição fala de tradução"),
+                 "o guia de contribuição menciona tradução"),
     "testes": (re.compile(r"\b(add|write|writing|adding|improv\w*|more)\b.{0,20}\btests?\b|\btest coverage\b|"
                           r"\b(observability|telemetry|tracing|opentelemetry)\b", re.I | re.S),
-               "o guia de contribuição pede testes ou observabilidade"),
+               "o guia de contribuição menciona testes ou observabilidade"),
     "revisao": (re.compile(r"\breview(ing)? (pull requests|prs|other)\b", re.I),
-                "o guia de contribuição convida a revisar PRs"),
+                "o guia de contribuição menciona revisar PRs"),
 }
+# "não fazemos merge de traduções" (tdesktop), "não envie PRs de tradução" (Signal)
+NO_TRANSLATION = re.compile(r"\b(do not|don't|not|no|never|won't)\b[^.\n]{0,120}\btranslat\w*|\btranslat\w*[^.\n]{0,40}\b(elsewhere|not accepted|are not merged)\b", re.I)
 
 
 def n_(n, one, many):
     return f"{n} {one if n == 1 else many}"
 
 
-def opportunities_of(r, profile, openness, maintainers, newcomer_open, scorecard, guide):
-    """D5: formas de contribuir com fonte 'projeto' (o guia pede) ou 'dados' (os números mostram)."""
+def opportunities_of(r, profile, openness, maintainers, newcomer_open, scorecard, guide, recent_merged=None):
+    """D5: formas de contribuir com fonte 'projeto' (o guia menciona) ou 'dados' (os números mostram)."""
     out = []
     for way, (rx, note) in ASKS.items():
-        if guide and rx.search(guide):
+        if guide and rx.search(guide) and not (way == "traducao" and NO_TRANSLATION.search(guide)):
             out.append({"way": way, "source": "projeto", "note": note})
     open_issues, open_prs = r["open_issues"] or 0, r["open_prs"] or 0
     if newcomer_open:
-        out.append({"way": "codigo", "source": "projeto", "note": f"{n_(newcomer_open, 'issue marcada', 'issues marcadas')} para quem está começando"})
+        out.append({"way": "codigo", "source": "projeto", "note": f"{n_(newcomer_open, 'issue aberta', 'issues abertas')} com \"good first issue\", \"help wanted\" ou parecido"})
     elif openness is not None and openness >= 0.1:
         out.append({"way": "codigo", "source": "dados", "note": f"{round(openness * 100)}% dos PRs aceitos no último ano vieram de fora"})
     if open_issues >= 100 or (open_issues >= 30 and maintainers <= 3):
         out.append({"way": "triagem", "source": "dados", "note": f"{open_issues} issues abertas para {n_(maintainers, 'pessoa que mantém', 'pessoas que mantêm')}"})
-    if open_prs >= 20 and not any(o["way"] == "revisao" for o in out):
+    # revisar só ajuda se alguém aceita: sem PR aceito nos últimos 3 meses, os PRs abertos estão parados
+    if open_prs >= 20 and (recent_merged or 0) > 0 and not any(o["way"] == "revisao" for o in out):
         out.append({"way": "revisao", "source": "dados", "note": f"{open_prs} PRs abertos: dá para rodar, reproduzir o bug e validar o fix"})
     if profile == "guardiao" or (scorecard is not None and scorecard < 5):
         note = f"OpenSSF Scorecard {scorecard:.1f}/10" if scorecard is not None else "muita gente depende, 1 ou 2 pessoas cuidam"
         out.append({"way": "seguranca", "source": "dados", "note": note})
     return out
+
+
+def beginner_checks(debuts, acceptance, recent_merged, has_guide):
+    """Pronto para iniciante: os dados mostram que gente nova está conseguindo entrar. Todas as 4 precisam passar."""
+    checks = [
+        ("estreias", (debuts or 0) >= 2,
+         f"{n_(debuts, 'pessoa teve', 'pessoas tiveram')} o 1º PR aceito no último ano" if debuts is not None
+         else "sem dados de estreias (repo grande: só temos uma amostra recente de PRs)"),
+        ("aceite", acceptance is not None and acceptance >= 0.25,
+         f"aceita {round(acceptance * 100)}% dos PRs de quem é de fora" if acceptance is not None else "poucos PRs de fora para medir"),
+        ("vivo", recent_merged >= 3, f"{n_(recent_merged, 'PR aceito', 'PRs aceitos')} nos últimos 3 meses"),
+        ("guia", has_guide, "tem guia de contribuição (CONTRIBUTING)" if has_guide else "não tem guia de contribuição (CONTRIBUTING)"),
+    ]
+    return {"ready": all(ok for _, ok, _ in checks), "checks": [{"key": k, "ok": ok, "text": t} for k, ok, t in checks]}
 
 
 def table_exists(db, name):
@@ -128,6 +151,31 @@ def main():
     direct12 = dict(db.execute(f"SELECT repo, SUM(n) FROM participation WHERE role = 'direct_committer' AND {human} "
                                "AND month >= ? GROUP BY repo", (cut12,)))
     maint = dict(db.execute(f"SELECT repo, COUNT(*) FROM ({maintainers_sql}) GROUP BY repo", (cut24,)))
+    # Taxa de aceite: dos PRs que gente de fora abriu em 12 meses, quantos foram aceitos (precisa de 5+ PRs de fora).
+    acceptance = {r: round(min(1, m / a), 2) for r, a, m in db.execute(
+        f"WITH m AS ({maintainers_sql}) SELECT p.repo, SUM(CASE WHEN p.role = 'pr_author' THEN p.n ELSE 0 END), "
+        "SUM(CASE WHEN p.role = 'merged_pr_author' THEN p.n ELSE 0 END) FROM participation p "
+        "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login WHERE m.login IS NULL AND p.is_bot = 0 "
+        "AND p.login NOT LIKE '%bot' AND p.month >= ? AND p.role IN ('pr_author', 'merged_pr_author') GROUP BY p.repo",
+        (cut24, cut12)) if a >= MIN_PRS_FOR_OPENNESS}
+    # Estreias: pessoas de fora cujo primeiro PR aceito (na história coletada) foi nos últimos 12 meses.
+    debuts = dict(db.execute(
+        f"WITH m AS ({maintainers_sql}), f AS (SELECT repo, login, MIN(month) first FROM participation "
+        f"WHERE role = 'merged_pr_author' AND {human} GROUP BY repo, login) "
+        "SELECT f.repo, COUNT(*) FROM f LEFT JOIN m ON m.repo = f.repo AND m.login = f.login "
+        "WHERE m.login IS NULL AND f.first >= ? GROUP BY f.repo", (cut24, cut12)))
+    # Nos grandes, a participation vem só da amostra recente; se ela cobre menos de 12 meses, vale a amostra.
+    part_from = dict(db.execute("SELECT repo, MIN(month) FROM participation WHERE role = 'merged_pr_author' GROUP BY repo"))
+    # Repos que mudaram de dono aparecem duas vezes (facebook/react e react/react): fica o que tem mais meses coletados.
+    # shortcut: nomes antigos que o GitHub redireciona (conferidos à mão); com dados iguais, fica o nome atual.
+    # Melhor: guardar o nameWithOwner devolvido pela API na etapa repos.
+    old_names = {"facebook/react", "facebook/jest", "dcodeio/protobuf.js"}
+    keep = {}
+    for repo, key, n in db.execute("SELECT r.repo, r.created_at || '|' || r.stars, COUNT(m.month) FROM repos r "
+                                   "LEFT JOIN repo_monthly m ON m.repo = r.repo WHERE r.found = 1 GROUP BY r.repo"):
+        if key not in keep or n > keep[key][1] or (n == keep[key][1] and keep[key][0] in old_names):
+            keep[key] = (repo, n)
+    canonical = {repo for repo, _ in keep.values()}
 
     guides = defaultdict(str)  # CONTRIBUTING (qualquer caminho) de cada repo
     for repo, text in db.execute("SELECT repo, text FROM repo_files WHERE path LIKE '%CONTRIBUTING.md'"):
@@ -169,13 +217,18 @@ def main():
     projects = []
     for r in db.execute("SELECT * FROM repos WHERE found = 1 AND (archived = 0 OR archived IS NULL) ORDER BY repo"):
         repo = r["repo"]
+        if repo not in canonical:
+            continue
         large = r["collection_mode"] == "contagem+amostra"
         smp = sample.get(repo)
         if large:  # pessoas e commits diretos não existem para os grandes; abertura e mergers vêm da amostra
             for v in years[repo].values():
                 v.update(people=None, direct_commits=None)
         since = max(filter(None, [r["activity_since"] or "2018-01", commit_since.get(repo)]))
-        if repo in merged12:
+        partial = large and (part_from.get(repo) or "9999") > cut12  # amostra de menos de 12 meses
+        if repo in merged12 and not large and repo not in commit_since:
+            total, outside = 0, 0  # sem os commits diretos, a abertura sairia inflada (csstree: 100% contra ~33% real)
+        elif repo in merged12 and not partial:
             merged, outside = merged12[repo]
             total = merged + (direct12.get(repo) or 0)
         elif large and smp and smp["outsider_prs"] < 0.95 * smp["human_prs"]:
@@ -185,10 +238,19 @@ def main():
         else:
             total, outside = 0, 0
         openness = round(outside / total, 2) if total >= MIN_PRS_FOR_OPENNESS else None
-        maintainers = maint.get(repo) or ((smp["mergers"] if smp else 0) if large else 0)
-        profile = profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0)
-        opps = opportunities_of(r, profile, openness, maintainers, newcomer.get(repo) or 0, scorecard.get(repo), guides[repo])
-        opps += [g for g in gemma.get(repo, []) if g["way"] not in {o["way"] for o in opps}]
+        maintainers = (smp["mergers"] if smp else 0) if partial else (maint.get(repo) or ((smp["mergers"] if smp else 0) if large else 0))
+        acc = None if partial else acceptance.get(repo)
+        rec = recent.get(repo)
+        rec_merged = rec["prs_merged"] if rec else 0
+        profile = profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0,
+                             acc, rec_merged)
+        beginner = beginner_checks(None if large else debuts.get(repo, 0), acc, rec_merged, bool(guides.get(repo)))
+        if beginner["ready"] and profile == "estavel":
+            profile = "porta_aberta"  # postcss: abertura baixa (muitos commits do mantenedor), mas acolhe bem quem chega
+        opps = opportunities_of(r, profile, openness, maintainers, newcomer.get(repo) or 0, scorecard.get(repo), guides[repo],
+                                rec_merged)
+        facts = list(dict.fromkeys(o["way"] for o in opps))  # needs: só o que o guia menciona ou os números mostram
+        opps += [g for g in gemma.get(repo, []) if g["way"] not in facts]
         projects.append({
             "repo": repo,
             "url": f"https://github.com/{repo}",
@@ -199,12 +261,15 @@ def main():
             "stars": r["stars"] or 0,
             "dependents": dependents.get(repo),
             "profile": profile,
-            "needs": list(dict.fromkeys(o["way"] for o in opps)),
+            "needs": facts,
             "opportunities": opps,
             "guide": guide_of.get(repo),
             "skills": skill_vocab.top(skill_vocab.detect([r["language"], *langs.get(repo, [])], topics.get(repo, []), deps[repo],
                                               f'{repo} {r["description"] or ""}')),
             "openness": openness,
+            "acceptance": acc,
+            "debuts_12m": None if large else debuts.get(repo, 0),
+            "beginner": beginner,
             "recent": recent.get(repo),
             "maintainers_24m": maintainers,
             "newcomer_open": newcomer.get(repo) or 0,
@@ -240,6 +305,11 @@ if __name__ == "__main__":
     assert profile_of(912_802, 1, None, 0, 10) == "guardiao"          # debug-js/debug
     assert profile_of(110_496, 5, 0.57, 1, 40) == "porta_aberta"      # expressjs/express
     assert profile_of(500_000, 0, None, 0, 3) == "estavel"            # parado há 24 meses
-    assert profile_of(None, 2, 0.15, 0, 120) == "precisa_de_maos"
+    assert profile_of(None, 2, 0.15, 0, 120, 0.3, 4) == "precisa_de_maos"
+    assert profile_of(None, 2, 0.15, 0, 120, 0.3, 0) == "estavel"           # nenhum PR aceito em 3 meses: beco
+    assert profile_of(None, 5, 0.42, 3, 300, 0.04, 20) == "estavel"         # flask: 4% dos PRs de fora aceitos
     assert profile_of(None, 1, 0.04, 0, 900) == "estavel"             # open-webui: quase nada de fora entra
+    assert beginner_checks(13, 0.3, 31, True)["ready"]                    # tornado
+    assert not beginner_checks(None, 0.5, 40, True)["ready"]              # repo grande: sem dados de estreias
+    assert not beginner_checks(6, 0.04, 20, True)["ready"]                # flask: 4% de aceite
     main()

@@ -37,7 +37,7 @@ export const PROFILE_LABELS: Record<Profile, { label: string; hint: string; clas
   },
   estavel: {
     label: "Estável",
-    hint: "sem pedido de ajuda nem PRs de fora",
+    hint: "hoje aceita pouco de quem é de fora, ou está parado",
     className: "bg-zinc-100 text-zinc-700 ring-zinc-500/20 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-400/30",
   },
 };

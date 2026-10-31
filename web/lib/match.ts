@@ -12,9 +12,10 @@ const LEVEL_BONUS: Record<Level, Partial<Record<Profile, number>>> = {
 };
 
 // languageIds: ids de skills.json com kind "linguagem". Se a pessoa marcou linguagens, o projeto precisa usar uma delas.
-// Acolhe quem está começando: issues marcadas para iniciantes ou 25%+ dos PRs aceitos vindos de fora.
+// Para iniciante só entra o que está pronto: gente nova sendo aceita, PRs de fora com chance real,
+// projeto vivo e com guia de contribuição (calculado no build.py, beginner_checks).
 export function welcoming(p: Project): boolean {
-  return p.newcomer_open > 0 || (p.openness ?? 0) >= 0.25;
+  return p.beginner.ready;
 }
 
 export function rankProjects(projects: Project[], profile: UserProfile, languageIds: ReadonlySet<string> = new Set()): Project[] {
@@ -40,6 +41,13 @@ export function rankProjects(projects: Project[], profile: UserProfile, language
     scored.push({ p, score });
   }
   return scored
-    .sort((a, b) => b.score - a.score || (b.p.openness ?? 0) - (a.p.openness ?? 0) || b.p.stars - a.p.stars)
+    // desempate: gente nova sendo aceita, depois taxa de aceite (a abertura sozinha engana em projeto de 1 pessoa)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.p.debuts_12m ?? -1) - (a.p.debuts_12m ?? -1) ||
+        (b.p.acceptance ?? -1) - (a.p.acceptance ?? -1) ||
+        b.p.stars - a.p.stars,
+    )
     .map((x) => x.p);
 }
