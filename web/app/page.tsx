@@ -98,7 +98,7 @@ export default function Home() {
       </header>
 
       <div className="grid gap-8 md:grid-cols-[17rem_1fr] md:gap-10">
-        <aside className="md:sticky md:top-6 md:self-start">
+        <aside className="md:sticky md:top-6 md:max-h-[calc(100dvh-3rem)] md:self-start md:overflow-y-auto md:pr-2">
           <FilterPanel skills={skills} profile={profile} onChange={change} />
         </aside>
 
