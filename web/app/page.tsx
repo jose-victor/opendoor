@@ -81,10 +81,10 @@ export default function Home() {
           <span className="font-display text-4xl font-bold tracking-tight">OpenDoor</span>
         </span>
         <span className="flex flex-wrap justify-end gap-x-6 gap-y-1 text-sm">
-          <Link href="/analise" className="text-muted hover:text-foreground">
+          <Link href="/analise" target="_blank" rel="noreferrer" className="text-muted hover:text-foreground">
             Análise do Ecossistema
           </Link>
-        <a href="https://github.com/jose-victor/opendoor" className="text-sm text-muted hover:text-foreground">
+        <a href="https://github.com/jose-victor/opendoor" target="_blank" rel="noreferrer" className="text-sm text-muted hover:text-foreground">
           Código aberto no GitHub ↗
         </a>
         </span>
@@ -185,7 +185,7 @@ export default function Home() {
         Dados de deps.dev, GitHub e OpenSSF Scorecard. Resumos e guias gerados
         com IA (Gemma 4, um modelo aberto) a partir dos guias de contribuição de
         cada projeto. Código aberto (GPL-3.0) em{" "}
-        <a className="underline" href="https://github.com/jose-victor/opendoor">
+        <a className="underline" href="https://github.com/jose-victor/opendoor" target="_blank" rel="noreferrer">
           github.com/jose-victor/opendoor
         </a>
         .

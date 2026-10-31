@@ -16,7 +16,7 @@ export default function DoorCard({ project, profile }: { project: Project; profi
 
       <div className="flex flex-col gap-4 p-5 sm:p-6">
         <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-          <Link href={`/p/${project.repo}`} className="group min-w-0">
+          <Link href={`/p/${project.repo}`} target="_blank" rel="noreferrer" className="group min-w-0">
             <h3 className="break-words text-xl font-semibold leading-tight group-hover:underline">{name}</h3>
             <span className="text-xs text-muted">
               {owner} · ★ {project.stars.toLocaleString("pt-BR")}
@@ -49,7 +49,7 @@ export default function DoorCard({ project, profile }: { project: Project; profi
         <div className="flex flex-col gap-3 border-t border-line pt-4">
           <StartBox project={project} profile={profile} />
           <NewcomerLink project={project} />
-          <Link href={`/p/${project.repo}`} className="self-start text-xs text-muted underline-offset-2 hover:underline">
+          <Link href={`/p/${project.repo}`} target="_blank" rel="noreferrer" className="self-start text-xs text-muted underline-offset-2 hover:underline">
             Ver histórico, todas as oportunidades e política de IA →
           </Link>
         </div>

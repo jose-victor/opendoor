@@ -176,7 +176,7 @@ export default function Analise() {
         <ul className="space-y-1 text-sm">
           {critical.slice(0, 8).map((p) => (
             <li key={p.repo} className="flex justify-between gap-3">
-              <Link href={`/p/${p.repo}`} className="truncate hover:underline">{p.repo}</Link>
+              <Link href={`/p/${p.repo}`} target="_blank" rel="noreferrer" className="truncate hover:underline">{p.repo}</Link>
               <span className="shrink-0 tabular-nums text-muted">
                 {fmt(p.dependents ?? 0)} dependentes · {p.maintainers_24m} {p.maintainers_24m === 1 ? "pessoa" : "pessoas"}
               </span>
@@ -214,7 +214,7 @@ export default function Analise() {
           {active.map((p) => (
             <Bar
               key={p.repo}
-              label={<Link href={`/p/${p.repo}`} className="hover:underline">{p.repo}</Link>}
+              label={<Link href={`/p/${p.repo}`} target="_blank" rel="noreferrer" className="hover:underline">{p.repo}</Link>}
               value={p.recent!.prs_merged}
               max={active[0].recent!.prs_merged}
               right={`${fmt(p.recent!.prs_merged)} PRs aceitos`}
@@ -246,7 +246,7 @@ export default function Analise() {
         <ul className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           {ready.map((p) => (
             <li key={p.repo} className="flex justify-between gap-3">
-              <Link href={`/p/${p.repo}`} className="truncate hover:underline">{p.repo}</Link>
+              <Link href={`/p/${p.repo}`} target="_blank" rel="noreferrer" className="truncate hover:underline">{p.repo}</Link>
               <span className="shrink-0 tabular-nums text-muted">{p.language} · ★ {fmt(p.stars)}</span>
             </li>
           ))}
