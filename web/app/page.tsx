@@ -23,7 +23,7 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-4xl p-6">
       <div className="flex items-center gap-3">
-        <Image src="/logo.png" alt="" width={48} height={48} className="rounded-lg" priority />
+        <Image src="/logo.svg" alt="" width={48} height={48} className="rounded-lg" priority />
         <h1 className="text-3xl font-bold">OpenDoor</h1>
       </div>
       <p className="mt-2 text-zinc-500">Portas de entrada para contribuir com open source.</p>

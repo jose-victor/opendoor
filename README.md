@@ -1,4 +1,4 @@
-<img src="web/public/logo.png" alt="Logo do OpenDoor: o Tux saindo por uma porta" width="160">
+<img src="web/public/logo.svg" alt="Logo do OpenDoor: o Tux saindo por uma porta" width="160">
 
 # OpenDoor
 
