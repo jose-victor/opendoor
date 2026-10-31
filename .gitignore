@@ -1,0 +1,15 @@
+# referência privada do Kaiky, não versionar
+kaiky/
+
+# cache bruto das APIs (reproduzível com collect.py) e logs
+data/raw/
+data/*.log
+
+# segredos
+.env
+*.key
+
+__pycache__/
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
