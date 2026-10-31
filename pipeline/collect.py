@@ -213,6 +213,7 @@ def cmd_graph(db, args):
                 versions.setdefault(n, v)
             db.executemany("INSERT OR IGNORE INTO dep_edges VALUES(?,?,?,?)", [(SYSTEM, seed, a, b) for a, b in edges])
             log(f"semente {seed}@{ver}: {len(found)} pacotes (dependências declaradas, 2 níveis)")
+            db.commit()
             continue
         nodes = g["nodes"]
         for n in nodes:
@@ -221,6 +222,7 @@ def cmd_graph(db, args):
             db.execute("INSERT OR IGNORE INTO dep_edges VALUES(?,?,?,?)", (
                 SYSTEM, seed, nodes[e["fromNode"]]["versionKey"]["name"], nodes[e["toNode"]]["versionKey"]["name"]))
         log(f"semente {seed}@{ver}: {len(nodes)} pacotes")
+        db.commit()  # por semente, para não segurar o banco durante as chamadas seguintes
     db.commit()
     done = {r[0] for r in db.execute("SELECT name FROM packages WHERE system=?", (SYSTEM,))}
     todo = [(n, v) for n, v in versions.items() if n not in done]
@@ -236,9 +238,9 @@ def cmd_graph(db, args):
 
     with cf.ThreadPoolExecutor(8) as ex:
         for i, row in enumerate(ex.map(info, todo), 1):
-            db.execute("INSERT OR REPLACE INTO packages VALUES(?,?,?,?,?,?,?)", (SYSTEM, *row, now()))
+            with db:  # grava um por vez: segurar a transação durante as chamadas ao deps.dev trava as outras etapas
+                db.execute("INSERT OR REPLACE INTO packages VALUES(?,?,?,?,?,?,?)", (SYSTEM, *row, now()))
             if i % 100 == 0:
-                db.commit()
                 log(f"  {i}/{len(todo)} pacotes")
     db.commit()
 
