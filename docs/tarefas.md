@@ -131,10 +131,11 @@ Todas dependem do E1 e usam o `projects.json` do E2.
 
 ## Demo — Pablo
 
-### P1. Gabarito da política de IA (M) — pode começar já
+### P1. Gabarito da política de IA (M) — ✅ PR #39 (Pablo; revisão do Claude)
 - Rotular 25 repositórios em `eval/gabarito.csv` lendo os arquivos. Consulta: `SELECT repo, path FROM repo_files WHERE path != 'README.md'`.
 - Comece pelos que têm `AI_POLICY.md`, `AGENTS.md`, `CLAUDE.md` ou `copilot-instructions.md`. Inclua uns 5 sem nada (`silent`).
 - **Pronto quando:** 25 linhas, e pelo menos 3 categorias aparecem.
+- Feito: 28 repos (13 `silent`, 7 `accepts_with_disclosure`, 5 `accepts`, 3 `forbids`). Na revisão, 5 rótulos foram corrigidos conferindo o texto em `repo_files` (OBS e acorn proíbem; Godot pede aviso; Prettier e sharp aceitam). Também entraram pyzmq, TanStack Query e llama.cpp.
 
 ### P2. README final e roteiro da demo (M)
 - README em pt-BR e inglês: problema, como funciona, onde entra o Gemma (local e API), números (o achado do slide e a acurácia do K3).

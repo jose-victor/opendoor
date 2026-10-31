@@ -1,3 +1,29 @@
 repo,label
-# Rotule 20-30 repos LENDO o CONTRIBUTING/AI_POLICY/AGENTS (tabela repo_files).
-# Labels: accepts | accepts_with_disclosure | forbids | silent. Inclua alguns de cada tipo.
+audacity/audacity,accepts_with_disclosure
+babel/babel,accepts_with_disclosure
+freecad/freecad,accepts_with_disclosure
+home-assistant/core,accepts_with_disclosure
+musescore/musescore,accepts_with_disclosure
+yargs/yargs,accepts
+yargs/yargs-parser,accepts
+godotengine/godot,accepts_with_disclosure
+obsproject/obs-studio,forbids
+socketio/socket.io,silent
+lodash/lodash,silent
+prettier/prettier,accepts
+lovell/sharp,accepts
+flameshot-org/flameshot,silent
+postcss/postcss,silent
+tj/commander.js,silent
+automattic/mongoose,silent
+remy/nodemon,silent
+winstonjs/winston,silent
+motdotla/dotenv,silent
+signalapp/signal-desktop,silent
+ajv-validator/ajv,silent
+bitwarden/clients,silent
+facebook/watchman,silent
+acornjs/acorn,forbids
+zeromq/pyzmq,forbids
+tanstack/query,accepts
+ggml-org/llama.cpp,accepts_with_disclosure
