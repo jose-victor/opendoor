@@ -1,33 +1,11 @@
-// A1 (Anna): cliente da Gemini API (Gemma 4). Só roda no servidor: usa process.env.GEMINI_API_KEY.
+// A1 (Anna): cliente da Gemini API (Gemma). Só roda no servidor: usa process.env.GEMINI_API_KEY.
 // Contrato da saída: ExplainResponse em lib/types.ts e docs/arquitetura.md.
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import type { ExplainResponse, Project, UserProfile } from "./types";
-
-const explainSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    why: {
-      type: Type.STRING,
-      description: "2 a 3 frases em português explicando por que o projeto combina com o perfil da pessoa.",
-    },
-    first_steps: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "De 3 a 5 passos concretos para a pessoa começar a contribuir.",
-    },
-    heads_up: {
-      type: Type.STRING,
-      description: "Alerta importante sobre o projeto (política de IA, número de mantenedores, etc.) ou null.",
-      nullable: true,
-    },
-  },
-  required: ["why", "first_steps"],
-};
 
 export async function explain(project: Project, profile: UserProfile): Promise<ExplainResponse> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.error("ERRO: GEMINI_API_KEY não encontrada no process.env!");
     return {
       ok: false,
       error: "model_error",
@@ -36,11 +14,10 @@ export async function explain(project: Project, profile: UserProfile): Promise<E
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  // Usa o modelo configurado no .env ou fallback padrão
-  const modelName = process.env.GEMMA_MODEL || "gemini-2.5-flash";
+  const modelName = process.env.GEMMA_MODEL || "gemma-2-27b-it";
 
   const prompt = `
-Você é o assistente inteligente do OpenDoor.
+Você é o assistente inteligente do OpenDoor, utilizando o modelo aberto Gemma da Google.
 Seu objetivo é orientar um contribuidor sobre por que e como começar a ajudar em um projeto open source.
 
 DADOS DO CONTRIBUIDOR:
@@ -60,11 +37,15 @@ DADOS DO PROJETO:
 - Taxa de abertura a contribuições externas (openness): ${project.openness !== null ? project.openness : "Não avaliada"}
 - Política de IA: ${project.ai_policy?.classification || "silent"} (Evidência: "${project.ai_policy?.evidence || ""}")
 
-REGRAS:
-- Responda em Português do Brasil.
-- 'why': 2 a 3 frases práticas conectando o perfil ao projeto.
-- 'first_steps': 3 a 5 passos diretos para começar.
-- 'heads_up': Se houver restrições de IA (${project.ai_policy?.classification}) ou poucos mantenedores (${project.maintainers_24m}), mencione. Senão, passe null.
+REGRAS OBRIGATÓRIAS:
+- Responda estritamente em Português do Brasil.
+- Retorne EXCLUSIVAMENTE um objeto JSON válido (sem blocos markdown adicionais em volta, sem texto antes ou depois).
+- O formato do JSON precisa ser exatamente:
+{
+  "why": "2 a 3 frases explicando de forma prática a conexão entre o perfil e o projeto.",
+  "first_steps": ["passo 1", "passo 2", "passo 3"],
+  "heads_up": "Alerta importante sobre política de IA ou número de mantenedores, ou null se não houver alerta."
+}
 `;
 
   try {
@@ -72,18 +53,23 @@ REGRAS:
       model: modelName,
       contents: prompt,
       config: {
-        responseMimeType: "application/json",
-        responseSchema: explainSchema,
         temperature: 0.2,
       },
     });
 
-    const parsed = JSON.parse(response.text || "{}");
+    const rawText = (response.text || "").trim();
+    // Remove blocos de marcação ```json ... ``` caso o modelo os inclua
+    const cleanJson = rawText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+    const parsed = JSON.parse(cleanJson);
 
     return {
       ok: true,
-      why: parsed.why,
-      first_steps: parsed.first_steps || [],
+      why: parsed.why || "Projeto recomendado com base no seu perfil técnico.",
+      first_steps: Array.isArray(parsed.first_steps) ? parsed.first_steps : [
+        "Clone o repositório e explore a estrutura do código.",
+        "Leia o guia de contribuição (CONTRIBUTING.md).",
+        "Procure issues abertas marcadas para iniciantes."
+      ],
       heads_up: parsed.heads_up || null,
       model: modelName,
     };
