@@ -1,0 +1,72 @@
+[
+ {
+  "id": "c",
+  "label": "C",
+  "kind": "linguagem"
+ },
+ {
+  "id": "c",
+  "label": "C#",
+  "kind": "linguagem"
+ },
+ {
+  "id": "c",
+  "label": "C++",
+  "kind": "linguagem"
+ },
+ {
+  "id": "clojure",
+  "label": "Clojure",
+  "kind": "linguagem"
+ },
+ {
+  "id": "coffeescript",
+  "label": "CoffeeScript",
+  "kind": "linguagem"
+ },
+ {
+  "id": "dart",
+  "label": "Dart",
+  "kind": "linguagem"
+ },
+ {
+  "id": "go",
+  "label": "Go",
+  "kind": "linguagem"
+ },
+ {
+  "id": "javascript",
+  "label": "JavaScript",
+  "kind": "linguagem"
+ },
+ {
+  "id": "php",
+  "label": "PHP",
+  "kind": "linguagem"
+ },
+ {
+  "id": "python",
+  "label": "Python",
+  "kind": "linguagem"
+ },
+ {
+  "id": "ruby",
+  "label": "Ruby",
+  "kind": "linguagem"
+ },
+ {
+  "id": "rust",
+  "label": "Rust",
+  "kind": "linguagem"
+ },
+ {
+  "id": "shell",
+  "label": "Shell",
+  "kind": "linguagem"
+ },
+ {
+  "id": "typescript",
+  "label": "TypeScript",
+  "kind": "linguagem"
+ }
+]

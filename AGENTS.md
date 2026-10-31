@@ -28,6 +28,12 @@ sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 - **Zero PRs não é erro:** muitos pacotes minúsculos recebem commits diretos do mantenedor. Veja `commit_monthly.direct_commits`.
 - **Espelhos:** GIMP, LibreOffice, Blender e Firefox não vivem no GitHub e estão fora do escopo por enquanto.
 
+## Site (`web/`)
+- Next.js 16: **leia `web/AGENTS.md`** e os guias em `web/node_modules/next/dist/docs/` antes de escrever código, porque a API mudou em relação ao que você conhece.
+- Os tipos do contrato ficam em `web/lib/types.ts`. Não duplique nem altere esses tipos sem atualizar `docs/arquitetura.md`.
+- `GEMINI_API_KEY` só é usada no servidor (`lib/gemma.ts`, rotas em `app/api/`). Nunca a use em componente com `"use client"`.
+- Depois de mudar o pipeline, rode `python pipeline/build.py` para regenerar `web/public/data/`.
+
 ## Segurança e privacidade
 - Chaves (Gemini API etc.) vão em `.env`. Nunca as commite nem as imprima.
 - Os logins guardados são dados públicos do GitHub. Não colete e-mails nem conteúdo de PRs ou issues.
