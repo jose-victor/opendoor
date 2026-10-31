@@ -96,6 +96,9 @@ type ExplainResponse =
 | `LLM_BACKEND` | pipeline | `gemini` ou `ollama` (local) |
 | `OLLAMA_MODEL` | pipeline | ex.: `gemma4:e4b` |
 
+O cliente do pipeline pode ser executado com `python pipeline/llm.py "seu prompt"`.
+O backend padrão é `gemini`; para usar o Ollama local, defina `LLM_BACKEND=ollama`.
+
 ## Regras de ranking (`web/lib/match.ts`)
 Implementação do José. Resumo para quem consome:
 - **Formas de contribuir:** se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs`. Formas que não são código (triagem, docs, tradução) **não exigem** habilidade técnica em comum.
