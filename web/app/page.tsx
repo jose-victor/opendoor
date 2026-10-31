@@ -89,9 +89,6 @@ export default function Home() {
         <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
           Uma <span className="text-emerald-600 dark:text-emerald-400">Porta Aberta</span> para você contribuir no mundo Open Source
         </h1>
-        <p lang="en" className="text-lg text-muted">
-          An Open Door for you to contribute to the Open Source world
-        </p>
         <p className="max-w-2xl leading-relaxed text-foreground/85">
           Conte o que você sabe e como quer ajudar. Mostramos projetos que estão recebendo bem quem chega e por onde começar: primeiro
           observar e conversar, depois contribuir.

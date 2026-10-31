@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "OpenDoor",
-  description: "Uma Porta Aberta para você contribuir no mundo Open Source. An Open Door for you to contribute to the Open Source world.",
+  description: "Uma Porta Aberta para você contribuir no mundo Open Source.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

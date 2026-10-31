@@ -195,6 +195,7 @@ Todas dependem do E1 e usam o `projects.json` do E2.
 ---
 
 ## Depois de hoje
+- **Versão do site em inglês** (pedido do José). Título: "An Open Door for you to contribute to the Open Source world".
 - **Necessidades mais específicas** (auditoria de 31/10):
   - coletar todos os labels de cada repo e separar "good first issue" livre e recente de "help wanted";
   - medir o tempo até a primeira resposta e os PRs de fora parados (do cache bruto);
