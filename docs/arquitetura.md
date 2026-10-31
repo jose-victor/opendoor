@@ -187,7 +187,7 @@ Cada projeto lista as formas de ajuda e o motivo (`note`, em pt-BR), nesta ordem
 Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos uma oportunidade.
 
 ## Regras de ranking (`web/lib/match.ts`)
-`rankProjects(projects, profile, languageIds)` devolve **todos os projetos que se enquadram**, do que mais combina para o que menos combina. Isso foi uma decisão do grupo: antes eram no máximo 5. Na home, uma barra filtra a lista por perfil, política de IA e "só com issues para iniciantes", e ordena por combinação, abertura, issues para iniciantes ou estrelas (`components/ResultsBar.tsx`). A lista mostra 20 projetos por vez. O `languageIds` são os ids de `skills.json` com `kind: "linguagem"`; o S1 já carrega esse arquivo e passa o conjunto.
+`rankProjects(projects, profile, languageIds)` devolve **todos os projetos que se enquadram**, do que mais combina para o que menos combina. Isso foi uma decisão do grupo: antes eram no máximo 5. Na home, uma busca (nome, dono, descrição e resumo, sem diferenciar acentos) e uma barra filtram a lista por perfil, política de IA e "good first issue / help wanted"; dá para ordenar por combinação, abertura, issues para iniciantes ou estrelas (`components/ResultsBar.tsx`). A lista mostra 20 projetos por vez. O `languageIds` são os ids de `skills.json` com `kind: "linguagem"`; o S1 já carrega esse arquivo e passa o conjunto.
 - **Exclusões:**
   - `estavel` nunca aparece;
   - `guardiao` não aparece para iniciante;

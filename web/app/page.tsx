@@ -146,6 +146,11 @@ export default function Home() {
                   uma linguagem em comum com o projeto.
                 </p>
               )}
+              {doors.length > 0 && list.length === 0 && (
+                <p className="rounded-xl border border-dashed border-line p-5 text-sm text-muted">
+                  Nenhum projeto com essa busca ou esses filtros. Tente outro termo ou limpe os filtros.
+                </p>
+              )}
               {list.slice(0, shown).map((p) => (
                 <DoorCard key={p.repo} project={p} profile={profile} />
               ))}

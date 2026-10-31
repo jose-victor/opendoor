@@ -9,13 +9,22 @@ export type ResultFilter = {
   ai: AiPolicy["classification"] | "any";
   newcomerOnly: boolean;
   sort: Sort;
+  q: string; // busca no nome, no dono, na descrição e no resumo
 };
 export const NO_FILTER: ResultFilter = {
   profiles: [],
   ai: "any",
   newcomerOnly: false,
   sort: "match",
+  q: "",
 };
+
+// minúsculas e sem acento: "traducao" acha "tradução"
+const norm = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 const SORTS: Record<Sort, string> = {
   match: "Melhor combinação",
@@ -30,8 +39,14 @@ const SHOWN_PROFILES: Profile[] = [
 ];
 
 export function applyFilter(list: Project[], f: ResultFilter): Project[] {
+  const terms = norm(f.q).split(/\s+/).filter(Boolean);
   const out = list.filter(
     (p) =>
+      terms.every((t) =>
+        norm(
+          `${p.repo} ${p.description ?? ""} ${p.guide?.summary ?? ""}`,
+        ).includes(t),
+      ) &&
       (f.profiles.length === 0 || f.profiles.includes(p.profile)) &&
       (f.ai === "any" || p.ai_policy.classification === f.ai) &&
       (!f.newcomerOnly || p.newcomer_open > 0),
@@ -94,53 +109,64 @@ export default function ResultsBar({
         : [...filter.profiles, p],
     });
   return (
-    <div
-      className="flex flex-wrap items-center gap-2 text-[13px]"
-      role="group"
-      aria-label="Filtrar a lista"
-    >
-      <span className="mr-1 text-muted">Filtrar:</span>
-      {SHOWN_PROFILES.filter((p) => counts[p] > 0).map((p) => (
-        <button
-          key={p}
-          type="button"
-          aria-pressed={filter.profiles.includes(p)}
-          onClick={() => toggle(p)}
-          className={chip(filter.profiles.includes(p))}
-        >
-          <span className={`h-2 w-2 rounded-full ${PROFILE_TONE[p].dot}`} />
-          {PROFILE_LABELS[p].label}
-          <span className="tabular-nums opacity-70">{counts[p]}</span>
-        </button>
-      ))}
-      <button
-        type="button"
-        aria-pressed={filter.newcomerOnly}
-        onClick={() =>
-          onChange({ ...filter, newcomerOnly: !filter.newcomerOnly })
-        }
-        className={chip(filter.newcomerOnly)}
+    <div className="space-y-3">
+      <input
+        id="search"
+        type="search"
+        value={filter.q}
+        onChange={(e) => onChange({ ...filter, q: e.target.value })}
+        placeholder="Buscar pelo nome ou pela descrição do projeto"
+        aria-label="Buscar projetos"
+        className="w-full rounded-full border border-line bg-card px-4 py-2 text-sm placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600"
+      />
+      <div
+        className="flex flex-wrap items-center gap-2 text-[13px]"
+        role="group"
+        aria-label="Filtrar a lista"
       >
-        Com good first issue
-      </button>
-      <select
-        id="ai-filter"
-        aria-label="Política de IA"
-        value={filter.ai}
-        onChange={(e) =>
-          onChange({ ...filter, ai: e.target.value as ResultFilter["ai"] })
-        }
-        className={chip(filter.ai !== "any")}
-      >
-        <option value="any">Qualquer política de IA</option>
-        {(
-          ["accepts", "accepts_with_disclosure", "forbids", "silent"] as const
-        ).map((c) => (
-          <option key={c} value={c}>
-            {AI_LABELS[c]!.label}
-          </option>
+        <span className="mr-1 text-muted">Filtrar:</span>
+        {SHOWN_PROFILES.filter((p) => counts[p] > 0).map((p) => (
+          <button
+            key={p}
+            type="button"
+            aria-pressed={filter.profiles.includes(p)}
+            onClick={() => toggle(p)}
+            className={chip(filter.profiles.includes(p))}
+          >
+            <span className={`h-2 w-2 rounded-full ${PROFILE_TONE[p].dot}`} />
+            {PROFILE_LABELS[p].label}
+            <span className="tabular-nums opacity-70">{counts[p]}</span>
+          </button>
         ))}
-      </select>
+        <button
+          type="button"
+          aria-pressed={filter.newcomerOnly}
+          onClick={() =>
+            onChange({ ...filter, newcomerOnly: !filter.newcomerOnly })
+          }
+          className={chip(filter.newcomerOnly)}
+        >
+          Com good first issue
+        </button>
+        <select
+          id="ai-filter"
+          aria-label="Política de IA"
+          value={filter.ai}
+          onChange={(e) =>
+            onChange({ ...filter, ai: e.target.value as ResultFilter["ai"] })
+          }
+          className={chip(filter.ai !== "any")}
+        >
+          <option value="any">Qualquer política de IA</option>
+          {(
+            ["accepts", "accepts_with_disclosure", "forbids", "silent"] as const
+          ).map((c) => (
+            <option key={c} value={c}>
+              {AI_LABELS[c]!.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
