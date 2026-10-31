@@ -159,6 +159,12 @@ Todas dependem do E1 e usam o `projects.json` do E2.
     - duplicatas removidas;
     - filtros da lista refeitos.
     As propostas para depois do hackathon estão na seção "Depois de hoje".
+  - Na reavaliação, o veredito foi "dá para congelar" depois de 4 ajustes, que já entraram:
+    - guardiões sem o selo;
+    - a conta "X de Y" sem X maior que Y;
+    - "vivo" medido por PRs de gente de fora;
+    - nota de código nos projetos prontos.
+    Resultado: 38 projetos prontos para iniciante (os que o iniciante vê), com precisão estimada de 85 a 90%.
   - Componentes em `web/components/` e rótulos em `web/lib/labels.ts`.
 
 ---
@@ -197,6 +203,11 @@ Todas dependem do E1 e usam o `projects.json` do E2.
   - um gabarito de necessidades rotulado à mão;
   - estreias também nos repos grandes;
   - guardar o `nameWithOwner` da API para resolver redirecionamentos.
+  - o CONTRIBUTING em outros caminhos (`.rst`, `docs/`, `.github` da organização, variações de caixa): 77 projetos caem no selo de iniciante só por isso;
+  - `authorAssociation` no cache, para saber quem é funcionário da empresa;
+  - atividade dos repos Go (só 4 de 151 cobertos);
+  - estreias nos repos grandes que têm histórico desde 2022 (axios, babel, jest, mocha, sharp, zod...);
+  - exigir que o repo tenha mais de 24 meses para valer o selo (num repo novo, todo mundo "estreia").
 - **G1. Guia de contribuição de cada projeto** (issue #21). **Parte feita hoje**, ideia do José: o guia "por onde começar" escrito uma vez por projeto pelo modelo (`pipeline/guides.py`) e combinado com o perfil sem chamar o modelo (`web/lib/guide.ts`). Validado numa amostra de 6 projetos. **Fica para depois:** ambiente, regras do projeto (DCO, estilo de commit), quem revisa e quanto tempo leva.
 
 As issues no GitHub têm o código da tarefa no título (`[E1]`, `[K2]`...), e as dependências já apontam para o número da issue.

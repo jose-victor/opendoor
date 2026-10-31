@@ -81,7 +81,11 @@ export function BeginnerChecks({ project }: { project: Project }) {
   return (
     <div className="space-y-3">
       <p className={`font-medium ${b.ready ? "text-emerald-700 dark:text-emerald-400" : "text-muted"}`}>
-        {b.ready ? "Sim: os dados mostram que gente nova está conseguindo contribuir aqui." : "Ainda não dá para garantir. Veja o que falta:"}
+        {b.ready
+          ? "Sim: os dados mostram que gente nova está conseguindo contribuir aqui."
+          : project.profile === "guardiao"
+            ? "Não: é um projeto crítico, mantido por 1 ou 2 pessoas. É melhor para quem já tem experiência."
+            : "Ainda não dá para garantir. Veja o que falta:"}
       </p>
       <ul className="space-y-1.5">
         {b.checks.map((c) => (

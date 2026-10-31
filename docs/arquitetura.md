@@ -122,10 +122,10 @@ Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
 **Pronto para iniciante (`beginner`)** é a promessa mais importante do site, então é a mais exigente. As 4 verificações precisam passar (`beginner_checks` no `build.py`), e cada uma vai para o JSON com o texto da prova:
 1. **Estreias:** 2 ou mais pessoas de fora tiveram o **primeiro** PR aceito nos últimos 12 meses (`debuts_12m`).
 2. **Aceite de gente nova (por pessoa):** das pessoas que abriram PR em 12 meses e nunca tinham tido um aceito antes, 25% ou mais conseguiram (precisa de pelo menos 5 pessoas novas). Exemplo: redux, 24 de 28. Contar por pessoa, e só gente nova, evita dois enganos: um colaborador antigo sem permissão de merge inflava a taxa (no sharp-libvips, o kleisauke tinha 29 de 29), e um bot com nome de gente (`github-actions`) também.
-3. **Vivo:** 3 ou mais PRs aceitos nos 3 últimos meses fechados.
+3. **Vivo para quem chega:** 2 ou mais PRs de **gente de fora** aceitos nos 3 últimos meses fechados. Merges internos e de bots não contam: o nbformat era "vivo" só pelos PRs internos.
 4. **Guia:** existe um CONTRIBUTING.
 
-Repos grandes não passam: deles só temos uma amostra recente de PRs, e não dá para saber quem estreou. Em 31/10 eram 44 projetos prontos. E porta aberta exige pelo menos 1 estreia no ano quando sabemos as estreias: se ninguém novo entrou em 12 meses, a porta não está aberta para quem chega.
+Repos grandes não passam: deles só temos uma amostra recente de PRs, e não dá para saber quem estreou. Guardiões nunca recebem o selo (críticos e com 1 ou 2 pessoas cuidando). Em 31/10 às 15h eram 38 projetos prontos, e são exatamente os que o iniciante vê. Na conta "X de Y pessoas novas", quem abriu o PR antes da janela e estreou dentro dela também conta como "tentou". Um projeto pronto sem nenhuma oportunidade ganha a nota "N pessoas tiveram o 1º PR aceito aqui no último ano". E porta aberta exige pelo menos 1 estreia no ano quando sabemos as estreias: se ninguém novo entrou em 12 meses, a porta não está aberta para quem chega.
 
 **Bots:** além de `is_bot`, ficam de fora os logins que terminam em `bot` e uma lista de bots conhecidos com nome de gente (`github-actions`, `dependabot`, `renovate`, `pre-commit-ci`, `mergify`, `allcontributors`, `copilot`...).
 
@@ -134,12 +134,12 @@ Repos grandes não passam: deles só temos uma amostra recente de PRs, e não d�
 **Quem é de dentro e de fora:**
 - **Mantenedor (de dentro):** quem fez merge de um PR em 24 meses, ou fez 3 ou mais commits diretos na branch principal. Um commit isolado não conta, porque o commit de terceiro aplicado à mão fica no nome do autor. Bots ficam de fora, inclusive os com nome de gente, como `antfubot` (filtro `login NOT LIKE '%bot'`).
 - **`openness`:** do que entrou no projeto em 12 meses (PRs aceitos + commits diretos de quem mantém), a fatia que veio de quem é de fora. Precisa de 5 mudanças ou mais; abaixo disso é `null`. Antes contava só PRs, e o sharp aparecia com 100% de fora; contando os 177 commits diretos do mantenedor, são 17%.
-- **Repos grandes:** usam a mesma regra sobre a amostra de PRs aceitos (quem fez merge é de dentro). O `authorAssociation` do GitHub só entra quando não há essa participação, porque quem participa da organização de forma privada aparece como `CONTRIBUTOR`. No Mastodon, isso dava 100% de fora, e o certo é 25%. Se o `authorAssociation` dá 95% ou mais de fora, o valor vira `null` (era o caso do Tailwind).
+- **Repos grandes:** a abertura conta só PRs (não temos os commits diretos deles), então pode sair alta demais em projeto cujo time faz muitos commits sem PR (tdesktop: 0,98). Usam a mesma regra sobre a amostra de PRs aceitos (quem fez merge é de dentro). O `authorAssociation` do GitHub só entra quando não há essa participação, porque quem participa da organização de forma privada aparece como `CONTRIBUTOR`. No Mastodon, isso dava 100% de fora, e o certo é 25%. Se o `authorAssociation` dá 95% ou mais de fora, o valor vira `null` (era o caso do Tailwind).
 - **Cobertura:** sem os commits diretos coletados (`commit_coverage`), a abertura de um repo completo vira `null`, porque sairia inflada (o csstree aparecia com 100%, e o real é ~33%). Nos grandes cuja participação cobre menos de 12 meses, abertura e mantenedores vêm da amostra (`repo_sample`).
 - **Duplicatas:** repos que mudaram de dono (`facebook/react` → `react/react`) aparecem uma vez só, com o nome atual.
 - **`recent`:** soma de `repo_monthly` nos 3 últimos meses fechados. Exemplo: o debug teve 18 PRs abertos e nenhum aceito de julho a setembro.
 
-Distribuição em 31/10 às 14h, com a coleta da rodada 3 ainda rodando: 580 estáveis, 168 guardiões, 199 portas abertas e 14 que precisam de mãos.
+Distribuição em 31/10 às 15h, com a coleta da rodada 3 concluída: 610 estáveis, 153 guardiões, 189 portas abertas e 6 que precisam de mãos.
 
 ## Formas de contribuir (`Way`): rótulo sugerido e o que inclui
 | id | Rótulo no site | Inclui |

@@ -94,11 +94,13 @@ def opportunities_of(r, profile, openness, maintainers, newcomer_open, scorecard
     return out
 
 
-def beginner_checks(debuts, tried, recent_merged, has_guide):
+def beginner_checks(debuts, tried, outside_recent, has_guide):
     """Pronto para iniciante: os dados mostram que gente nova está conseguindo entrar. Todas as 4 precisam passar.
 
     debuts: pessoas de fora com o 1º PR aceito em 12 meses; tried: pessoas novas que abriram PR em 12 meses.
     """
+    if debuts is not None:
+        tried = max(tried or 0, debuts)  # quem abriu o PR antes da janela e estreou dentro dela também tentou ("20 de 19")
     rate = debuts / tried if debuts is not None and tried and tried >= MIN_NEW_PEOPLE else None
     checks = [
         ("estreias", (debuts or 0) >= 2,
@@ -107,7 +109,8 @@ def beginner_checks(debuts, tried, recent_merged, has_guide):
         ("aceite", rate is not None and rate >= 0.25,
          f"{debuts} de {tried} pessoas novas que abriram PR tiveram aceito" if rate is not None
          else f"poucas pessoas novas tentaram ({tried or 0}) para medir"),
-        ("vivo", recent_merged >= 3, f"{n_(recent_merged, 'PR aceito', 'PRs aceitos')} nos últimos 3 meses"),
+        # vivo para quem chega: PRs de gente de fora aceitos agora (merges internos e de bots não contam; nbformat)
+        ("vivo", outside_recent >= 2, f"{n_(outside_recent, 'PR de gente de fora aceito', 'PRs de gente de fora aceitos')} nos últimos 3 meses"),
         ("guia", has_guide, "tem guia de contribuição (CONTRIBUTING)" if has_guide else "não tem guia de contribuição (CONTRIBUTING)"),
     ]
     return {"ready": all(ok for _, ok, _ in checks), "checks": [{"key": k, "ok": ok, "text": t} for k, ok, t in checks]}
@@ -219,6 +222,11 @@ def main():
               for r in db.execute("SELECT repo, SUM(issues_opened), SUM(issues_closed), SUM(prs_opened), SUM(prs_merged) "
                                   "FROM repo_monthly WHERE month >= ? GROUP BY repo", (recent_from,))}
 
+    outside_recent = dict(db.execute(
+        f"WITH m AS ({maintainers_sql}) SELECT p.repo, SUM(p.n) FROM participation p "
+        "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login WHERE p.role = 'merged_pr_author' AND m.login IS NULL "
+        f"AND p.{human.replace(' AND login', ' AND p.login')} AND p.month >= ? GROUP BY p.repo", (cut24, recent_from)))
+
     years = defaultdict(lambda: defaultdict(lambda: dict.fromkeys(YEAR_FIELDS, 0)))
     for r in db.execute("SELECT repo, substr(month, 1, 4) y, SUM(prs_opened) po, SUM(prs_merged) pm, "
                         "SUM(issues_opened) io, SUM(issues_closed) ic FROM repo_monthly GROUP BY repo, y"):
@@ -262,13 +270,17 @@ def main():
         profile = profile_of(dependents.get(repo), maintainers, openness, newcomer.get(repo) or 0, r["open_issues"] or 0,
                              acc, rec_merged)
         deb = None if large else debuts.get(repo, 0)
-        beginner = beginner_checks(deb, tried_new.get(repo, 0), rec_merged, bool(guides.get(repo)))
+        beginner = beginner_checks(deb, tried_new.get(repo, 0), outside_recent.get(repo) or 0, bool(guides.get(repo)))
+        if profile == "guardiao":
+            beginner["ready"] = False  # crítico e com 1 ou 2 pessoas cuidando: não é lugar para aprender
         if profile == "porta_aberta" and deb == 0:
             profile = "estavel"  # ninguém novo entrou em 12 meses: não é porta aberta para quem chega (sharp-libvips)
         if beginner["ready"] and profile == "estavel":
             profile = "porta_aberta"  # postcss: abertura baixa (muitos commits do mantenedor), mas acolhe bem quem chega
         opps = opportunities_of(r, profile, openness, maintainers, newcomer.get(repo) or 0, scorecard.get(repo), guides[repo],
                                 rec_merged)
+        if beginner["ready"] and not any(o["way"] == "codigo" for o in opps):
+            opps.append({"way": "codigo", "source": "dados", "note": f"{n_(deb, 'pessoa teve', 'pessoas tiveram')} o 1º PR aceito aqui no último ano"})
         facts = list(dict.fromkeys(o["way"] for o in opps))  # needs: só o que o guia menciona ou os números mostram
         opps += [g for g in gemma.get(repo, []) if g["way"] not in facts]
         projects.append({
@@ -329,7 +341,9 @@ if __name__ == "__main__":
     assert profile_of(None, 2, 0.15, 0, 120, 0.3, 0) == "estavel"           # nenhum PR aceito em 3 meses: beco
     assert profile_of(None, 5, 0.42, 3, 300, 0.04, 20) == "estavel"         # flask: 4% dos PRs de fora aceitos
     assert profile_of(None, 1, 0.04, 0, 900) == "estavel"             # open-webui: quase nada de fora entra
-    assert beginner_checks(13, 30, 31, True)["ready"]                     # 13 de 30 pessoas novas entraram
+    assert beginner_checks(13, 30, 9, True)["ready"]                      # 13 de 30 pessoas novas entraram
+    assert not beginner_checks(13, 30, 1, True)["ready"]                  # só 1 PR de fora aceito em 3 meses (nbformat)
+    assert "20 de 20" in beginner_checks(20, 19, 9, True)["checks"][1]["text"]  # nunca "20 de 19"
     assert not beginner_checks(None, 30, 40, True)["ready"]               # repo grande: sem dados de estreias
     assert not beginner_checks(6, 150, 20, True)["ready"]                 # 6 de 150: 4%
     assert not beginner_checks(0, 1, 30, True)["ready"]                   # sharp-libvips: 0 de 1
