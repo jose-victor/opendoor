@@ -84,7 +84,7 @@ type ExplainResponse =
   | { ok: false; error: "rate_limited" | "not_found" | "bad_request" | "model_error"; message: string };
 ```
 - `why`: 2–3 frases, em português, sobre por que o projeto combina com o perfil.
-- `first_steps`: de 3 a 5 passos concretos.
+- `first_steps`: de 3 a 5 passos concretos, seguindo a filosofia de `docs/visao.md`: começam por observar o projeto (roadmap, issues, discussões) e conversar com a comunidade; para iniciantes, a primeira contribuição sugerida é de testes, docs ou triagem. Nunca "abra um PR" como primeiro passo.
 - `heads_up`: um alerta, por exemplo a política de IA do projeto ou "mantido por 1 pessoa, seja paciente".
 - Com erro, o site mostra a `message` e continua funcionando.
 

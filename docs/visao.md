@@ -10,6 +10,23 @@ Uma plataforma em que a pessoa diz o que sabe e o que já fez, e recebe **portas
 
 A longo prazo vira um marketplace ou rede social para ajudar projetos open source: mantenedores também **cadastram os próprios projetos** para pedir ajuda.
 
+## Filosofia: contribuir com responsabilidade
+Contribuir não é sair abrindo PR em projeto alheio sem entender o que está acontecendo. Na palestra do GDG no evento, o palestrante contou que projetos como Node.js e Meteor receberam muitos PRs que resolviam um problema e criavam vários outros. Os nossos dados mostram o mesmo movimento: os PRs **abertos** explodiram (no VS Code, de 117 por mês em 2018 para 2.695 em 2026), muito mais do que os **aceitos**.
+
+O OpenDoor guia a pessoa pelo caminho que a palestra recomenda:
+1. Escolher **um** projeto de que goste.
+2. Observar o roadmap e as prioridades.
+3. Participar das discussões e da comunidade.
+4. Falar com um mantenedor, quando possível.
+5. Entender o código antes de mudá-lo.
+6. Começar por contribuições de testes ou documentação.
+
+O que isso muda no produto:
+- **Portas (Gemma):** os primeiros passos começam por observar e conversar. "Abra um PR" nunca é o primeiro passo.
+- **Match:** recomenda poucos projetos, não uma lista infinita; para iniciantes, favorece entradas de baixo risco (testes, docs, triagem).
+- **Política de IA em destaque:** usar IA num projeto que pede aviso, ou que proíbe, é o tipo de contribuição que cria problema.
+- **Nunca** incentivar PRs gerados em massa.
+
 ## Duas vertentes de projetos
 1. **Críticos e "underground":** pacotes pequenos com muitos dependentes (blast radius enorme, casos como event-stream, xz-utils e chalk/debug).
 2. **Mainstream:** apps de usuário final que vivem no GitHub (OBS, Godot, Audacity, Jellyfin...).
