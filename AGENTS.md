@@ -1,10 +1,12 @@
 # AGENTS.md — instruções para agentes de código
 
-OpenDoor: plataforma que recomenda portas de entrada em projetos open source. Contexto completo em `README.md` e `docs/visao.md`. Prazo do hackathon: **31/10/2026, 17h (-03)**.
+OpenDoor: plataforma que recomenda portas de entrada em projetos open source. Projeto da comunidade (nasceu no Hacktoberfest Hack Day SJC 2026). Contexto em `README.md`, `docs/vision.md` e `CONTRIBUTING.md`.
 
 ## Idioma
-- Documentação, comentários e mensagens ao usuário em **português do Brasil**, com acentuação correta.
-- Identificadores de código em inglês.
+- **Código em inglês:** identificadores, comentários e docstrings. O código antigo, ainda em português, está sendo migrado na #90.
+- **Docs de entrada em inglês e pt-BR:** `README.md`/`README.pt-BR.md`, `CONTRIBUTING.md`/`CONTRIBUTING.pt-BR.md`, `docs/vision.md`/`docs/vision.pt-BR.md`. Mudou um? Mude o outro no mesmo PR.
+- **Docs técnicos em inglês** (`docs/arquitetura.md` e `docs/dados.md` serão traduzidos na #91).
+- O texto do site (UI) segue em pt-BR por enquanto (#50), com acentuação correta.
 
 ## Comandos
 ```bash

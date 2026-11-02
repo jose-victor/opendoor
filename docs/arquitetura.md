@@ -1,6 +1,6 @@
 # Arquitetura e contratos
 
-Este arquivo é o **contrato entre as frentes**. Se você precisa mudar algo aqui, avise o time antes, porque outra pessoa depende disso.
+Este arquivo é o **contrato entre as frentes**. Se você precisa mudar algo aqui, abra uma issue antes, porque outras partes dependem disso.
 
 ## Visão geral
 ```
@@ -44,7 +44,7 @@ type YearStats = {
   direct_commits: number | null;  // null em repos grandes
   people: number | null;          // pessoas distintas (não-bot) no ano; null em repos grandes
 };
-// Formas de contribuir (docs/visao.md). Mesma lista para o projeto (o que precisa) e para a pessoa (o que quer fazer).
+// Formas de contribuir (docs/vision.md). Mesma lista para o projeto (o que precisa) e para a pessoa (o que quer fazer).
 type Way = "codigo" | "triagem" | "revisao" | "refinamento" | "documentacao" | "traducao" | "seguranca" | "testes";
 type Project = {
   repo: string;               // "debug-js/debug" (minúsculas)
@@ -98,7 +98,7 @@ type ExplainResponse =
   - uma resposta fora do formato vira `model_error`, nunca um texto inventado;
   - cada resposta leva de 30 a 45 s, então o site mostra um estado de carregamento.
   A avaliação de 3 perfis × 3 projetos está em `eval/explain.md`.
-- `first_steps`: de 3 a 5 passos concretos, seguindo a filosofia de `docs/visao.md`: começam por observar o projeto (roadmap, issues, discussões) e conversar com a comunidade; para iniciantes, a primeira contribuição sugerida é de testes, docs ou triagem. Nunca "abra um PR" como primeiro passo.
+- `first_steps`: de 3 a 5 passos concretos, seguindo a filosofia de `docs/vision.md`: começam por observar o projeto (roadmap, issues, discussões) e conversar com a comunidade; para iniciantes, a primeira contribuição sugerida é de testes, docs ou triagem. Nunca "abra um PR" como primeiro passo.
 - `heads_up`: um alerta, por exemplo a política de IA do projeto ou "mantido por 1 pessoa, seja paciente".
 - Com erro, o site mostra a `message` e continua funcionando.
 

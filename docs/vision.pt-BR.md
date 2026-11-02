@@ -1,9 +1,9 @@
 # Visão do produto
 
-*Registrada em 31/10/2026, a partir da conversa do José.*
+*[English](vision.md)*
 
 ## O problema
-A recomendação comum, "abra um projeto que você usa e veja no que pode contribuir" (dita numa palestra do evento), é genérica. A barreira para começar é grande.
+A recomendação comum, "abra um projeto que você usa e veja no que pode contribuir" (dita numa palestra do Hacktoberfest Hack Day SJC 2026, onde o OpenDoor nasceu), é genérica. A barreira para começar é grande.
 
 ## A ideia
 Uma plataforma em que a pessoa diz o que sabe e o que já fez, e recebe **portas de entrada** em projetos open source: em qual projeto, que tipo de ajuda ele precisa e por onde começar.
@@ -11,7 +11,7 @@ Uma plataforma em que a pessoa diz o que sabe e o que já fez, e recebe **portas
 A longo prazo vira um marketplace ou rede social para ajudar projetos open source: mantenedores também **cadastram os próprios projetos** para pedir ajuda.
 
 ## Filosofia: contribuir com responsabilidade
-Contribuir não é sair abrindo PR em projeto alheio sem entender o que está acontecendo. Na palestra do GDG no evento, o palestrante contou que projetos como Node.js e Meteor receberam muitos PRs que resolviam um problema e criavam vários outros. Os nossos dados mostram o mesmo movimento: os PRs **abertos** explodiram (no VS Code, de 117 por mês em 2018 para 2.695 em 2026), muito mais do que os **aceitos**.
+Contribuir não é sair abrindo PR em projeto alheio sem entender o que está acontecendo. Numa palestra do GDG no mesmo evento, o palestrante contou que projetos como Node.js e Meteor receberam muitos PRs que resolviam um problema e criavam vários outros. Os nossos dados mostram o mesmo movimento: os PRs **abertos** explodiram (no VS Code, de 117 por mês em 2018 para 2.695 em 2026), muito mais do que os **aceitos**.
 
 O OpenDoor guia a pessoa pelo caminho que a palestra recomenda:
 1. Escolher **um** projeto de que goste.
@@ -22,7 +22,7 @@ O OpenDoor guia a pessoa pelo caminho que a palestra recomenda:
 6. Começar por contribuições de testes ou documentação.
 
 O que isso muda no produto:
-- **Portas (Gemma):** os primeiros passos começam por observar e conversar. "Abra um PR" nunca é o primeiro passo.
+- **Portas (guia gerado por IA):** os primeiros passos começam por observar e conversar. "Abra um PR" nunca é o primeiro passo.
 - **Match:** mostra todos os projetos que combinam, do que mais combina para o que menos, com filtros (perfil, política de IA, issues para iniciantes). Para iniciantes, só entram projetos acolhedores e são favorecidas as entradas de baixo risco (testes, docs, triagem).
 - **Política de IA em destaque:** usar IA num projeto que pede aviso, ou que proíbe, é o tipo de contribuição que cria problema.
 - **Nunca** incentivar PRs gerados em massa.
@@ -55,10 +55,11 @@ Cada projeto precisa de tipos diferentes de ajuda, e cada pessoa pode oferecer t
 | Segurança | Scorecard baixo, perfil guardião, commits diretos sem revisão |
 | Testes e observabilidade (regressão, cobertura, logs, métricas) | o guia pede testes ou observabilidade, pouca cobertura |
 
-Quando o projeto não lista o que precisa, o Gemma 4 sugere oportunidades (marcadas como sugestão da IA). Detalhes em `docs/arquitetura.md`.
+Quando o projeto não lista o que precisa, um modelo de linguagem sugere oportunidades (marcadas como sugestão da IA). Detalhes em `docs/arquitetura.md`.
 
-## Fora do MVP de hoje
-- Cadastro de projetos pelos mantenedores (marketplace/rede social).
-- Monitor de inserções maliciosas (ver `ideias.md`).
-- Mais formas de contribuir: acessibilidade, design/UX, empacotamento e performance.
-- Coletores para GitLab, Gerrit e Gitea (GIMP, LibreOffice, Blender, Firefox).
+## Ainda não (no roadmap)
+O trabalho futuro está nas [issues com label `roadmap`](https://github.com/jose-victor/opendoor/issues?q=is%3Aopen+label%3Aroadmap). Alguns exemplos:
+- Cadastro de projetos pelos mantenedores (marketplace/rede social): #69.
+- Monitor de inserções maliciosas: #70.
+- Mais formas de contribuir (acessibilidade, design/UX, empacotamento e performance): #66.
+- Coletores para GitLab, Gerrit e Gitea (GIMP, LibreOffice, Blender, Firefox): #71.
