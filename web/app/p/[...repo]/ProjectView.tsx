@@ -1,5 +1,5 @@
 "use client";
-// S3: página do projeto. O que é, por que é uma porta, por onde começar, onde ajudar, política de IA e histórico.
+// S3: project page. What it is, why it is a door, where to start, where to help, AI policy and history.
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,8 +10,8 @@ import { EMPTY_PROFILE, loadProfile } from "@/lib/profile-store";
 import type { Opportunity, Project, UserProfile } from "@/lib/types";
 
 const SOURCE: Record<Opportunity["source"], { label: string; className: string }> = {
-  projeto: { label: "o guia menciona", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
-  dados: { label: "os números mostram", className: "bg-sky-500/10 text-sky-700 dark:text-sky-400" },
+  project: { label: "o guia menciona", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+  data: { label: "os números mostram", className: "bg-sky-500/10 text-sky-700 dark:text-sky-400" },
   gemini: { label: "sugestão da IA", className: "bg-violet-500/10 text-violet-700 dark:text-violet-400" },
 };
 

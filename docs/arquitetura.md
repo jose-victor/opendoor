@@ -21,18 +21,18 @@ pipeline/build.py ──> web/public/data/projects.json ────────
 ## `web/public/data/skills.json`: vocabulário fixo dos filtros
 ```ts
 type Skill = {
-  id: string;           // "typescript", "frontend", "ia", "testes"...
+  id: string;           // "typescript", "frontend", "ai", "testing"...
   label: string;        // "Frontend web"
-  kind: "linguagem" | "framework" | "ferramenta" | "area";  // area = não é código: docs, tradução, design, segurança...
+  kind: "language" | "framework" | "tool" | "area";  // area = não é código: docs, tradução, design, segurança...
 };
 ```
 Nenhuma outra parte inventa ids: tudo referencia este arquivo.
 
-**Só linguagens e áreas chegam aqui** (hoje 20: 8 linguagens e 12 áreas). Um projeto conta com **todas as linguagens que têm 10% ou mais do código**, não só a principal (o OBS é C e C++). O `pipeline/skills.py` detecta 62 habilidades finas, mas cada framework ou ferramenta tem um `parent` e conta como a área-mãe (React vira `frontend`, Flask vira `backend`, PyTorch vira `ia`). Além disso, o `build.py` só publica a habilidade que aparece em **5 projetos ou mais**, para nenhum filtro devolver vazio. Por isso C#, Java e Kotlin ficam de fora por enquanto. O `Project.skills` usa os mesmos ids.
+**Só linguagens e áreas chegam aqui** (hoje 20: 8 linguagens e 12 áreas). Um projeto conta com **todas as linguagens que têm 10% ou mais do código**, não só a principal (o OBS é C e C++). O `pipeline/skills.py` detecta 62 habilidades finas, mas cada framework ou ferramenta tem um `parent` e conta como a área-mãe (React vira `frontend`, Flask vira `backend`, PyTorch vira `ai`). Além disso, o `build.py` só publica a habilidade que aparece em **5 projetos ou mais**, para nenhum filtro devolver vazio. Por isso C#, Java e Kotlin ficam de fora por enquanto. O `Project.skills` usa os mesmos ids.
 
 ## `web/public/data/projects.json`: lista de `Project`
 ```ts
-type Profile = "guardiao" | "porta_aberta" | "precisa_de_maos" | "estavel";
+type Profile = "guardian" | "open_door" | "needs_hands" | "stable";
 type AiPolicy = {
   classification: "accepts" | "accepts_with_disclosure" | "forbids" | "silent" | "unknown";
   evidence: string;      // frase literal do arquivo, "" se silent/unknown
@@ -45,7 +45,7 @@ type YearStats = {
   people: number | null;          // pessoas distintas (não-bot) no ano; null em repos grandes
 };
 // Formas de contribuir (docs/vision.md). Mesma lista para o projeto (o que precisa) e para a pessoa (o que quer fazer).
-type Way = "codigo" | "triagem" | "revisao" | "refinamento" | "documentacao" | "traducao" | "seguranca" | "testes";
+type Way = "code" | "triage" | "review" | "refinement" | "documentation" | "translation" | "security" | "tests";
 type Project = {
   repo: string;               // "debug-js/debug" (minúsculas)
   needs: Way[];               // formas de ajuda, na ordem de opportunities (sem repetir)
@@ -67,7 +67,7 @@ type Project = {
   newcomer_open: number;      // issues abertas para iniciantes
   scorecard: number | null;   // OpenSSF 0..10
   ai_policy: AiPolicy;
-  collection: "completo" | "contagem+amostra";  // grandes: contagens mensais completas + amostra de pessoas (12 meses)
+  collection: "full" | "sampled";  // grandes: contagens mensais completas + amostra de pessoas (12 meses)
   coverage_since: string;     // "2018-01" ou mês a partir do qual os dados estão completos
   years: Record<string, YearStats>;  // "2018".."2026"
 };
@@ -78,7 +78,7 @@ Entrada (o navegador manda **só o repo e o perfil**; o servidor busca o projeto
 ```ts
 type UserProfile = {
   skills: string[];                                       // ids de skills.json
-  level: "iniciante" | "intermediario" | "experiente";
+  level: "beginner" | "intermediate" | "experienced";
   ways: Way[];                                            // como a pessoa quer ajudar; vazio = qualquer forma
 };
 type ExplainRequest = { repo: string; profile: UserProfile };
@@ -115,10 +115,10 @@ O cliente do pipeline (`pipeline/llm.py`) lê o `.env` da raiz e roda com `pytho
 
 ## Como o `build.py` calcula o perfil (D3)
 Em ordem de prioridade (`profile_of` em `pipeline/build.py`):
-1. **`guardiao`:** 100 mil dependentes ou mais, e 1 ou 2 pessoas fizeram merge ou commit direto em 24 meses.
-2. **`porta_aberta`:** `openness` de 0,25 ou mais (ou de 0,1 ou mais com issues "good first issue"/"help wanted") **e** taxa de aceite (`acceptance`) de 0,2 ou mais, quando conhecida. Também entra quem está **pronto para iniciante** (ver abaixo), mesmo com a abertura baixa por causa de muitos commits do mantenedor (caso do postcss).
-3. **`precisa_de_maos`:** 30 issues abertas ou mais, de 1 a 3 mantenedores ativos, 10% ou mais do que entra vindo de fora, taxa de aceite de 0,2 ou mais (quando conhecida) **e pelo menos 1 PR aceito nos 3 últimos meses**. A auditoria de 31/10 mostrou que 9 de 19 "precisa de mãos" não aceitavam nenhum PR havia 3 meses: eram becos, não portas.
-4. **`estavel`:** o resto, incluindo pacotes sem nenhum mantenedor ativo em 24 meses.
+1. **`guardian`:** 100 mil dependentes ou mais, e 1 ou 2 pessoas fizeram merge ou commit direto em 24 meses.
+2. **`open_door`:** `openness` de 0,25 ou mais (ou de 0,1 ou mais com issues "good first issue"/"help wanted") **e** taxa de aceite (`acceptance`) de 0,2 ou mais, quando conhecida. Também entra quem está **pronto para iniciante** (ver abaixo), mesmo com a abertura baixa por causa de muitos commits do mantenedor (caso do postcss).
+3. **`needs_hands`:** 30 issues abertas ou mais, de 1 a 3 mantenedores ativos, 10% ou mais do que entra vindo de fora, taxa de aceite de 0,2 ou mais (quando conhecida) **e pelo menos 1 PR aceito nos 3 últimos meses**. A auditoria de 31/10 mostrou que 9 de 19 "precisa de mãos" não aceitavam nenhum PR havia 3 meses: eram becos, não portas.
+4. **`stable`:** o resto, incluindo pacotes sem nenhum mantenedor ativo em 24 meses.
 
 **Pronto para iniciante (`beginner`)** é a promessa mais importante do site, então é a mais exigente. As 5 verificações precisam passar (`beginner_checks` no `build.py`), e cada uma vai para o JSON com o texto da prova:
 1. **Estreias:** 2 ou mais pessoas de fora tiveram o **primeiro** PR aceito nos últimos 12 meses (`debuts_12m`).
@@ -146,14 +146,14 @@ Distribuição em 31/10 às 15h, com a coleta da rodada 3 concluída: 610 estáv
 ## Formas de contribuir (`Way`): rótulo sugerido e o que inclui
 | id | Rótulo no site | Inclui |
 |---|---|---|
-| `codigo` | Código | correções e funcionalidades pequenas, de preferência issues "good first issue" |
-| `triagem` | Triagem e suporte | reproduzir bugs relatados, pedir informações, achar duplicadas, responder dúvidas da comunidade |
-| `revisao` | Revisão de PRs | rodar o PR localmente, reproduzir o bug e validar se o fix resolve |
-| `refinamento` | Refinamento de issues | issues vagas viram issues com passos de reprodução e critério de pronto |
-| `documentacao` | Documentação | docs, exemplos, tutoriais |
-| `traducao` | Tradução | tradução e localização |
-| `seguranca` | Segurança | dependências e alertas, práticas do OpenSSF Scorecard, auditoria |
-| `testes` | Testes e observabilidade | testes de regressão, cobertura, logs, métricas, tracing |
+| `code` | Código | correções e funcionalidades pequenas, de preferência issues "good first issue" |
+| `triage` | Triagem e suporte | reproduzir bugs relatados, pedir informações, achar duplicadas, responder dúvidas da comunidade |
+| `review` | Revisão de PRs | rodar o PR localmente, reproduzir o bug e validar se o fix resolve |
+| `refinement` | Refinamento de issues | issues vagas viram issues com passos de reprodução e critério de pronto |
+| `documentation` | Documentação | docs, exemplos, tutoriais |
+| `translation` | Tradução | tradução e localização |
+| `security` | Segurança | dependências e alertas, práticas do OpenSSF Scorecard, auditoria |
+| `tests` | Testes e observabilidade | testes de regressão, cobertura, logs, métricas, tracing |
 
 O prompt do Gemma (`pipeline/opportunities.py`) usa essas mesmas descrições. Acessibilidade, design/UX, empacotamento e performance ficaram para depois de hoje, porque mudariam o contrato.
 
@@ -177,24 +177,24 @@ type Guide = {
 
 ## Oportunidades (D5): `needs` e `opportunities`
 ```ts
-type Opportunity = { way: Way; source: "projeto" | "dados" | "gemini"; note: string };
+type Opportunity = { way: Way; source: "project" | "data" | "gemini"; note: string };
 ```
 Cada projeto lista as formas de ajuda e o motivo (`note`, em pt-BR), nesta ordem:
-1. **`projeto`:** o guia de contribuição **menciona** documentação, tradução, testes ou revisão (é uma regex; a interface diz "o guia menciona", não "o projeto pede"), ou há issues com "good first issue"/"help wanted". A tradução sai quando o guia diz que não aceita ("we do not merge … translations", caso do tdesktop). Só procuramos palavras no texto, nunca seguimos instruções dele.
-2. **`dados`:** os números mostram:
-   - `codigo`: 10% ou mais dos PRs aceitos vêm de fora;
-   - `triagem`: 100 issues abertas ou mais, ou 30 ou mais com até 3 mantenedores;
-   - `revisao`: 20 PRs abertos ou mais (nota: rodar, reproduzir o bug e validar o fix);
-   - `seguranca`: guardião ou Scorecard abaixo de 5.
+1. **`project`:** o guia de contribuição **menciona** documentação, tradução, testes ou revisão (é uma regex; a interface diz "o guia menciona", não "o projeto pede"), ou há issues com "good first issue"/"help wanted". A tradução sai quando o guia diz que não aceita ("we do not merge … translations", caso do tdesktop). Só procuramos palavras no texto, nunca seguimos instruções dele.
+2. **`data`:** os números mostram:
+   - `code`: 10% ou mais dos PRs aceitos vêm de fora;
+   - `triage`: 100 issues abertas ou mais, ou 30 ou mais com até 3 mantenedores;
+   - `review`: 20 PRs abertos ou mais (nota: rodar, reproduzir o bug e validar o fix);
+   - `security`: guardião ou Scorecard abaixo de 5.
 3. **`gemini`:** sugestão da LLM (os dados atuais vieram do Gemma 4), gerada **offline** por `pipeline/opportunities.py`. Ele lê o guia de contribuição ou o README e os números, e só sugere formas que ainda não estão na lista. O resultado fica em cache em `repo_opportunities`. **No site, mostrar como "sugestão da IA", não como fato.**
 
-Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos uma oportunidade.
+Todo projeto que aparece no match (perfil diferente de `stable`) tem pelo menos uma oportunidade.
 
 ## Regras de ranking (`web/lib/match.ts`)
-`rankProjects(projects, profile, languageIds)` devolve **todos os projetos que se enquadram**, do que mais combina para o que menos combina. Isso foi uma decisão do grupo: antes eram no máximo 5. Na home, uma busca (nome, dono, descrição e resumo, sem diferenciar acentos) e uma barra filtram a lista por perfil, política de IA e "good first issue / help wanted"; dá para ordenar por combinação, abertura, issues para iniciantes ou estrelas (`components/ResultsBar.tsx`). A lista mostra 20 projetos por vez. O `languageIds` são os ids de `skills.json` com `kind: "linguagem"`; o S1 já carrega esse arquivo e passa o conjunto.
+`rankProjects(projects, profile, languageIds)` devolve **todos os projetos que se enquadram**, do que mais combina para o que menos combina. Isso foi uma decisão do grupo: antes eram no máximo 5. Na home, uma busca (nome, dono, descrição e resumo, sem diferenciar acentos) e uma barra filtram a lista por perfil, política de IA e "good first issue / help wanted"; dá para ordenar por combinação, abertura, issues para iniciantes ou estrelas (`components/ResultsBar.tsx`). A lista mostra 20 projetos por vez. O `languageIds` são os ids de `skills.json` com `kind: "language"`; o S1 já carrega esse arquivo e passa o conjunto.
 - **Exclusões:**
-  - `estavel` nunca aparece;
-  - `guardiao` não aparece para iniciante;
+  - `stable` nunca aparece;
+  - `guardian` não aparece para iniciante;
   - para iniciante, só projetos **prontos para iniciante** (`beginner.ready`; ver acima);
   - `needs` só tem o que o guia menciona ou os números mostram; as sugestões do Gemma aparecem na página, mas não colocam o projeto no filtro de formas de ajuda;
   - se a pessoa marcou formas (`ways`), o projeto precisa ter pelo menos uma delas em `needs`;
@@ -203,6 +203,6 @@ Todo projeto que aparece no match (perfil diferente de `estavel`) tem pelo menos
 - **Exceção:** quem marcou só formas que não são código (triagem, refinamento, documentação, tradução) **não precisa** ter habilidade nem linguagem em comum.
 - **Pontuação:**
   - 5 por habilidade em comum;
-  - bônus do nível: iniciante favorece `porta_aberta`, mais 2 se `newcomer_open > 0`; intermediário favorece `precisa_de_maos`; experiente favorece `guardiao`;
+  - bônus do nível: iniciante favorece `open_door`, mais 2 se `newcomer_open > 0`; intermediário favorece `needs_hands`; experiente favorece `guardian`;
   - mais 1 por forma de contribuir em comum.
 - **Empate:** desempata por estreias no último ano, depois pela taxa de aceite e depois pelas estrelas. A abertura sozinha engana em projeto de uma pessoa só.

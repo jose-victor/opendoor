@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Coletor do ecossistema open source (npm, PyPI e Go; escolha com --system).
+"""Open source ecosystem collector (npm, PyPI and Go; pick one with --system).
 
-Cada etapa pode ser re-executada: ela pula o que já está no banco e retoma de onde parou.
+Every step can be re-run: it skips what's already in the database and resumes where it left off.
 
-  python pipeline/collect.py graph --system npm|pypi|go  # grafo de um ecossistema
-  python pipeline/collect.py graph                 # deps.dev: árvore de dependências das sementes -> seeds, packages, dep_edges
-  python pipeline/collect.py repos                 # GitHub: foto atual + arquivos de política -> repos, repo_files
-  python pipeline/collect.py activity [--limit N]  # GitHub: quem abriu/revisou/mergeou/fechou, por mês desde 2018
-  python pipeline/collect.py commits [--limit N]   # GitHub: commits por mês e quantos entraram direto, sem PR
-  python pipeline/collect.py labels                # GitHub: issues abertas marcadas para iniciantes / help wanted
-  python pipeline/collect.py security              # deps.dev: OpenSSF Scorecard + alertas de vulnerabilidade
-  python pipeline/collect.py apps                  # vertente 2: marca e fotografa os apps mainstream (lista APPS)
-  python pipeline/collect.py large [--workers N]  # repos grandes: contagens mensais + amostra de pessoas
-  python pipeline/collect.py reaggregate           # recalcula as agregações a partir do cache bruto, sem API
-  python pipeline/collect.py stats                 # resumo do banco
-  python pipeline/collect.py selftest              # checa a agregação mensal
+  python pipeline/collect.py graph --system npm|pypi|go  # one ecosystem's graph
+  python pipeline/collect.py graph                 # deps.dev: the seeds' dependency tree -> seeds, packages, dep_edges
+  python pipeline/collect.py repos                 # GitHub: current snapshot + policy files -> repos, repo_files
+  python pipeline/collect.py activity [--limit N]  # GitHub: who opened/reviewed/merged/closed, per month since 2018
+  python pipeline/collect.py commits [--limit N]   # GitHub: commits per month and how many went in directly, without a PR
+  python pipeline/collect.py labels                # GitHub: open issues labeled for beginners / help wanted
+  python pipeline/collect.py security              # deps.dev: OpenSSF Scorecard + vulnerability advisories
+  python pipeline/collect.py apps                  # track 2: tag and snapshot the mainstream apps (APPS list)
+  python pipeline/collect.py large [--workers N]  # large repos: monthly counts + a sample of people
+  python pipeline/collect.py reaggregate           # recompute the aggregations from the raw cache, no API
+  python pipeline/collect.py stats                 # database summary
+  python pipeline/collect.py selftest              # check the monthly aggregation
 """
 import argparse
 import concurrent.futures as cf
@@ -31,29 +31,29 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent  # raiz do repositório
+ROOT = Path(__file__).resolve().parent.parent  # repository root
 DATA = ROOT / "data"
 RAW = DATA / "raw"
 DB = DATA / "ecosystem.db"
 SYSTEM = "npm"
 SINCE = "2018-01"
-MAX_PAGES = 30  # por tipo (PR/issue) e repo: até 3000 itens; acima disso o repo fica marcado como truncado
+MAX_PAGES = 30  # per type (PR/issue) and repo: up to 3000 items; beyond that the repo is marked truncated
 SEEDS_BY_SYSTEM = {
     "npm": [
-        # backend, build, testes, CLI, banco, desktop, automação
+        # backend, build, testing, CLI, database, desktop, automation
         "express", "next", "react-dom", "vue", "@angular/core", "vite", "webpack", "eslint", "jest", "mocha",
         "axios", "socket.io", "mongoose", "pg", "nodemon", "yargs", "electron", "puppeteer", "sharp",
         "@babel/core", "typescript", "prettier", "jsonwebtoken", "dotenv", "winston",
         # web frontend
         "react-router", "@reduxjs/toolkit", "@tanstack/react-query", "tailwindcss", "@mui/material",
         "styled-components", "react-hook-form", "zod", "svelte", "astro", "@storybook/react", "framer-motion",
-        # IA
+        # AI
         "ai", "openai", "@langchain/core", "@huggingface/transformers",
     ],
     "pypi": [
         # web
         "django", "flask", "fastapi", "requests", "httpx", "celery", "sqlalchemy", "pydantic", "scrapy",
-        # dados, IA, ferramentas
+        # data, AI, tools
         "pandas", "scikit-learn", "transformers", "langchain", "llama-index", "huggingface-hub", "openai",
         "matplotlib", "jupyterlab", "streamlit", "pytest", "poetry",
     ],
@@ -64,8 +64,8 @@ SEEDS_BY_SYSTEM = {
         "github.com/prometheus/client_golang", "github.com/ollama/ollama",
     ],
 }
-# vertente 2: apps mainstream que vivem de verdade no GitHub (issues e PRs lá). Fora: GIMP, LibreOffice,
-# Blender, Firefox, Krita, Inkscape, que só têm espelho aqui e parecem abandonados se medidos pelo GitHub.
+# track 2: mainstream apps that really live on GitHub (issues and PRs there). Left out: GIMP, LibreOffice,
+# Blender, Firefox, Krita, Inkscape, which only have a mirror here and look abandoned if measured by GitHub.
 APPS = [
     "obsproject/obs-studio", "audacity/audacity", "godotengine/godot", "freecad/freecad", "musescore/musescore",
     "jellyfin/jellyfin", "home-assistant/core", "bitwarden/clients", "laurent22/joplin", "darktable-org/darktable",
@@ -73,7 +73,7 @@ APPS = [
     "xbmc/xbmc", "mltframework/shotcut", "nextcloud/server", "mastodon/mastodon", "logseq/logseq",
     "appflowy-io/appflowy", "signalapp/signal-desktop", "telegramdesktop/tdesktop", "zed-industries/zed",
     "microsoft/vscode",
-    # IA
+    # AI
     "ollama/ollama", "ggml-org/llama.cpp", "open-webui/open-webui", "comfyanonymous/comfyui",
 ]
 POLICY_FILES = [
@@ -123,7 +123,7 @@ def http_json(url, data=None, headers=None, tries=6):
                 return None
             if e.code in (403, 429, 500, 502, 503, 504) and i < tries - 1:
                 wait = int(e.headers.get("Retry-After") or 0) or 5 * 2 ** i
-                log(f"  HTTP {e.code}, esperando {wait}s: {url[:80]}")
+                log(f"  HTTP {e.code}, waiting {wait}s: {url[:80]}")
                 time.sleep(wait)
                 continue
             raise
@@ -164,7 +164,7 @@ def dd(kind, name, ver, suffix="", api="v3"):
 
 
 def norm_repo(project_id):
-    # deps.dev usa "github.com/Owner/Name"; o resto do coletor usa "owner/name"
+    # deps.dev uses "github.com/Owner/Name"; the rest of the collector uses "owner/name"
     if not project_id or not project_id.lower().startswith("github.com/"):
         return None
     parts = project_id.split("/")
@@ -172,18 +172,18 @@ def norm_repo(project_id):
 
 
 def requirements(name, ver):
-    """Dependências declaradas (package.json / go.mod / metadados PyPI), sem resolver a árvore."""
+    """Declared dependencies (package.json / go.mod / PyPI metadata), without resolving the tree."""
     d = (dd("depsdev_reqs", name, ver, ":requirements", api="v3alpha") or {}).get(SYSTEM) or {}
     if SYSTEM == "go":
         return [x["name"] for x in d.get("directDependencies", [])]
-    if SYSTEM == "pypi":  # extras opcionais ("extra == ...") não contam
+    if SYSTEM == "pypi":  # optional extras ("extra == ...") don't count
         return [x["projectName"].lower() for x in d.get("dependencies", []) if "extra" not in x.get("environmentMarker", "")]
     return [x["name"] for x in (d.get("dependencies") or {}).get("dependencies", [])]
 
 
 def requirements_graph(seed, ver, depth=2):
-    """Grafo descendo `depth` níveis pelas dependências declaradas: plano B quando o deps.dev não resolve a árvore
-    (Go, e pacotes npm como eslint/electron), e o caminho padrão no PyPI, onde a árvore resolvida é rasa."""
+    """Graph going `depth` levels down the declared dependencies: plan B when deps.dev doesn't resolve the tree
+    (Go, and npm packages like eslint/electron), and the default path on PyPI, where the resolved tree is shallow."""
     nodes, edges, frontier = {seed: ver}, [], [(seed, ver)]
     for _ in range(depth):
         nxt = []
@@ -203,7 +203,7 @@ def cmd_graph(db, args):
     for seed in SEEDS_BY_SYSTEM[SYSTEM]:
         ver = dd_default_version(seed)
         if not ver:
-            log("sem versão no deps.dev:", seed)
+            log("no version on deps.dev:", seed)
             continue
         db.execute("INSERT OR REPLACE INTO seeds VALUES(?,?,?)", (SYSTEM, seed, ver))
         g = (dd("depsdev_deps", seed, ver, ":dependencies") if SYSTEM == "npm" else None) or {"nodes": [], "edges": []}
@@ -212,7 +212,7 @@ def cmd_graph(db, args):
             for n, v in found.items():
                 versions.setdefault(n, v)
             db.executemany("INSERT OR IGNORE INTO dep_edges VALUES(?,?,?,?)", [(SYSTEM, seed, a, b) for a, b in edges])
-            log(f"semente {seed}@{ver}: {len(found)} pacotes (dependências declaradas, 2 níveis)")
+            log(f"seed {seed}@{ver}: {len(found)} packages (declared dependencies, 2 levels)")
             db.commit()
             continue
         nodes = g["nodes"]
@@ -221,12 +221,12 @@ def cmd_graph(db, args):
         for e in g.get("edges", []):
             db.execute("INSERT OR IGNORE INTO dep_edges VALUES(?,?,?,?)", (
                 SYSTEM, seed, nodes[e["fromNode"]]["versionKey"]["name"], nodes[e["toNode"]]["versionKey"]["name"]))
-        log(f"semente {seed}@{ver}: {len(nodes)} pacotes")
-        db.commit()  # por semente, para não segurar o banco durante as chamadas seguintes
+        log(f"seed {seed}@{ver}: {len(nodes)} packages")
+        db.commit()  # per seed, so the database isn't held during the next calls
     db.commit()
     done = {r[0] for r in db.execute("SELECT name FROM packages WHERE system=?", (SYSTEM,))}
     todo = [(n, v) for n, v in versions.items() if n not in done]
-    log(f"{len(versions)} pacotes no grafo, {len(todo)} a detalhar")
+    log(f"{len(versions)} packages in the graph, {len(todo)} to detail")
 
     def info(nv):
         name, ver = nv
@@ -238,10 +238,10 @@ def cmd_graph(db, args):
 
     with cf.ThreadPoolExecutor(8) as ex:
         for i, row in enumerate(ex.map(info, todo), 1):
-            with db:  # grava um por vez: segurar a transação durante as chamadas ao deps.dev trava as outras etapas
+            with db:  # write one at a time: holding the transaction during deps.dev calls blocks the other steps
                 db.execute("INSERT OR REPLACE INTO packages VALUES(?,?,?,?,?,?,?)", (SYSTEM, *row, now()))
             if i % 100 == 0:
-                log(f"  {i}/{len(todo)} pacotes")
+                log(f"  {i}/{len(todo)} packages")
     db.commit()
 
 
@@ -257,17 +257,17 @@ def gh(query, variables=None):
         d = http_json("https://api.github.com/graphql", body, {"Authorization": f"bearer {_token}"})
         errs = (d or {}).get("errors") or []
         if any(e.get("type") == "RATE_LIMITED" for e in errs) or d is None:
-            log(f"  GraphQL limitado, esperando {60 * (i + 1)}s")
+            log(f"  GraphQL rate limited, waiting {60 * (i + 1)}s")
             time.sleep(60 * (i + 1))
             continue
         rl = (d.get("data") or {}).get("rateLimit")
         if rl and rl["remaining"] < 100:
             reset = datetime.strptime(rl["resetAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
             wait = max(0, (reset - datetime.now(timezone.utc)).total_seconds()) + 5
-            log(f"  cota GraphQL baixa ({rl['remaining']}), esperando {wait:.0f}s")
+            log(f"  GraphQL quota low ({rl['remaining']}), waiting {wait:.0f}s")
             time.sleep(wait)
         return d
-    raise RuntimeError("GraphQL falhou depois de várias tentativas")
+    raise RuntimeError("GraphQL failed after several attempts")
 
 
 REPO_FIELDS = """nameWithOwner description primaryLanguage{name} licenseInfo{spdxId} createdAt pushedAt isArchived
@@ -276,7 +276,7 @@ REPO_FIELDS = """nameWithOwner description primaryLanguage{name} licenseInfo{spd
 
 
 def cmd_apps(db, args):
-    """Vertente 2: marca os apps mainstream e tira a foto deles (depois: activity, commits, labels, security)."""
+    """Track 2: tag the mainstream apps and snapshot them (then: activity, commits, labels, security)."""
     with db:
         db.executemany("INSERT OR IGNORE INTO repo_tags VALUES(?, 'mainstream-app')", [(r,) for r in APPS])
         db.execute("INSERT OR IGNORE INTO repo_tags SELECT DISTINCT repo, system || '-graph' FROM packages WHERE repo IS NOT NULL")
@@ -287,7 +287,7 @@ def cmd_repos(db, args):
     todo = [r[0] for r in db.execute(
         "SELECT DISTINCT x.repo FROM (SELECT repo FROM packages WHERE repo IS NOT NULL UNION SELECT repo FROM repo_tags) x "
         "LEFT JOIN repos r ON r.repo = x.repo WHERE r.repo IS NULL")]
-    log(f"{len(todo)} repositórios a fotografar")
+    log(f"{len(todo)} repositories to snapshot")
     files = " ".join(f'f{j}: object(expression:"HEAD:{path}"){{... on Blob{{oid text}}}}'
                      for j, path in enumerate(POLICY_FILES))
     for start in range(0, len(todo), 10):
@@ -314,7 +314,7 @@ def cmd_repos(db, args):
                     db.execute("INSERT OR REPLACE INTO repo_files VALUES(?,?,?,?,?)",
                                (repo, path, blob["oid"], blob["text"], now()))
         db.commit()
-        log(f"  {min(start + 10, len(todo))}/{len(todo)} repositórios")
+        log(f"  {min(start + 10, len(todo))}/{len(todo)} repositories")
 
 
 PERSON = "login __typename"
@@ -350,10 +350,10 @@ def is_bot(actor):
 
 
 def aggregate(prs, issues, since, until):
-    """Conta eventos por mês (since <= mês < until) e quem fez cada papel.
+    """Count events per month (since <= month < until) and who played each role.
 
-    shortcut: só itens criados a partir de `since` entram, então um PR/issue aberto antes de 2018 e
-    fechado depois não é contado no fechamento; a diferença é pequena e some nos anos recentes.
+    shortcut: only items created from `since` on are included, so a PR/issue opened before 2018 and
+    closed later isn't counted as closed; the difference is small and vanishes in recent years.
     """
     monthly, part = defaultdict(Counter), Counter()
 
@@ -363,21 +363,21 @@ def aggregate(prs, issues, since, until):
             return
         if field:
             monthly[month][field] += 1
-        login = (actor or {}).get("login") or "ghost"  # "ghost" = conta apagada
+        login = (actor or {}).get("login") or "ghost"  # "ghost" = deleted account
         part[(month, role, login, int(is_bot(actor)))] += 1
 
     for pr in prs:
         add(pr["createdAt"], "prs_opened", "pr_author", pr["author"])
         if pr["mergedAt"]:
             add(pr["mergedAt"], "prs_merged", "pr_merger", pr["mergedBy"])
-            add(pr["mergedAt"], None, "merged_pr_author", pr["author"])  # de quem era o PR aceito (mede abertura)
+            add(pr["mergedAt"], None, "merged_pr_author", pr["author"])  # whose PR was accepted (measures openness)
         elif pr["state"] == "CLOSED":
             ev = pr["closeEvt"]["nodes"]
             add(pr["closedAt"], "prs_closed_unmerged", "pr_closer", ev[0]["actor"] if ev else None)
         author, seen = (pr["author"] or {}).get("login"), set()
         for r in pr["reviews"]["nodes"]:
             login = (r["author"] or {}).get("login")
-            if login == author or login in seen:  # cada revisor conta 1x por PR; autor respondendo não é revisão
+            if login == author or login in seen:  # each reviewer counts once per PR; the author replying isn't a review
                 continue
             seen.add(login)
             add(r["submittedAt"], "reviews", "pr_reviewer", r["author"])
@@ -399,11 +399,11 @@ def activity_for(repo):
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_bytes(gzip.compress(json.dumps({"fetched_at": now(), "prs": prs, "issues": issues}).encode()))
     since = SINCE
-    if t1 or t2:  # truncado: só vale a partir do mês seguinte ao item mais antigo que coube
+    if t1 or t2:  # truncated: only valid from the month after the oldest item that fit
         oldest = max(x[-1]["createdAt"][:7] for x, t in ((prs, t1), (issues, t2)) if t and x)
         y, m = map(int, oldest.split("-"))
         since = f"{y + m // 12}-{m % 12 + 1:02d}"
-    until = datetime.now(timezone.utc).strftime("%Y-%m")  # mês corrente fica de fora: só meses fechados
+    until = datetime.now(timezone.utc).strftime("%Y-%m")  # current month left out: closed months only
     monthly, part = aggregate(prs, issues, since, until)
     return repo, since, int(t1 or t2), monthly, part, len(prs), len(issues)
 
@@ -421,32 +421,32 @@ def write_activity(db, repo, since, trunc, monthly, part, fetched_at):
 
 
 def cmd_reaggregate(db, args):
-    """Recalcula repo_monthly e participation a partir de data/raw/github_activity, sem chamar a API."""
+    """Recompute repo_monthly and participation from data/raw/github_activity, without calling the API."""
     rows = db.execute("SELECT repo, activity_since, activity_truncated, activity_fetched_at FROM repos "
-                      "WHERE activity_fetched_at IS NOT NULL AND collection_mode IS NULL").fetchall()  # grandes: etapa large
+                      "WHERE activity_fetched_at IS NOT NULL AND collection_mode IS NULL").fetchall()  # large repos: large step
     for repo, since, trunc, fetched_at in rows:
         raw = json.loads(gzip.decompress((RAW / "github_activity" / (repo.replace("/", "__") + ".json.gz")).read_bytes()))
         monthly, part = aggregate(raw["prs"], raw["issues"], since, raw["fetched_at"][:7])
         write_activity(db, repo, since, trunc, monthly, part, fetched_at)
-    log(f"{len(rows)} repositórios recalculados")
+    log(f"{len(rows)} repositories recomputed")
 
 
 def cmd_activity(db, args):
-    # prioridade: repos de pacotes com mais dependentes (os "críticos")
+    # priority: repos of packages with the most dependents (the "critical" ones)
     todo = [r[0] for r in db.execute(
         "SELECT r.repo FROM repos r LEFT JOIN packages p ON p.repo = r.repo WHERE r.found = 1 AND r.activity_fetched_at IS NULL "
         "GROUP BY r.repo ORDER BY MAX(COALESCE(p.dependents, 0)) DESC LIMIT ?", (args.limit,))]
-    log(f"{len(todo)} repositórios para coletar atividade")
+    log(f"{len(todo)} repositories to collect activity for")
     with cf.ThreadPoolExecutor(args.workers) as ex:
         futures = [ex.submit(activity_for, r) for r in todo]
         for i, fut in enumerate(cf.as_completed(futures), 1):
             try:
                 repo, since, trunc, monthly, part, n_pr, n_is = fut.result()
             except Exception as e:
-                log(f"  ERRO: {e}")
+                log(f"  ERROR: {e}")
                 continue
             write_activity(db, repo, since, trunc, monthly, part, now())
-            log(f"  [{i}/{len(todo)}] {repo}: {n_pr} PRs, {n_is} issues desde {since}{' (truncado)' if trunc else ''}")
+            log(f"  [{i}/{len(todo)}] {repo}: {n_pr} PRs, {n_is} issues since {since}{' (truncated)' if trunc else ''}")
 
 
 COMMIT_ROLES = ("committer", "direct_committer")
@@ -457,14 +457,14 @@ COMMIT_QUERY = """query($o:String!,$n:String!,$c:String,$since:GitTimestamp!){ r
 
 
 def aggregate_commits(commits, since, until):
-    """Commits por mês no branch principal; "direto" = commit sem PR associado (entrou sem passar por revisão)."""
+    """Commits per month on the default branch; "direct" = commit with no associated PR (went in without review)."""
     monthly, part = defaultdict(Counter), Counter()
     for c in commits:
         month = c["committedDate"][:7]
         if not (since <= month < until):
             continue
         a = c["author"] or {}
-        login = (a.get("user") or {}).get("login") or f"~{a.get('name') or 'desconhecido'}"  # "~" = sem conta no GitHub
+        login = (a.get("user") or {}).get("login") or f"~{a.get('name') or 'desconhecido'}"  # "~" = no GitHub account
         bot = int(login.endswith("[bot]") or (a.get("name") or "").endswith("[bot]"))
         direct = c["associatedPullRequests"]["totalCount"] == 0
         monthly[month]["commits"] += 1
@@ -489,7 +489,7 @@ def commits_for(repo):
     else:
         truncated = True
     since = SINCE
-    if truncated and commits:  # só vale a partir do mês seguinte ao commit mais antigo que coube
+    if truncated and commits:  # only valid from the month after the oldest commit that fit
         y, m = map(int, commits[-1]["committedDate"][:7].split("-"))
         since = f"{y + m // 12}-{m % 12 + 1:02d}"
     monthly, part = aggregate_commits(commits, since, datetime.now(timezone.utc).strftime("%Y-%m"))
@@ -500,26 +500,26 @@ def cmd_commits(db, args):
     db.executescript("""
     CREATE TABLE IF NOT EXISTS commit_monthly(repo TEXT, month TEXT, commits INT, direct_commits INT, PRIMARY KEY(repo, month));
     CREATE TABLE IF NOT EXISTS commit_coverage(repo TEXT PRIMARY KEY, since TEXT, truncated INT, fetched_at TEXT);""")
-    # só repos com activity pronta: a etapa activity apaga e regrava a participation do repo
+    # only repos with activity done: the activity step deletes and rewrites the repo's participation
     todo = [r[0] for r in db.execute(
         "SELECT r.repo FROM repos r LEFT JOIN packages p ON p.repo = r.repo LEFT JOIN commit_coverage c ON c.repo = r.repo "
         "WHERE r.activity_fetched_at IS NOT NULL AND c.repo IS NULL "
         "GROUP BY r.repo ORDER BY MAX(COALESCE(p.dependents, 0)) DESC LIMIT ?", (args.limit,))]
-    log(f"{len(todo)} repositórios para coletar commits")
+    log(f"{len(todo)} repositories to collect commits for")
     with cf.ThreadPoolExecutor(args.workers) as ex:
         futures = [ex.submit(commits_for, r) for r in todo]
         for i, fut in enumerate(cf.as_completed(futures), 1):
             try:
                 repo, since, trunc, monthly, part, n = fut.result()
             except Exception as e:
-                log(f"  ERRO: {e}")
+                log(f"  ERROR: {e}")
                 continue
             with db:
                 db.execute("DELETE FROM commit_monthly WHERE repo=?", (repo,))
                 db.execute("DELETE FROM participation WHERE repo=? AND role IN (?,?)", (repo, *COMMIT_ROLES))
                 db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,?)",
                                [(repo, mo, c["commits"], c["direct_commits"]) for mo, c in monthly.items()])
-                # a mesma pessoa pode vir como usuária e como bot no mesmo mês: uma linha só por chave
+                # the same person can show up as a user and as a bot in the same month: one row per key
                 rows = {}
                 for (mo, role, login, bot), k in part.items():
                     b, total = rows.get((mo, role, login), (0, 0))
@@ -527,13 +527,13 @@ def cmd_commits(db, args):
                 db.executemany("INSERT INTO participation VALUES(?,?,?,?,?,?)",
                                [(repo, mo, role, login, b, k) for (mo, role, login), (b, k) in rows.items()])
                 db.execute("INSERT OR REPLACE INTO commit_coverage VALUES(?,?,?,?)", (repo, since, trunc, now()))
-            log(f"  [{i}/{len(todo)}] {repo}: {n} commits desde {since}{' (truncado)' if trunc else ''}")
+            log(f"  [{i}/{len(todo)}] {repo}: {n} commits since {since}{' (truncated)' if trunc else ''}")
 
 
-LARGE_ITEMS = 6000  # acima disso (issues + PRs no total) o repo é "grande": contagem + amostra, não cópia
+LARGE_ITEMS = 6000  # above this (total issues + PRs) the repo is "large": counts + sample, not a copy
 OUTSIDER = {"CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER", "NONE"}
 FIRST_TIMER = {"FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER"}
-COUNT_QUERIES = {  # campo de repo_monthly -> filtro da busca
+COUNT_QUERIES = {  # repo_monthly field -> search filter
     "issues_opened": "is:issue created:{r}", "issues_closed": "is:issue closed:{r}",
     "prs_opened": "is:pr created:{r}", "prs_merged": "is:pr merged:{r}",
 }
@@ -556,7 +556,7 @@ def large_for(repo, created):
     since = max(SINCE, created[:7])
     months = list(month_range(since, until))
     counts = defaultdict(dict)
-    # 1) contagens mensais pela busca: só o total, sem baixar itens (~30 contagens por chamada)
+    # 1) monthly counts via search: only the total, without downloading items (~30 counts per call)
     jobs = [(mo, f, q.format(r=f"{a}..{b}")) for mo, a, b in months for f, q in COUNT_QUERIES.items()]
     for start in range(0, len(jobs), 30):
         chunk = jobs[start:start + 30]
@@ -565,7 +565,7 @@ def large_for(repo, created):
         data = gh("query{ rateLimit{remaining resetAt} " + " ".join(parts) + " }").get("data") or {}
         for i, (mo, f, _) in enumerate(chunk):
             counts[mo][f] = (data.get(f"a{i}") or {}).get("issueCount")
-    # 2) commits por mês no branch principal: também só o total
+    # 2) commits per month on the default branch: also only the total
     commits = {}
     for start in range(0, len(months), 36):
         chunk = months[start:start + 36]
@@ -575,7 +575,7 @@ def large_for(repo, created):
         target = ((((gh(q).get("data") or {}).get("repository") or {}).get("defaultBranchRef") or {}).get("target") or {})
         for i, (mo, _, _) in enumerate(chunk):
             commits[mo] = (target.get(f"c{i}") or {}).get("totalCount")
-    # 3) amostra de pessoas: até 300 PRs aceitos nos últimos 12 meses, com a relação do autor com o projeto
+    # 3) sample of people: up to 300 PRs merged in the last 12 months, with the author's relationship to the project
     window = list(month_range("2000-01", until))[-12][0]
     prs, cursor = [], None
     for _ in range(3):
@@ -594,25 +594,25 @@ def large_for(repo, created):
 
 
 def cmd_large(db, args):
-    """Repos grandes: contagens mensais completas (busca) + amostra de pessoas, em vez de copiar cada item."""
+    """Large repos: full monthly counts (search) + a sample of people, instead of copying every item."""
     db.execute("""CREATE TABLE IF NOT EXISTS repo_sample(repo TEXT PRIMARY KEY, window_start TEXT, prs INT, human_prs INT,
       outsider_prs INT, first_timer_prs INT, mergers INT, authors INT, fetched_at TEXT)""")
     todo = db.execute(
         "SELECT r.repo, r.created_at FROM repos r LEFT JOIN commit_coverage c ON c.repo = r.repo "
-        "WHERE r.found = 1 AND COALESCE(r.collection_mode, '') != 'contagem+amostra' AND "
+        "WHERE r.found = 1 AND COALESCE(r.collection_mode, '') != 'sampled' AND "
         "(r.activity_truncated = 1 OR c.truncated = 1 OR COALESCE(r.total_issues, 0) + COALESCE(r.total_prs, 0) > ?)",
         (LARGE_ITEMS,)).fetchall()
-    log(f"{len(todo)} repositórios grandes")
+    log(f"{len(todo)} large repositories")
     with cf.ThreadPoolExecutor(args.workers) as ex:
         futures = [ex.submit(large_for, r, c) for r, c in todo]
         for i, fut in enumerate(cf.as_completed(futures), 1):
             try:
                 repo, since, counts, commits, sample = fut.result()
             except Exception as e:
-                log(f"  ERRO: {e}")
+                log(f"  ERROR: {e}")
                 continue
             with db:
-                # campos que só a cópia item a item dá (fechadas sem merge, revisões, commits diretos) ficam NULL
+                # fields only the item-by-item copy provides (closed unmerged, reviews, direct commits) stay NULL
                 db.execute("DELETE FROM repo_monthly WHERE repo=?", (repo,))
                 db.executemany("INSERT INTO repo_monthly(repo, month, issues_opened, issues_closed, prs_opened, prs_merged) "
                                "VALUES(?,?,?,?,?,?)", [(repo, mo, c.get("issues_opened"), c.get("issues_closed"),
@@ -620,19 +620,19 @@ def cmd_large(db, args):
                 db.execute("DELETE FROM commit_monthly WHERE repo=?", (repo,))
                 db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,NULL)", [(repo, mo, n) for mo, n in commits.items()])
                 db.execute("INSERT OR REPLACE INTO repo_sample VALUES(?,?,?,?,?,?,?,?,?)", (repo, *sample, now()))
-                db.execute("UPDATE repos SET collection_mode='contagem+amostra', activity_since=?, activity_truncated=0, "
-                           "activity_fetched_at=COALESCE(activity_fetched_at, ?) WHERE repo=?", (since, now(), repo))  # activity pula
+                db.execute("UPDATE repos SET collection_mode='sampled', activity_since=?, activity_truncated=0, "
+                           "activity_fetched_at=COALESCE(activity_fetched_at, ?) WHERE repo=?", (since, now(), repo))  # activity skips it
                 db.execute("INSERT OR REPLACE INTO commit_coverage VALUES(?,?,0,?)", (repo, since, now()))
             _, n, h, out, ft, mg, au = sample
-            log(f"  [{i}/{len(todo)}] {repo}: {len(counts)} meses; amostra {n} PRs aceitos, "
-                f"{out}/{h} de fora, {ft} estreias, {mg} fazem merge")
+            log(f"  [{i}/{len(todo)}] {repo}: {len(counts)} months; sample {n} merged PRs, "
+                f"{out}/{h} from outside, {ft} debuts, {mg} merge")
 
 
 NEWCOMER_LABELS = '"good first issue","good-first-issue","first-timers-only","beginner","easy","help wanted"'
 
 
 def cmd_labels(db, args):
-    """Porta de entrada: quantas issues abertas estão marcadas para quem quer começar a contribuir."""
+    """Entry point: how many open issues are labeled for people who want to start contributing."""
     db.execute("CREATE TABLE IF NOT EXISTS repo_labels(repo TEXT PRIMARY KEY, newcomer_open INT, fetched_at TEXT)")
     todo = [r[0] for r in db.execute(
         "SELECT r.repo FROM repos r LEFT JOIN repo_labels l ON l.repo = r.repo WHERE r.found = 1 AND l.repo IS NULL")]
@@ -644,11 +644,11 @@ def cmd_labels(db, args):
         with db:
             db.executemany("INSERT OR REPLACE INTO repo_labels VALUES(?,?,?)",
                            [(r, (data.get(f"a{i}") or {}).get("issueCount"), now()) for i, r in enumerate(batch)])
-        log(f"  {min(start + 20, len(todo))}/{len(todo)} repositórios")
+        log(f"  {min(start + 20, len(todo))}/{len(todo)} repositories")
 
 
 def cmd_topics(db, args):
-    """Topics e linguagens (com bytes) de cada repositório (D2: entram na detecção de habilidades)."""
+    """Topics and languages (with bytes) of each repository (D2: used in skill detection)."""
     db.execute("CREATE TABLE IF NOT EXISTS repo_topics(repo TEXT PRIMARY KEY, topics TEXT, fetched_at TEXT)")
     if "languages" not in {r[1] for r in db.execute("PRAGMA table_info(repo_topics)")}:
         db.execute("ALTER TABLE repo_topics ADD COLUMN languages TEXT")  # {"C++": bytes, ...}
@@ -666,11 +666,11 @@ def cmd_topics(db, args):
                 (r, json.dumps([n["topic"]["name"] for n in x["repositoryTopics"]["nodes"]]), now(),
                  json.dumps({e["node"]["name"]: e["size"] for e in x["languages"]["edges"]}))
                 for i, r in enumerate(batch) if (x := data.get(f"r{i}"))])
-        log(f"  {min(start + 50, len(todo))}/{len(todo)} repositórios")
+        log(f"  {min(start + 50, len(todo))}/{len(todo)} repositories")
 
 
 def cmd_security(db, args):
-    """deps.dev: OpenSSF Scorecard de cada repo + alertas de vulnerabilidade da versão atual de cada pacote."""
+    """deps.dev: each repo's OpenSSF Scorecard + vulnerability advisories for each package's current version."""
     db.executescript("""
     CREATE TABLE IF NOT EXISTS repo_scorecard(repo TEXT PRIMARY KEY, overall REAL, date TEXT, fetched_at TEXT);
     CREATE TABLE IF NOT EXISTS scorecard_checks(repo TEXT, check_name TEXT, score INT, reason TEXT,
@@ -681,12 +681,12 @@ def cmd_security(db, args):
     proj = lambda r: cached("depsdev_project", r, lambda: http_json(f"{DD}/v3/projects/{q('github.com/' + r)}"))
     with cf.ThreadPoolExecutor(8) as ex:
         results = list(zip(repos, ex.map(proj, repos)))
-    # shortcut: alertas só da versão atual (default) de cada pacote, não o histórico; vem do cache da etapa graph
+    # shortcut: advisories only for each package's current (default) version, not the history; from the graph step's cache
     advisories = []
     for name, ver in db.execute("SELECT name, version FROM packages WHERE system = ?", (SYSTEM,)).fetchall():
         for a in (dd("depsdev_ver", name, ver) or {}).get("advisoryKeys", []):
             advisories.append((SYSTEM, name, ver, a["id"]))
-    with db:  # grava tudo de uma vez para não segurar o banco enquanto a etapa activity escreve
+    with db:  # write everything at once so the database isn't held while the activity step writes
         for repo, p in results:
             sc = (p or {}).get("scorecard")
             if not sc:
@@ -696,14 +696,14 @@ def cmd_security(db, args):
                            [(repo, c["name"], c.get("score"), c.get("reason")) for c in sc.get("checks", [])])
         db.executemany("INSERT OR IGNORE INTO package_advisories VALUES(?,?,?,?)", advisories)
     log(f"scorecard: {sum(1 for _, p in results if (p or {}).get('scorecard'))}/{len(repos)} repos; "
-        f"alertas: {len(advisories)} em {len({a[1] for a in advisories})} pacotes")
+        f"advisories: {len(advisories)} in {len({a[1] for a in advisories})} packages")
 
 
 def cmd_stats(db, args):
     for t in ["seeds", "packages", "dep_edges", "repos", "repo_files", "repo_monthly", "participation"]:
         log(f"{t:14} {db.execute(f'SELECT COUNT(*) FROM {t}').fetchone()[0]}")
-    log("repos com atividade:", db.execute("SELECT COUNT(*) FROM repos WHERE activity_fetched_at IS NOT NULL").fetchone()[0])
-    log("pacotes sem repo no GitHub:", db.execute("SELECT COUNT(*) FROM packages WHERE repo IS NULL").fetchone()[0])
+    log("repos with activity:", db.execute("SELECT COUNT(*) FROM repos WHERE activity_fetched_at IS NOT NULL").fetchone()[0])
+    log("packages without a GitHub repo:", db.execute("SELECT COUNT(*) FROM packages WHERE repo IS NULL").fetchone()[0])
 
 
 def cmd_selftest(db, args):
@@ -727,7 +727,7 @@ def cmd_selftest(db, args):
     monthly, part = aggregate(prs, issues, "2018-01", "2025-03")
     assert monthly["2025-01"] == Counter(prs_opened=2, reviews=1, prs_closed_unmerged=1), monthly["2025-01"]
     assert monthly["2025-02"] == Counter(prs_merged=1), monthly["2025-02"]
-    assert "2025-03" not in monthly and "2017-12" not in monthly  # mês corrente e antes de 2018 ficam de fora
+    assert "2025-03" not in monthly and "2017-12" not in monthly  # current month and before 2018 are left out
     assert part[("2025-01", "pr_author", "dependabot", 1)] == 1
     assert part[("2025-02", "merged_pr_author", "ana", 0)] == 1 and monthly["2025-02"]["prs_merged"] == 1
     assert part[("2025-01", "pr_reviewer", "rui", 0)] == 1 and ("2025-01", "pr_reviewer", "ana", 0) not in part
@@ -751,9 +751,9 @@ def cmd_selftest(db, args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest"])
-    ap.add_argument("--limit", type=int, default=300, help="activity: quantos repos (os com mais dependentes primeiro)")
-    ap.add_argument("--workers", type=int, default=4, help="activity: repos em paralelo")
-    ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: ecossistema do deps.dev")
+    ap.add_argument("--limit", type=int, default=300, help="activity: how many repos (those with the most dependents first)")
+    ap.add_argument("--workers", type=int, default=4, help="activity: repos in parallel")
+    ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: deps.dev ecosystem")
     args = ap.parse_args()
     global SYSTEM
     SYSTEM = args.system
@@ -761,7 +761,7 @@ def main():
     db = sqlite3.connect(DB, timeout=60)
     db.executescript(SCHEMA)
     if "collection_mode" not in {r[1] for r in db.execute("PRAGMA table_info(repos)")}:
-        db.execute("ALTER TABLE repos ADD COLUMN collection_mode TEXT")  # NULL = completo; 'contagem+amostra' = grande
+        db.execute("ALTER TABLE repos ADD COLUMN collection_mode TEXT")  # NULL = full; 'sampled' = large
     globals()[f"cmd_{args.cmd}"](db, args)
 
 

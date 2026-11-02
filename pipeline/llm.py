@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cliente mínimo para executar prompts via Gemini API ou Ollama."""
+"""Minimal client to run prompts through the Gemini API or Ollama."""
 import argparse
 import json
 import os
@@ -12,13 +12,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
-DEFAULT_OLLAMA_MODEL = ""  # sem padrão: defina OLLAMA_MODEL com o modelo instalado no Ollama
+DEFAULT_OLLAMA_MODEL = ""  # no default: set OLLAMA_MODEL to the model installed in Ollama
 REQUEST_TIMEOUT = 60
-RETRY_STATUS = {429, 500, 503}  # limite do plano grátis e instabilidade: tenta de novo com espera crescente
+RETRY_STATUS = {429, 500, 503}  # free-tier limit and instability: retry with growing backoff
 
 
 def _load_env(path=ROOT / ".env"):
-    """Lê o .env da raiz (formato CHAVE=valor) sem sobrescrever o que já está no ambiente."""
+    """Read the root .env (KEY=value format) without overwriting what's already in the environment."""
     if not path.exists():
         return
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -42,60 +42,60 @@ def _post_json(url, payload, headers=None, tries=4):
         if exc.code in RETRY_STATUS and tries > 1:
             time.sleep(int(exc.headers.get("Retry-After") or 0) or 2 ** (5 - tries) * 5)
             return _post_json(url, payload, headers, tries - 1)
-        detail = exc.read().decode("utf-8", "replace")[:300]  # a mensagem do Google diz se foi limite, modelo, chave...
-        raise RuntimeError(f"A API do modelo respondeu com HTTP {exc.code}: {detail}") from exc
+        detail = exc.read().decode("utf-8", "replace")[:300]  # Google's message says whether it was the limit, the model, the key...
+        raise RuntimeError(f"The model API responded with HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
-        raise RuntimeError(f"Não foi possível conectar à API do modelo: {exc.reason}.") from exc
+        raise RuntimeError(f"Could not connect to the model API: {exc.reason}.") from exc
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise RuntimeError("A API do modelo retornou uma resposta JSON inválida.") from exc
+        raise RuntimeError("The model API returned an invalid JSON response.") from exc
 
 
 def _generate_gemini(prompt):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("Defina GEMINI_API_KEY para usar o backend Gemini.")
+        raise RuntimeError("Set GEMINI_API_KEY to use the Gemini backend.")
 
     model = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
     encoded_model = urllib.parse.quote(model, safe="")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{encoded_model}:generateContent"
-    # chave no cabeçalho, não na URL: URLs acabam em logs e mensagens de erro
+    # key in the header, not the URL: URLs end up in logs and error messages
     data = _post_json(url, {"contents": [{"parts": [{"text": prompt}]}]}, {"x-goog-api-key": api_key})
 
     try:
         parts = data["candidates"][0]["content"]["parts"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise RuntimeError("A resposta do Gemini não contém texto gerado.") from exc
+        raise RuntimeError("The Gemini response contains no generated text.") from exc
     if not isinstance(parts, list):
-        raise RuntimeError("A resposta do Gemini não contém texto gerado.")
+        raise RuntimeError("The Gemini response contains no generated text.")
     text = "".join(
         part["text"]
         for part in parts
-        # modelos com raciocínio devolvem o raciocínio interno em partes com "thought": true; só a resposta interessa
+        # reasoning models return their internal reasoning in parts with "thought": true; only the answer matters
         if isinstance(part, dict) and isinstance(part.get("text"), str) and not part.get("thought")
     )
     if not text:
-        raise RuntimeError("A resposta do Gemini não contém texto gerado.")
+        raise RuntimeError("The Gemini response contains no generated text.")
     return text
 
 
 def _generate_ollama(prompt):
     model = os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
     if not model:
-        raise RuntimeError("Defina OLLAMA_MODEL para usar o backend Ollama.")
+        raise RuntimeError("Set OLLAMA_MODEL to use the Ollama backend.")
     data = _post_json(
         os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/") + "/api/generate",
         {"model": model, "prompt": prompt, "stream": False},
     )
     text = data.get("response") if isinstance(data, dict) else None
     if not isinstance(text, str) or not text:
-        raise RuntimeError("A resposta do Ollama não contém texto gerado.")
+        raise RuntimeError("The Ollama response contains no generated text.")
     return text
 
 
 def generate(prompt):
-    """Envia um prompt ao backend configurado e retorna o texto gerado."""
+    """Send a prompt to the configured backend and return the generated text."""
     if not isinstance(prompt, str) or not prompt.strip():
-        raise ValueError("O prompt não pode ser vazio.")
+        raise ValueError("The prompt cannot be empty.")
     _load_env()
 
     backend = os.environ.get("LLM_BACKEND", "gemini").strip().lower()
@@ -103,18 +103,18 @@ def generate(prompt):
         return _generate_gemini(prompt)
     if backend == "ollama":
         return _generate_ollama(prompt)
-    raise ValueError("LLM_BACKEND deve ser 'gemini' ou 'ollama'.")
+    raise ValueError("LLM_BACKEND must be 'gemini' or 'ollama'.")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Envia um prompt ao modelo.")
-    parser.add_argument("prompt", help="Texto a enviar ao modelo.")
+    parser = argparse.ArgumentParser(description="Send a prompt to the model.")
+    parser.add_argument("prompt", help="Text to send to the model.")
     args = parser.parse_args()
 
     try:
         print(generate(args.prompt))
     except (RuntimeError, ValueError) as exc:
-        print(f"Erro: {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
     return 0
 

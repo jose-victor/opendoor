@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""G1: a LLM escreve, uma vez por projeto, o guia "por onde começar" (offline, em cache no banco).
+"""G1: the LLM writes, once per project, the "where to start" guide (offline, cached in the database).
 
   python pipeline/build.py && python pipeline/guides.py && python pipeline/build.py
+  python pipeline/guides.py selftest   # checks parse() without calling the model
 
-Para cada projeto que aparece no match (perfil diferente de "estavel"), a LLM lê o guia de contribuição
-(ou o README), as oportunidades e os números, e devolve: resumo, passos comuns, passos por forma de ajuda
-e um alerta. Fica em project_guides; o site combina com o perfil da pessoa sem chamar o modelo
-(web/lib/guide.ts), então a mesma pessoa vê sempre o mesmo guia.
+For each project that shows up in the match (profile other than "stable"), the LLM reads the contributing guide
+(or the README), the opportunities and the numbers, and returns: a summary, common steps, steps per way of helping
+and a heads-up. It's stored in project_guides; the site combines it with the person's profile without calling the
+model (web/lib/guide.ts), so the same person always sees the same guide.
 """
 import argparse
 import json
@@ -61,14 +62,14 @@ def parse(text, needs):
     common = strings(data.get("common_steps"), 3)
     by_way = {w: s for w, v in (data.get("steps_by_way") or {}).items() if w in needs and (s := strings(v, 3))}
     if not summary or not common or not by_way:
-        raise ValueError("guia incompleto")
+        raise ValueError("incomplete guide")
     heads = data.get("heads_up")
     return {"summary": summary, "common_steps": common, "steps_by_way": by_way,
             "heads_up": str(heads).strip()[:300] if isinstance(heads, str) and heads.strip() and heads.strip() != "null" else None}
 
 
 def ask(p, doc, ai):
-    needs = p["needs"] or ["codigo"]
+    needs = p["needs"] or ["code"]
     opps = "\n".join(f"- {o['way']}: {o['note']}" for o in p["opportunities"]) or "- nenhuma identificada"
     prompt = PROMPT.format(repo=p["repo"], description=p["description"] or "", profile=p["profile"],
                            maintainers=p["maintainers_24m"], openness=p["openness"] if p["openness"] is not None else "sem dados",
@@ -77,20 +78,30 @@ def ask(p, doc, ai):
     return parse(llm.generate(prompt), set(needs))
 
 
+def selftest():
+    g = parse('ok {"summary":"S","common_steps":["a","b"],"steps_by_way":{"tests":["t"],"bla":["x"]},"heads_up":null}', {"tests"})
+    assert g == {"summary": "S", "common_steps": ["a", "b"], "steps_by_way": {"tests": ["t"]}, "heads_up": None}, g
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("cmd", nargs="?", choices=["selftest"], help="selftest: check parse() and exit, without the model")
     ap.add_argument("--limit", type=int, default=500)
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--db", default=str(DB))
     args = ap.parse_args()
+    selftest()
+    if args.cmd == "selftest":
+        print("selftest ok")
+        return
     db = sqlite3.connect(args.db, timeout=60)
     db.execute("CREATE TABLE IF NOT EXISTS project_guides(repo TEXT PRIMARY KEY, model TEXT, guide TEXT, fetched_at TEXT)")
     done = {r[0] for r in db.execute("SELECT repo FROM project_guides")}
-    projects = [p for p in json.loads(PROJECTS.read_text()) if p["profile"] != "estavel" and p["repo"] not in done]
+    projects = [p for p in json.loads(PROJECTS.read_text()) if p["profile"] != "stable" and p["repo"] not in done]
     projects = sorted(projects, key=lambda p: -p["stars"])[:args.limit]
-    print(f"{len(projects)} projetos para o modelo", flush=True)
+    print(f"{len(projects)} projects for the model", flush=True)
 
-    inputs = []  # lê tudo antes: sqlite3 não pode ser dividido entre threads
+    inputs = []  # read everything first: sqlite3 can't be shared between threads
     for p in projects:
         files = dict(db.execute("SELECT path, text FROM repo_files WHERE repo = ?", (p["repo"],)))
         doc = next((files[k] for k in files if k.endswith("CONTRIBUTING.md")), files.get("README.md", ""))
@@ -102,7 +113,7 @@ def main():
         p, doc, ai = item
         try:
             return p["repo"], ask(p, doc, ai)
-        except Exception as e:  # um repo com erro não para os outros; fica para a próxima rodada
+        except Exception as e:  # one failing repo doesn't stop the others; it's retried on the next run
             print(f"  {p['repo']}: {e}", file=sys.stderr, flush=True)
             return p["repo"], None
 
@@ -113,10 +124,8 @@ def main():
                 with db:
                     db.execute("INSERT OR REPLACE INTO project_guides VALUES(?,?,?,?)",
                                (repo, model, json.dumps(guide, ensure_ascii=False), datetime.now(timezone.utc).isoformat()))
-            print(f"  [{i}/{len(inputs)}] {repo}: {'ok' if guide else 'erro'}", flush=True)
+            print(f"  [{i}/{len(inputs)}] {repo}: {'ok' if guide else 'error'}", flush=True)
 
 
 if __name__ == "__main__":
-    g = parse('ok {"summary":"S","common_steps":["a","b"],"steps_by_way":{"testes":["t"],"bla":["x"]},"heads_up":null}', {"testes"})
-    assert g == {"summary": "S", "common_steps": ["a", "b"], "steps_by_way": {"testes": ["t"]}, "heads_up": None}, g
     main()

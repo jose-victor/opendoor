@@ -1,8 +1,8 @@
-// G1: monta o "por onde começar" a partir do guia salvo do projeto e do perfil. Sem modelo: mesma entrada, mesma saída.
+// G1: builds "por onde começar" from the project's saved guide and the profile. No model: same input, same output.
 import type { Guide, Project, UserProfile, Way } from "./types";
 
-// Para quem começa: contribuições de baixo risco primeiro (docs/vision.md).
-const BEGINNER_FIRST: Way[] = ["testes", "documentacao", "triagem", "traducao", "refinamento"];
+// For beginners: low-risk contributions first (docs/vision.md).
+const BEGINNER_FIRST: Way[] = ["tests", "documentation", "triage", "translation", "refinement"];
 const MAX_WAYS = 2;
 
 export type GuideStep = { text: string; way?: Way };
@@ -10,7 +10,7 @@ export type GuideStep = { text: string; way?: Way };
 export function composeGuide(guide: Guide, profile: UserProfile): { summary: string; steps: GuideStep[]; heads_up: string | null; ways: Way[] } {
   const available = Object.keys(guide.steps_by_way) as Way[];
   const chosen = profile.ways.filter((w) => available.includes(w));
-  const fallback = profile.level === "iniciante" ? BEGINNER_FIRST.filter((w) => available.includes(w)) : available;
+  const fallback = profile.level === "beginner" ? BEGINNER_FIRST.filter((w) => available.includes(w)) : available;
   const ways = (chosen.length ? chosen : fallback.length ? fallback : available).slice(0, MAX_WAYS);
   const steps: GuideStep[] = [
     ...guide.common_steps.slice(0, 2).map((text) => ({ text })),
@@ -19,7 +19,7 @@ export function composeGuide(guide: Guide, profile: UserProfile): { summary: str
   return { summary: guide.summary, steps, heads_up: guide.heads_up, ways };
 }
 
-// Projeto ainda sem guia salvo: passos montados a partir das oportunidades, também sem modelo.
+// Project without a saved guide yet: steps built from the opportunities, also without a model.
 export function guideFor(p: Project): Guide {
   if (p.guide) return p.guide;
   const steps_by_way: Partial<Record<Way, string[]>> = {};
@@ -32,7 +32,7 @@ export function guideFor(p: Project): Guide {
   };
 }
 
-// Alerta da política de IA vem do dado classificado (com a citação), não do texto gerado.
+// The AI policy warning comes from the classified data (with the quote), not from generated text.
 export function aiPolicyNote(p: Project): string | null {
   const { classification, evidence } = p.ai_policy;
   const quote = evidence ? ` O projeto diz: “${evidence}”` : "";

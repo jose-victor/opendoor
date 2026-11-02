@@ -1,4 +1,4 @@
-// Só para o servidor: os dados entram no bundle da função, então não dependem de buscar arquivo em produção.
+// Server only: the data goes into the function bundle, so it doesn't depend on fetching a file in production.
 import data from "@/public/data/projects.json";
 import type { Project } from "./types";
 

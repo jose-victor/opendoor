@@ -1,4 +1,4 @@
-// O useParams do ProjectView só existe em tempo de execução: o Next 16 exige o Suspense em volta.
+// ProjectView's useParams only exists at runtime: Next 16 requires the Suspense around it.
 import { Suspense } from "react";
 import ProjectView from "./ProjectView";
 

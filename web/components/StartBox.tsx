@@ -1,6 +1,6 @@
 "use client";
-// "Por onde começar?": tudo vem pronto e salvo (G1). O guia do projeto, gerado antes, é combinado com o
-// perfil sem chamar modelo nenhum. Sem guia salvo, os passos saem das oportunidades.
+// "Por onde começar?": everything comes ready and saved (G1). The project guide, generated beforehand, is combined with the
+// profile without calling any model. Without a saved guide, the steps come from the opportunities.
 import { useState } from "react";
 import { aiPolicyNote, composeGuide, guideFor } from "@/lib/guide";
 import { WAY_LABELS } from "@/lib/labels";

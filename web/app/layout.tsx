@@ -7,7 +7,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-// títulos: uma grotesca com personalidade; o corpo segue na Geist
+// headings: a grotesque with personality; body text stays in Geist
 const display = Bricolage_Grotesque({
   variable: "--font-bricolage",
   subsets: ["latin"],

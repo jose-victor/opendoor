@@ -38,7 +38,7 @@ Papéis em `participation.role`:
 
 Logins especiais: `ghost` = conta apagada; `~Nome` = autor de commit sem conta no GitHub.
 
-## Repositórios grandes (`repos.collection_mode = 'contagem+amostra'`)
+## Repositórios grandes (`repos.collection_mode = 'sampled'`)
 Acima de 6 mil issues + PRs não copiamos item a item:
 - `repo_monthly`: só `issues_opened`, `issues_closed`, `prs_opened` e `prs_merged`, que são **contagens completas desde 2018** pela busca do GitHub. Os outros campos ficam NULL.
 - `commit_monthly`: `commits` completo; `direct_commits` NULL.
