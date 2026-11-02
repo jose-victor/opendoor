@@ -17,7 +17,7 @@ Issue #107. Data: the collection of 2026-10-31 (last closed month 2026-09), `rep
 9. **The data supports three entry paths for experienced people.** Review (41 projects: one reviewer, high demand, someone answers), triage (79), and successor (73: no active insider, outside PRs still arriving).
 10. **Two cautions on conversion.** 9.1% of the cohort were already a merger or direct committer in another of our repos (1.4% same owner), which inflates conversion where orgs share people (`pypa/build`: 3 of 5). Drop `outsider_insider_gap` from the rules: it has a value for only 36 projects.
 
-Scripts (outside the repo): `/tmp/claude-1000/-home-jose-Documentos-Projetos-hacktoberfest/4ab9874f-58b9-4fd9-ae42-84640645f995/scratchpad/analysis/analysis.py` (all tables; `python3 analysis.py <worktree> 2026-09 2025-09 > out.md`, stdlib only, DB opened `mode=ro`) and `cases.sql` next to it. Every number below was printed by one of them. "Script section N" in the Pending list refers to the script's printed sections, not this report's.
+Scripts: [`docs/research/analysis-2026-11/analysis.py`](analysis-2026-11/analysis.py) (all tables; `python3 analysis.py <worktree> 2026-09 2025-09 > out.md`, stdlib only, DB opened `mode=ro`) and [`cases.sql`](analysis-2026-11/cases.sql) next to it; [`out.md`](analysis-2026-11/out.md) is the printed output this report quotes. Every number below was printed by one of them. "Script section N" in the Pending list refers to the script's printed sections, not this report's.
 
 ---
 
