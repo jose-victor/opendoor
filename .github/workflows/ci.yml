@@ -18,6 +18,8 @@ jobs:
           python-version: "3.11" # minimum supported version (README)
       - run: python pipeline/collect.py selftest
       - run: python pipeline/skills.py
+      - run: python pipeline/guides.py selftest
+      - run: python pipeline/opportunities.py selftest
       # Runs the profile and beginner-badge self-tests, then a full build against the versioned database.
       # data/raw/ is not in git, so review times come out empty here; the output is discarded.
       - run: python pipeline/build.py

@@ -3,7 +3,7 @@
 OpenDoor: plataforma que recomenda portas de entrada em projetos open source. Projeto da comunidade (nasceu no Hacktoberfest Hack Day SJC 2026). Contexto em `README.md`, `docs/vision.md` e `CONTRIBUTING.md`.
 
 ## Idioma
-- **Código em inglês:** identificadores, comentários e docstrings. O código antigo, ainda em português, está sendo migrado na #90.
+- **Código em inglês:** identificadores, comentários, docstrings, logs e valores do contrato (`open_door`, `beginner`, `tests`...). Ficam em pt-BR só os textos que aparecem no site e a prosa dos prompts, que pedem saída em pt-BR.
 - **Docs de entrada em inglês e pt-BR:** `README.md`/`README.pt-BR.md`, `CONTRIBUTING.md`/`CONTRIBUTING.pt-BR.md`, `docs/vision.md`/`docs/vision.pt-BR.md`. Mudou um? Mude o outro no mesmo PR.
 - **Docs técnicos em inglês** (`docs/arquitetura.md` e `docs/dados.md` serão traduzidos na #91).
 - O texto do site (UI) segue em pt-BR por enquanto (#50), com acentuação correta.
@@ -11,12 +11,14 @@ OpenDoor: plataforma que recomenda portas de entrada em projetos open source. Pr
 ## Comandos
 ```bash
 python pipeline/collect.py selftest     # rode depois de mexer na agregação
+python pipeline/build.py                # auto-testes do perfil e do selo, depois gera web/public/data/
+python pipeline/guides.py selftest      # auto-testes sem chamar o modelo (idem opportunities.py)
 python pipeline/collect.py stats        # resumo do banco
 python pipeline/collect.py graph --system pypi  # etapas de grafo e security aceitam npm | pypi | go
-python pipeline/llm.py "prompt"         # Gemma pelo pipeline (lê o .env da raiz)
-python pipeline/opportunities.py        # Gemma sugere oportunidades por projeto (cache em repo_opportunities)
-python pipeline/guides.py --limit 10    # Gemma escreve o guia de cada projeto (cache em project_guides); rode depois do classify_ai_policy
-python pipeline/classify_ai_policy.py   # Gemma classifica a política de IA (cache em ai_policy; repos com erro ficam para a próxima)
+python pipeline/llm.py "prompt"         # modelo pelo pipeline (lê o .env da raiz)
+python pipeline/opportunities.py        # o modelo sugere oportunidades por projeto (cache em repo_opportunities)
+python pipeline/guides.py --limit 10    # o modelo escreve o guia de cada projeto (cache em project_guides); rode depois do classify_ai_policy
+python pipeline/classify_ai_policy.py   # o modelo classifica a política de IA (cache em ai_policy; repos com erro ficam para a próxima)
 sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 ```
 

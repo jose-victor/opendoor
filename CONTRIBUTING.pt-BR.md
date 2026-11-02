@@ -39,7 +39,7 @@ As instruções de instalação estão no [README](README.pt-BR.md#começando).
 - Simples primeiro: o menor código que resolve.
 
 ## Idioma
-- **Código em inglês:** identificadores, comentários e docstrings (o código existente está sendo migrado na #90).
+- **Código em inglês:** identificadores, comentários, docstrings, logs e valores do contrato (`open_door`, `beginner`, `tests`...). Ficam em português só os textos que aparecem no site e a prosa dos prompts do modelo, que pedem saída em português.
 - **Docs de entrada em inglês e português:** `README`, `CONTRIBUTING` e `docs/vision`. Mudou um? Atualize o outro, ou diga no PR que falta traduzir.
 - **Docs técnicos em inglês** (`docs/arquitetura.md` e `docs/dados.md` estão sendo traduzidos na #91).
 - O texto do site está em português por enquanto; a versão em inglês está planejada na #50.

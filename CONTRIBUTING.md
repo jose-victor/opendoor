@@ -39,7 +39,7 @@ Setup instructions are in the [README](README.md#getting-started).
 - Simple first: the smallest code that solves the problem.
 
 ## Language
-- **Code in English:** identifiers, comments and docstrings (the existing code is being migrated in #90).
+- **Code in English:** identifiers, comments, docstrings, logs and contract values (`open_door`, `beginner`, `tests`...). Only text shown on the website and the prose of the LLM prompts (which ask for Portuguese output) stay in Portuguese.
 - **Entry docs in English and Portuguese:** `README`, `CONTRIBUTING` and `docs/vision`. If you change one, update the other, or say in the PR that it still needs translating.
 - **Technical docs in English** (`docs/arquitetura.md` and `docs/dados.md` are being translated in #91).
 - The website's text is in Portuguese for now; an English version is planned in #50.
