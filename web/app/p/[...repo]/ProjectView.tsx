@@ -73,6 +73,7 @@ export default function ProjectView() {
   const [profile, setProfile] = useState<UserProfile>(EMPTY_PROFILE);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage only exists after mount; reading it here keeps the server HTML identical
     setProfile(loadProfile());
     fetch("/data/projects.json")
       .then((r) => r.json())
