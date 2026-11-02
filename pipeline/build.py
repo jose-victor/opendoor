@@ -242,8 +242,11 @@ def main():
     canonical = {repo for repo, _ in keep.values()}
 
     guides = defaultdict(str)  # each repo's CONTRIBUTING (any path)
-    for repo, text in db.execute("SELECT repo, text FROM repo_files WHERE path LIKE '%CONTRIBUTING.md'"):
+    for repo, text in db.execute("SELECT repo, text FROM repo_files WHERE path LIKE '%CONTRIBUTING%'"):
         guides[repo] += text or ""
+    # GitHub also resolves .rst, docs/ and org-level files (collect.py community)
+    has_contributing = {r for (r,) in db.execute("SELECT repo FROM repo_community WHERE contributing_url IS NOT NULL")} \
+        if table_exists(db, "repo_community") else set()
     ai_opps = {r: json.loads(s) for r, s in db.execute("SELECT repo, suggestions FROM repo_opportunities")} \
         if table_exists(db, "repo_opportunities") else {}  # D5 layer 2 (pipeline/opportunities.py)
     guide_of = {r: json.loads(g) for r, g in db.execute("SELECT repo, guide FROM project_guides")} \
@@ -325,7 +328,7 @@ def main():
                              acc, rec_merged)
         deb = None if large else debuts.get(repo, 0)
         review = reviews.get(repo)
-        beginner = beginner_checks(deb, tried_new.get(repo, 0), outside_recent.get(repo) or 0, bool(guides.get(repo)), review)
+        beginner = beginner_checks(deb, tried_new.get(repo, 0), outside_recent.get(repo) or 0, bool(guides.get(repo)) or repo in has_contributing, review)
         if profile == "guardian":
             beginner["ready"] = False  # critical and maintained by 1 or 2 people: not a place to learn
         if profile == "open_door" and deb == 0:

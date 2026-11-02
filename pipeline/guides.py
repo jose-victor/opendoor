@@ -104,7 +104,7 @@ def main():
     inputs = []  # read everything first: sqlite3 can't be shared between threads
     for p in projects:
         files = dict(db.execute("SELECT path, text FROM repo_files WHERE repo = ?", (p["repo"],)))
-        doc = next((files[k] for k in files if k.endswith("CONTRIBUTING.md")), files.get("README.md", ""))
+        doc = next((files[k] for k in files if "CONTRIBUTING" in k.upper()), files.get("README.md", ""))
         pol = p["ai_policy"]
         ai = pol["classification"] + (f' ("{pol["evidence"]}")' if pol["evidence"] else "")
         inputs.append((p, doc or "", ai))

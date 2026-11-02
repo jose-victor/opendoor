@@ -721,13 +721,29 @@ def community_row(repo, node):
             int(bool(node.get("hasDiscussionsEnabled"))), json.dumps(node.get("fundingLinks") or []), now())
 
 
-def inherited_contributing(repo, node):
-    """Body of an inherited CONTRIBUTING (to store in repo_files), or None."""
-    return node["contributingGuidelines"].get("body") if _inherited(repo, node) else None
+def contributing_file(repo, node):
+    """(path, body) of the CONTRIBUTING GitHub resolved for the repo, or None.
+
+    Own file: its path in the repo (`blob/<ref>/<path>`). Inherited: `<owner>/.github/<path>`.
+    """
+    g = node.get("contributingGuidelines")
+    if not (g and g.get("url") and g.get("body")) or "/blob/" not in g["url"]:
+        return None
+    path = g["url"].split("/blob/", 1)[1].split("/", 1)[-1]  # drop the ref (shortcut: a ref with a slash breaks this)
+    return (f"{repo.split('/')[0]}/.github/{path}" if _inherited(repo, node) else path), g["body"]
+
+
+def store_contributing(db, repo, node):
+    """Puts GitHub's CONTRIBUTING into repo_files unless the repo already has one fetched by the repos step."""
+    # a refresh rewrites our row (oid NULL); rows from the repos step have an oid and are left alone
+    db.execute("DELETE FROM repo_files WHERE repo = ? AND oid IS NULL AND path LIKE '%CONTRIBUTING%'", (repo,))
+    f = contributing_file(repo, node)
+    if f and not db.execute("SELECT 1 FROM repo_files WHERE repo = ? AND path LIKE '%CONTRIBUTING%'", (repo,)).fetchone():
+        db.execute("INSERT INTO repo_files VALUES(?,?,?,?,?)", (repo, f[0], None, f[1], now()))
 
 
 def cmd_community(db, args):
-    """Community health: inherited CONTRIBUTING, code of conduct, templates, security policy, discussions, funding."""
+    """Community health: CONTRIBUTING (any file GitHub recognizes, incl. inherited), code of conduct, templates, security policy, discussions, funding."""
     db.execute("CREATE TABLE IF NOT EXISTS repo_community(repo TEXT PRIMARY KEY, contributing_url TEXT, contributing_inherited INT, "
                "code_of_conduct TEXT, issue_templates INT, pr_templates INT, security_policy_url TEXT, discussions INT, "
                "funding TEXT, fetched_at TEXT)")
@@ -746,12 +762,7 @@ def cmd_community(db, args):
                 if not node:
                     continue  # not returned: retried next run
                 db.execute("INSERT OR REPLACE INTO repo_community VALUES(?,?,?,?,?,?,?,?,?,?)", community_row(repo, node))
-                # a refresh rewrites the inherited row (the repos step's refresh deletes all repo_files rows of a repo)
-                path = f"{repo.split('/')[0]}/.github/CONTRIBUTING.md"
-                db.execute("DELETE FROM repo_files WHERE repo = ? AND path = ?", (repo, path))
-                body = inherited_contributing(repo, node)
-                if body:  # GitHub resolves the repo's own file first, so inherited means it has none
-                    db.execute("INSERT OR REPLACE INTO repo_files VALUES(?,?,?,?,?)", (repo, path, None, body, now()))
+                store_contributing(db, repo, node)
         log(f"  {min(start + 50, len(todo))}/{len(todo)} repositories")
 
 
@@ -857,12 +868,24 @@ def cmd_selftest(db, args):
             "codeOfConduct": {"key": "contributor_covenant"}, "issueTemplates": [{"name": "bug"}], "pullRequestTemplates": [],
             "securityPolicyUrl": None, "hasDiscussionsEnabled": True, "fundingLinks": [{"platform": "OPEN_COLLECTIVE", "url": "u"}]}
     assert community_row("expressjs/express", node)[1:7] == ("https://github.com/expressjs/.github/blob/master/CONTRIBUTING.md", 1, "contributor_covenant", 1, 0, None)
-    assert inherited_contributing("expressjs/express", node) == "x"
+    assert contributing_file("expressjs/express", node) == ("expressjs/.github/CONTRIBUTING.md", "x")
     own = dict(node, contributingGuidelines={"url": "https://github.com/a/b/blob/main/CONTRIBUTING.md", "body": "y"})
-    assert community_row("a/b", own)[2] == 0 and inherited_contributing("a/b", own) is None
+    assert community_row("a/b", own)[2] == 0 and contributing_file("a/b", own) == ("CONTRIBUTING.md", "y")
     assert community_row("a/b", dict(node, contributingGuidelines=None))[1:3] == (None, 0)
     moved = dict(node, contributingGuidelines={"url": "https://github.com/newowner/newname/blob/main/CONTRIBUTING.md", "body": "z"})
-    assert community_row("old/name", moved)[2] == 0 and inherited_contributing("old/name", moved) is None  # renamed, not inherited
+    assert community_row("old/name", moved)[2] == 0 and contributing_file("old/name", moved)[0] == "CONTRIBUTING.md"  # renamed, not inherited
+    assert contributing_file("a/b", dict(node, contributingGuidelines=None)) is None
+    rst = dict(node, contributingGuidelines={"url": "https://github.com/a/b/blob/main/docs/contributing.rst", "body": "r"})
+    mem = sqlite3.connect(":memory:")
+    mem.execute("CREATE TABLE repo_files(repo TEXT, path TEXT, oid TEXT, text TEXT, fetched_at TEXT)")
+    store_contributing(mem, "a/b", rst)
+    store_contributing(mem, "a/b", rst)  # refresh: replaced, not duplicated
+    assert mem.execute("SELECT path, text FROM repo_files").fetchall() == [("docs/contributing.rst", "r")]
+    mem.execute("INSERT INTO repo_files VALUES('c/d', 'CONTRIBUTING.md', 'abc', 'own', 'now')")
+    store_contributing(mem, "c/d", dict(own, contributingGuidelines={"url": "https://github.com/c/d/blob/main/CONTRIBUTING.md", "body": "y"}))
+    assert mem.execute("SELECT COUNT(*) FROM repo_files WHERE repo = 'c/d'").fetchone()[0] == 1  # fetched file kept
+    store_contributing(mem, "e/f", node)  # inherited
+    assert mem.execute("SELECT path FROM repo_files WHERE repo = 'e/f'").fetchone()[0] == "e/.github/CONTRIBUTING.md"
     log("selftest ok")
 
 
