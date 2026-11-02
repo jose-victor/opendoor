@@ -29,9 +29,12 @@ GUARDIAN_DEPENDENTS = 100_000
 YEAR_FIELDS = ["prs_opened", "prs_merged", "issues_opened", "issues_closed", "commits", "direct_commits", "people"]
 
 
-def months_ago(n):
-    now = datetime.now(timezone.utc)
-    y, m = divmod(now.year * 12 + now.month - 1 - n, 12)
+def months_ago(n, last):
+    """Start of an n-month window ending at `last`, the last closed month in the data ("YYYY-MM").
+
+    Windows end where the data ends, not at today's date, so a rebuild without a new collection gives the same result.
+    """
+    y, m = divmod(int(last[:4]) * 12 + int(last[5:]) - n, 12)
     return f"{y}-{m + 1:02d}"
 
 
@@ -158,7 +161,12 @@ def table_exists(db, name):
 def main():
     db = sqlite3.connect(DB, timeout=60)
     db.row_factory = sqlite3.Row
-    cut24 = months_ago(24)
+    last = db.execute("SELECT MAX(month) FROM repo_monthly").fetchone()[0]
+    collected = db.execute("SELECT MAX(activity_fetched_at) FROM repos").fetchone()[0]
+    if last is None or collected is None:
+        raise SystemExit("No activity in the database: run collect.py activity first.")
+    collected = datetime.strptime(collected, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    cut24 = months_ago(24, last)
 
     tags = defaultdict(list)
     for r in db.execute("SELECT repo, tag FROM repo_tags ORDER BY tag"):
@@ -180,7 +188,7 @@ def main():
     # the share that came from people who neither merge nor commit directly. Applies to every repo with participation;
     # for large ones it comes from the PR sample (no direct commits). GitHub's authorAssociation is misleading
     # (a member with private org membership shows up as CONTRIBUTOR), so it's only used without participation.
-    cut12 = months_ago(12)
+    cut12 = months_ago(12, last)
     bots = "'github-actions','dependabot','dependabot-preview','renovate','greenkeeper','pre-commit-ci','mergify','allcontributors','web-flow','copilot','imgbot','snyk-bot'"
     human = f"is_bot = 0 AND login NOT LIKE '%bot' AND login NOT IN ({bots})"  # bots with human-like names (antfubot, prombot) don't set is_bot
     # maintainer: merged, or made 3+ direct commits in 24 months (a third-party commit applied by hand keeps the author's name)
@@ -251,8 +259,7 @@ def main():
         deps[repo].add(dep)
 
     # Recent activity: the last 3 closed months (data is monthly; the current month is left out).
-    last = db.execute("SELECT MAX(month) FROM repo_monthly").fetchone()[0]
-    recent_from = months_ago(3) if last is None else f"{int(last[:4]) - (int(last[5:]) <= 2)}-{(int(last[5:]) - 3) % 12 + 1:02d}"
+    recent_from = months_ago(3, last)
     recent = {r[0]: dict(since=recent_from, until=last, issues_opened=r[1], issues_closed=r[2], prs_opened=r[3], prs_merged=r[4])
               for r in db.execute("SELECT repo, SUM(issues_opened), SUM(issues_closed), SUM(prs_opened), SUM(prs_merged) "
                                   "FROM repo_monthly WHERE month >= ? GROUP BY repo", (recent_from,))}
@@ -271,7 +278,7 @@ def main():
     reviews = {}
     for path in raw.glob("*.json.gz"):
         repo = path.name[:-len(".json.gz")].replace("__", "/", 1).lower()
-        reviews[repo] = review_of(path, maintainer_sets[repo], known_bots, datetime.now(timezone.utc))
+        reviews[repo] = review_of(path, maintainer_sets[repo], known_bots, collected)
 
     years = defaultdict(lambda: defaultdict(lambda: dict.fromkeys(YEAR_FIELDS, 0)))
     for r in db.execute("SELECT repo, substr(month, 1, 4) y, SUM(prs_opened) po, SUM(prs_merged) pm, "
@@ -382,6 +389,8 @@ def main():
 
 
 if __name__ == "__main__":
+    assert months_ago(12, "2026-09") == "2025-10" and months_ago(3, "2026-09") == "2026-07"  # 12 and 3 closed months
+    assert months_ago(3, "2026-02") == "2025-12"                                              # across the year
     assert profile_of(912_802, 1, None, 0, 10) == "guardian"          # debug-js/debug
     assert profile_of(110_496, 5, 0.57, 1, 40) == "open_door"         # expressjs/express
     assert profile_of(500_000, 0, None, 0, 3) == "stable"             # stalled for 24 months
