@@ -742,6 +742,9 @@ def store_contributing(db, repo, node):
         db.execute("INSERT INTO repo_files VALUES(?,?,?,?,?)", (repo, f[0], None, f[1], now()))
 
 
+COMMUNITY_BATCH = 10  # 50 repos with CONTRIBUTING bodies per query made GitHub answer 502/504
+
+
 def cmd_community(db, args):
     """Community health: CONTRIBUTING (any file GitHub recognizes, incl. inherited), code of conduct, templates, security policy, discussions, funding."""
     db.execute("CREATE TABLE IF NOT EXISTS repo_community(repo TEXT PRIMARY KEY, contributing_url TEXT, contributing_inherited INT, "
@@ -751,8 +754,8 @@ def cmd_community(db, args):
         "SELECT r.repo FROM repos r LEFT JOIN repo_community c ON c.repo = r.repo WHERE r.found = 1 AND (c.repo IS NULL OR ?)",
         (getattr(args, "refresh", False),))]
     log(f"{len(todo)} repositories to fetch community data for")
-    for start in range(0, len(todo), 50):
-        batch = todo[start:start + 50]
+    for start in range(0, len(todo), COMMUNITY_BATCH):
+        batch = todo[start:start + COMMUNITY_BATCH]
         parts = [f'c{i}: repository(owner:{json.dumps(r.split("/")[0])}, name:{json.dumps(r.split("/")[1])}){{{COMMUNITY_FIELDS}}}'
                  for i, r in enumerate(batch)]
         data = gh("query{ rateLimit{remaining resetAt} " + " ".join(parts) + " }").get("data") or {}
@@ -763,7 +766,7 @@ def cmd_community(db, args):
                     continue  # not returned: retried next run
                 db.execute("INSERT OR REPLACE INTO repo_community VALUES(?,?,?,?,?,?,?,?,?,?)", community_row(repo, node))
                 store_contributing(db, repo, node)
-        log(f"  {min(start + 50, len(todo))}/{len(todo)} repositories")
+        log(f"  {min(start + COMMUNITY_BATCH, len(todo))}/{len(todo)} repositories")
 
 
 def cmd_topics(db, args):
