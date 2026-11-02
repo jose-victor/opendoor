@@ -131,7 +131,7 @@ In order of priority (`profile_of` in `pipeline/build.py`):
 4. **Response (`response`):** half of the outside PRs get a first response (review by someone else, merge or close) **within 14 days**, and at most **25%** of them are stale, waiting more than 30 days without review (`review`, computed from the raw cache of the `activity` step). Feedback from a person with a lot of open source experience: a PR waiting a long time without review is not a good door. sqlparse had 13 debuts, but 25 days to the first response and 41 of 107 PRs stale, so it was dropped.
 5. **Guide (`guide`):** there is a CONTRIBUTING file.
 
-Large repos do not pass: we only have a recent sample of their PRs, and cannot tell who debuted. Guardians never get the badge (critical, with 1 or 2 people looking after them). On October 31 there were 30 ready projects, and those are exactly what a beginner sees. In the "X of Y newcomers" count, someone who opened a PR before the window and debuted inside it also counts as "tried". A ready project with no opportunity gets the note "N people had their first PR merged here last year". And `open_door` requires at least 1 debut in the year when debuts are known: if nobody new got in for 12 months, the door is not open to newcomers.
+Large repos do not pass: we only have a recent sample of their PRs, and cannot tell who debuted. Guardians never get the badge (critical, with 1 or 2 people looking after them). On November 2 (data up to October 2026) there were 43 ready projects, and those are exactly what a beginner sees. In the "X of Y newcomers" count, someone who opened a PR before the window and debuted inside it also counts as "tried". A ready project with no opportunity gets the note "N people had their first PR merged here last year". And `open_door` requires at least 1 debut in the year when debuts are known: if nobody new got in for 12 months, the door is not open to newcomers.
 
 **Bots:** besides `is_bot`, logins ending in `bot` and a list of known bots with human-looking names (`github-actions`, `dependabot`, `renovate`, `pre-commit-ci`, `mergify`, `allcontributors`, `copilot`...) are left out.
 
@@ -145,7 +145,7 @@ Large repos do not pass: we only have a recent sample of their PRs, and cannot t
 - **Duplicates:** repos that changed owner (`facebook/react` → `react/react`) show up once, with the current name.
 - **`recent`:** sum of `repo_monthly` over the last 3 closed months. Example: debug had 18 PRs opened and none merged from July to September.
 
-Distribution on October 31, after the third collection round: 610 stable, 153 guardians, 189 open doors and 6 that need hands.
+Distribution on November 2, after the first monthly update: 570 stable, 149 guardians, 233 open doors and 5 that need hands.
 
 ## Ways to contribute (`Way`): label on the site and what it covers
 | id | Label on the site (pt-BR) | Covers |

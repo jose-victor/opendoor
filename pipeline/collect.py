@@ -766,6 +766,8 @@ def cmd_large(db, args):
         "WHERE r.found = 1 AND COALESCE(r.collection_mode, '') != 'sampled' AND "
         "(r.activity_truncated = 1 OR c.truncated = 1 OR COALESCE(r.total_issues, 0) + COALESCE(r.total_prs, 0) > ?)",
         (LARGE_ITEMS,)).fetchall()
+    if getattr(args, "only", None) is not None:
+        todo = [(r, c) for r, c in todo if r in args.only]
     log(f"{len(todo)} large repositories")
     with cf.ThreadPoolExecutor(args.workers) as ex:
         futures = [ex.submit(large_for, r, c) for r, c in todo]
@@ -900,8 +902,13 @@ def cmd_update(db, args):
     New repos (never collected) get their full history. The dependency graph (`graph`) is not refreshed here.
     """
     args.refresh, args.limit = True, 10 ** 6
-    for step in (cmd_repos, cmd_labels, cmd_topics, update_activity, cmd_activity, update_commits, cmd_commits,
-                 update_large, cmd_large, cmd_security):
+    for step in (cmd_repos, cmd_labels, cmd_topics):
+        log(f"== {step.__name__.removeprefix('cmd_')}")
+        step(db, args)
+    # large: only repos collected for the first time now. An already collected repo keeps its mode, or a full one
+    # with truncated commits would become "sampled" and lose debuts and per-person acceptance.
+    args.only = {r[0] for r in db.execute("SELECT repo FROM repos WHERE found = 1 AND activity_fetched_at IS NULL")}
+    for step in (update_activity, cmd_activity, update_commits, cmd_commits, update_large, cmd_large, cmd_security):
         log(f"== {step.__name__.removeprefix('cmd_')}")
         step(db, args)
     log("update done: run build.py, then publish a data-YYYY-MM-DD release (docs/data.md)")
