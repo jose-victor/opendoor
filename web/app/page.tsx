@@ -31,6 +31,7 @@ export default function Home() {
 
   useEffect(() => {
     const saved = loadProfile();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage only exists after mount; reading it here keeps the server HTML identical
     if (saved.skills.length || saved.ways.length) setProfile(saved);
     else saveProfile(EXAMPLE); // a página do projeto usa o mesmo perfil de exemplo
     Promise.all([
