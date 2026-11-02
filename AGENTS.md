@@ -11,6 +11,7 @@ OpenDoor: a platform that recommends entry points into open source projects. A c
 
 ## Commands
 ```bash
+python pipeline/collect.py fetch-db --raw  # database + raw cache from the latest data-* release (not in git)
 python pipeline/collect.py selftest     # run after touching the aggregation
 python pipeline/build.py                # profile and badge self-tests, then generates web/public/data/
 python pipeline/guides.py selftest      # self-tests without calling the model (same for opportunities.py)
@@ -31,6 +32,7 @@ cd web && npm run lint && npm run build # the site; CI runs the same (.github/wo
 - `data/raw/` is the raw API cache: never edit it by hand. New aggregations must be recomputable from it (`collect.py reaggregate`).
 - All GitHub calls share **one token** (5,000 GraphQL points per hour). Do not run several GitHub steps in parallel with many workers.
 - When you change the schema, update `docs/data.md` in the same change.
+- The database is **not in git**: it is published as a GitHub Release (`data-YYYY-MM-DD`). How to publish a new collection: `docs/data.md`. Never commit `data/ecosystem.db`.
 
 ## Known pitfalls
 - **GH Archive / ClickHouse:** broken since Oct 2025 (zero merged PRs in 2026). Do not use it for recent data.

@@ -16,13 +16,17 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11" # minimum supported version (README)
+      - run: python pipeline/collect.py fetch-db --raw # database + raw cache from the latest data-* release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - run: python pipeline/collect.py selftest
       - run: python pipeline/skills.py
       - run: python pipeline/guides.py selftest
       - run: python pipeline/opportunities.py selftest
-      # Runs the profile and beginner-badge self-tests, then a full build against the versioned database.
-      # data/raw/ is not in git, so review times come out empty here; the output is discarded.
+      # Profile and beginner-badge self-tests, then a full build against the published database.
       - run: python pipeline/build.py
+      # The build is reproducible (windows end at the collection date), so the committed JSON must be its output.
+      - run: git diff --exit-code web/public/data
 
   web:
     runs-on: ubuntu-latest
