@@ -265,6 +265,8 @@ def selftest():
     assert conversion(prs, {"maint"}, as_of) == (0.6, 5)  # c came back after 15 months: not converted
     assert conversion(prs[:9], {"maint"}, as_of) == (0.6, 5)
     assert conversion(prs[:7], {"maint"}, as_of) == (None, 4)
+    # reviewing your own unmerged PR is not coming back
+    assert conversion(prs + [pr("e", "2025-05-01", revs=[("e", "2025-05-03")])], {"maint"}, as_of) == (0.6, 5)
     # gap: insiders accept 10/10 (self-merges excluded), outsiders 5/10
     prs = ([pr("maint", "2026-01-01", merged="2026-01-02", by="other") for _ in range(10)]
            + [pr("maint", "2026-01-01", merged="2026-01-02", by="maint") for _ in range(10)]
