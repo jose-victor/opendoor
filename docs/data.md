@@ -59,9 +59,9 @@ Roles in `participation.role`:
 Special logins: `ghost` = deleted account; `~Name` = commit author without a GitHub account.
 
 ## Signals (`pipeline/signals.py`)
-`repo_signals(repo, signal, as_of, value, n)`: Tier 1 signals (design in `docs/deep-analysis.md`, section 5), computed offline from the activity raw cache for fully collected repos (`collection_mode` NULL, `activity_truncated = 0`). `as_of` (`YYYY-MM`) is the first month **outside** the window: windows end at its first day, exclusive, and nothing from that day on is read. `run` writes `as_of` = the month after the last closed month; `backtest` also writes `as_of` 12 months earlier (T). `n` is the sample behind the value; `value` is NULL when `n` is below the minimum.
+`repo_signals(repo, signal, as_of, value, n)`: Tier 1 signals (design in `docs/deep-analysis.md`, section 5), computed offline from the activity raw cache for fully collected repos (`collection_mode` NULL, `activity_truncated = 0`). `as_of` (`YYYY-MM`) is the first month **outside** the window: windows end at its first day, exclusive, and nothing from that day on is read. `run` writes every signal at `as_of` = the month after the last closed month; `backtest` writes every signal 12 months earlier (T) plus `conversion` at T + 12. `n` is the sample behind the value; `value` is NULL when `n` is below the minimum.
 
-Insiders at `as_of`: merged a PR or made 3+ direct commits in the 24 months before it (the `build.py` rule), plus `repo_assignable` when that table exists (today's list, so it leaks into backtests). Outside PR = author is neither an insider nor a bot (`Bot` type, login ending in `bot`, or the known list in `build.py`).
+Insiders at `as_of`: merged a PR or made 3+ direct commits in the 24 months before it (the `build.py` rule), plus `repo_assignable` when that table exists, **only in `run`**: it is today's list, so the backtest (and conversion's cohort, defined at `as_of − 12`) uses behavioral insiders only, never `repo_assignable`, to avoid leaking the future. Outside PR = author is neither an insider nor a bot (`Bot` type, login ending in `bot`, or the known list in `build.py`).
 
 | `signal` | `value` | `n` (minimum) |
 |---|---|---|
@@ -70,7 +70,7 @@ Insiders at `as_of`: merged a PR or made 3+ direct commits in the 24 months befo
 | `no_insider_response_share` | share of those PRs with no insider review, merge or close before `as_of` | outside PRs (10) |
 | `outsider_insider_gap` | insider acceptance minus outsider acceptance, PRs created in 12 months and decided before `as_of`; self-merged insider PRs left out | smaller side (10) |
 | `reviewer_diversity` | distinct insiders who reviewed outside PRs of the 12 months (reviews only) | outside PRs (10) |
-| `active_maintainers` | insiders whose gap since their last merge, review or close is within the 90th percentile of their own gaps (90 days with fewer than 5 gaps). Direct commits are not in the cache, so a maintainer who only pushes counts as inactive | insiders (1) |
+| `active_maintainers` | insiders not on a break: acted in the last 90 days, or the gap since their last action is within the 90th percentile of their own gaps (5+ gaps). Actions: merges, reviews, PR and issue closes, and `direct_committer` months from `participation` (dated the 15th); at most one action per day | insiders (1) |
 | `demand_per_maintainer` | (new issues not by bots + new outside PRs) per month over 12 months, divided by `active_maintainers` | active maintainers (1) |
 
 Retention backtest: pair the signals at T with `conversion` at T + 12 (the `run` row), whose cohort debuted in the 12 months before T and is followed up after it.

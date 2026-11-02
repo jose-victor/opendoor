@@ -3,12 +3,13 @@
 
   python pipeline/signals.py selftest   # assert-based checks on hand-built PRs, no database
   python pipeline/signals.py run        # every signal at the collection month -> repo_signals
-  python pipeline/signals.py backtest   # also every signal 12 months earlier (T); conversion at T+12 is the outcome
+  python pipeline/signals.py backtest   # every signal 12 months earlier (T), plus conversion at T+12 (the outcome)
 
 Offline: reads data/raw/github_activity/*.json.gz and the participation table, no API calls.
 as_of = first day of the month after the last closed month (like build.py, windows end at the collection, not
 today). Windows end at as_of, exclusive, and nothing at or after as_of is read, so a backtest at T only sees
-data before T.
+data before T. Insiders come from behavior (participation); repo_assignable is today's list, so only `run`
+adds it, and the backtest never does (it would leak the future).
 """
 import gzip
 import json
@@ -147,10 +148,12 @@ def reviewer_diversity(prs, insiders, as_of):
     return (len(who) if len(window) >= 10 else None, len(window))
 
 
-def active_maintainers(prs, insiders, as_of, issues=()):
-    """Insiders not on a break: the gap since their last action (merge, review, PR or issue close) is within the
-    90th percentile of their own gaps, or 90 days with fewer than 5 gaps (Calefato 2022). n = insiders."""
-    acts = defaultdict(list)
+def active_maintainers(prs, insiders, as_of, issues=(), pushes=None):
+    """Insiders not on a break (Calefato 2022): acted in the last 90 days, or the gap since their last action is
+    within the 90th percentile of their own gaps (with 5+ gaps). Actions: merges, reviews, PR or issue closes, and
+    `pushes` (login -> datetimes of direct commits). At most one action per day, so a review and a merge seconds
+    apart do not shrink the usual gap. n = insiders."""
+    acts = defaultdict(list, {who: list(ts_) for who, ts_ in (pushes or {}).items()})
     for item in [*prs, *issues]:
         for r in reviews(item):
             acts[login(r.get("author"))].append(ts(r["submittedAt"]))
@@ -160,24 +163,22 @@ def active_maintainers(prs, insiders, as_of, issues=()):
             acts[closer(item)].append(ts(item["closedAt"]))
     active = 0
     for who in insiders:
-        # shortcut: direct commits are not in the activity cache, so a maintainer who only pushes counts as
-        # inactive (tiny packages); upgrade when commit authors/times per login are cached.
-        times = sorted(t for t in acts.get(who, ()) if t < as_of)
+        times = sorted({t.date() for t in acts.get(who, ()) if t < as_of})
         if not times:
             continue
-        gaps = [days(b - a) for a, b in zip(times, times[1:])]
-        usual = statistics.quantiles(gaps, n=10, method="inclusive")[-1] if len(gaps) >= 5 else 90
-        active += days(as_of - times[-1]) <= usual
+        gaps = [(b - a).days for a, b in zip(times, times[1:])]
+        usual = statistics.quantiles(gaps, n=10, method="inclusive")[-1] if len(gaps) >= 5 else 0
+        active += (as_of.date() - times[-1]).days <= max(90, usual)
     return (active if insiders else None, len(insiders))
 
 
-def demand_per_maintainer(prs, insiders, as_of, issues=()):
+def demand_per_maintainer(prs, insiders, as_of, issues=(), pushes=None):
     """New issues (not by bots) + new outside PRs per month over the 12 months, per active maintainer.
     n = active maintainers; None when there is none."""
     start = shift(as_of, -12)
     new = len(outside(prs, insiders, start, as_of)) + sum(
         1 for i in issues if not is_bot(i.get("author")) and start <= ts(i["createdAt"]) < as_of)
-    active, _ = active_maintainers(prs, insiders, as_of, issues)
+    active, _ = active_maintainers(prs, insiders, as_of, issues, pushes)
     return (round(new / 12 / active, 2) if active else None, active or 0)
 
 
@@ -185,22 +186,32 @@ SIGNALS = [first_insider_response_days, no_insider_response_share, outsider_insi
            active_maintainers, demand_per_maintainer]
 
 
-def insiders(db, repo, as_of):
+def insiders(db, repo, as_of, assignable=False):
     """Insiders at as_of: build.py's maintainer rule (merged a PR, or 3+ direct commits, in the 24 months before as_of),
-    plus repo_assignable (write access, today's list) when that table exists. Bots excluded."""
+    plus repo_assignable (write access) when asked and the table exists. That list is today's, so only `run` at the
+    collection month uses it; past dates (backtest, conversion's cohort) are behavioral only. Bots excluded."""
     last = shift(as_of, -1).strftime("%Y-%m")
     logins = [r[0] for r in db.execute(
         "SELECT login FROM participation WHERE repo = ? AND is_bot = 0 AND month >= ? AND month <= ? "
         "AND role IN ('pr_merger', 'direct_committer') GROUP BY login "
         "HAVING SUM(role = 'pr_merger') > 0 OR SUM(CASE WHEN role = 'direct_committer' THEN n ELSE 0 END) >= 3",
         (repo, months_ago(24, last), last))]
-    if table_exists(db, "repo_assignable"):
+    if assignable and table_exists(db, "repo_assignable"):
         logins += [r[0] for r in db.execute("SELECT login FROM repo_assignable WHERE repo = ?", (repo,))]
     return {l for l in logins if not is_bot({"login": l})}
 
 
-def compute(db, as_of):
-    """Every signal for fully collected repos at as_of, one transaction per repo."""
+def pushes_of(db, repo, as_of):
+    """Direct-commit months from participation as actions dated the 15th (commit times per login are not cached)."""
+    out = defaultdict(list)
+    for who, month in db.execute("SELECT login, month FROM participation WHERE repo = ? AND role = 'direct_committer' "
+                                 "AND month < ?", (repo, as_of.strftime("%Y-%m"))):
+        out[who].append(datetime.strptime(month + "-15", "%Y-%m-%d").replace(tzinfo=timezone.utc))
+    return out
+
+
+def compute(db, as_of, assignable=False, only=None):
+    """Signals (all, or the names in `only`) for fully collected repos at as_of, one transaction per repo."""
     files = {p.name[:-len(".json.gz")].replace("__", "/", 1).lower(): p for p in RAW.glob("*.json.gz")}
     key = as_of.strftime("%Y-%m")
     # truncated repos miss their older PRs, so debuts and maintainer gaps would be wrong
@@ -208,16 +219,18 @@ def compute(db, as_of):
                                       "AND activity_truncated = 0 ORDER BY repo") if r[0] in files]
     for repo in repos:
         raw = json.load(gzip.open(files[repo]))
-        prs, issues, ins = raw["prs"], raw["issues"], insiders(db, repo, as_of)
+        prs, issues, ins = raw["prs"], raw["issues"], insiders(db, repo, as_of, assignable)
         rows = {"conversion": conversion(prs, insiders(db, repo, shift(as_of, -12)), as_of)}
         for fn in SIGNALS:
-            rows[fn.__name__] = fn(prs, ins, as_of, issues) if fn in (active_maintainers, demand_per_maintainer) \
-                else fn(prs, ins, as_of)
+            if only and fn.__name__ not in only:
+                continue
+            rows[fn.__name__] = fn(prs, ins, as_of, issues, pushes_of(db, repo, as_of)) \
+                if fn in (active_maintainers, demand_per_maintainer) else fn(prs, ins, as_of)
         with db:
             db.executemany("INSERT OR REPLACE INTO repo_signals VALUES (?, ?, ?, ?, ?)",
                            [(repo, s, key, v, n) for s, (v, n) in rows.items()])
     print(f"as_of {key}: {len(repos)} repos")
-    for s in ["conversion"] + [fn.__name__ for fn in SIGNALS]:
+    for s in ["conversion"] + [fn.__name__ for fn in SIGNALS if not only or fn.__name__ in only]:
         vals = [v for (v,) in db.execute("SELECT value FROM repo_signals WHERE signal = ? AND as_of = ? "
                                          "AND value IS NOT NULL", (s, key))]
         print(f"  {s:30} {len(vals):4} repos  median {statistics.median(vals) if vals else '-'}")
@@ -285,6 +298,19 @@ def selftest():
     assert active_maintainers(prs, trio, as_of) == (2, 3)
     assert active_maintainers(prs, {"gone"}, as_of) == (0, 1)
     assert active_maintainers(prs, set(), as_of) == (None, 0)
+    # bursts (a review and a merge seconds apart, many reviews in a row) count once per day, so they do not pull
+    # the usual gap of a maintainer who acts every ~120 days down to 0 and mark them on a break at 110 days
+    burst = lambda day: {"createdAt": d("2020-01-01"), "author": user("o"), "mergedAt": f"{day}T10:00:59Z",
+                         "mergedBy": user("slow"), "closedAt": f"{day}T10:00:59Z", "closeEvt": {"nodes": []},
+                         "reviews": {"nodes": [{"author": user("slow"), "submittedAt": f"{day}T10:00:{k:02d}Z"} for k in range(10)]}}
+    days_ = [(datetime(2024, 1, 1) + timedelta(days=120 * k)).strftime("%Y-%m-%d") for k in range(6)]
+    later = datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=600 + 110)
+    assert active_maintainers([burst(x) for x in days_], {"slow"}, later) == (1, 1)
+    assert active_maintainers([burst(x) for x in days_], {"slow"}, later + timedelta(days=30)) == (0, 1)  # 140 > 120
+    # a maintainer who only pushes direct commits is active through them
+    pushed = {"pusher": [datetime(2026, m, 15, tzinfo=timezone.utc) for m in range(1, 10)]}
+    assert active_maintainers([], {"pusher"}, as_of, pushes=pushed) == (1, 1)
+    assert active_maintainers([], {"pusher"}, as_of) == (0, 1)
     # demand: 20 new issues (2 by bots ignored) + 4 outside PRs over 12 months, 2 active maintainers -> 24/12/2
     issues = [{"createdAt": d("2026-03-01"), "author": user("u")}] * 20 + [{"createdAt": d("2026-03-01"), "author": bot("x")}] * 2
     prs += [pr(f"o{i}", "2026-05-01") for i in range(4)]
@@ -305,8 +331,11 @@ def main():
                "PRIMARY KEY(repo, signal, as_of))")
     last = db.execute("SELECT MAX(month) FROM repo_monthly").fetchone()[0]
     as_of = shift(datetime.strptime(last, "%Y-%m").replace(tzinfo=timezone.utc), 1)
-    for when in ([shift(as_of, -12)] if cmd == "backtest" else []) + [as_of]:
-        compute(db, when)
+    if cmd == "run":
+        compute(db, as_of, assignable=True)
+    else:  # signals at T, behavioral insiders only, and the outcome: conversion at T+12 (same as run's row)
+        compute(db, shift(as_of, -12))
+        compute(db, as_of, only={"conversion"})
 
 
 if __name__ == "__main__":
