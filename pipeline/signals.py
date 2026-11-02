@@ -7,9 +7,9 @@
 
 Offline: reads data/raw/github_activity/*.json.gz and the participation table, no API calls.
 as_of = first day of the month after the last closed month (like build.py, windows end at the collection, not
-today). Windows end at as_of, exclusive, and nothing at or after as_of is read, so a backtest at T only sees
-data before T. Insiders come from behavior (participation); repo_assignable is today's list, so only `run`
-adds it, and the backtest never does (it would leak the future).
+today); rows are labeled with that last closed month (repo_monthly's). Windows end at as_of, exclusive, and
+nothing at or after as_of is read, so a backtest at T only sees data before T. Insiders come from behavior
+(participation) only, in run and backtest alike.
 """
 import gzip
 import json
@@ -19,7 +19,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from build import BOTS, DB, months_ago, table_exists
+from build import BOTS, DB, months_ago
 
 RAW = DB.parent / "raw" / "github_activity"
 YEAR = timedelta(days=365)
@@ -43,7 +43,7 @@ def login(actor):
 
 
 def is_bot(actor):
-    name = login(actor)
+    name = login(actor).lower()  # like build.py's SQL `LIKE '%bot'`, which ignores case
     return (actor or {}).get("__typename") == "Bot" or name.endswith(("bot", "[bot]")) or name in BOTS
 
 
@@ -63,9 +63,9 @@ def outside(prs, insiders, start, end):
 
 
 def first_response(pr, insiders, as_of):
-    """First review, merge or close by an insider before as_of (not a bot, not the author); None if none."""
-    author = login(pr.get("author"))
-    ok = lambda actor: login(actor) in insiders and login(actor) != author and not is_bot(actor)
+    """First review, merge or close by an insider before as_of (not a bot); None if none. Called on outside PRs,
+    whose author is never an insider."""
+    ok = lambda actor: login(actor) in insiders and not is_bot(actor)
     times = [ts(r["submittedAt"]) for r in reviews(pr) if ok(r.get("author"))]
     if pr.get("mergedAt"):
         if ok(pr.get("mergedBy")):
@@ -76,18 +76,21 @@ def first_response(pr, insiders, as_of):
 
 
 def _responses(prs, insiders, as_of):
-    """(days waited, answered) per outside PR created in the 12 months before as_of; unanswered wait until as_of."""
+    """(days waited, answered) per outside PR created in the 12 months before as_of; unanswered PRs wait until
+    they were closed (before as_of), or until as_of if still open."""
     out = []
     for pr in outside(prs, insiders, shift(as_of, -12), as_of):
         first = first_response(pr, insiders, as_of)
-        out.append((days((first or as_of) - ts(pr["createdAt"])), first is not None))
+        closed = ts(pr.get("closedAt"))
+        end = first or (closed if closed and closed < as_of else as_of)
+        out.append((days(end - ts(pr["createdAt"])), first is not None))
     return out
 
 
 def conversion(prs, insiders, as_of):
     """Of outsiders whose first merged PR fell in [as_of-24, as_of-12) months, the share with another merged PR or a
-    review on someone else's PR within the 12 months after it. Pass the insiders as of the cohort's end (as_of-12),
-    so a debut who later became a maintainer still counts as an outsider who came back."""
+    review on someone else's PR within the 12 months after it. Pass the insiders as of the cohort's start (as_of-24),
+    so a debut who became a maintainer during or after the cohort window still counts as an outsider who came back."""
     merged, reviewed = defaultdict(list), defaultdict(list)
     for pr in prs:
         author = pr.get("author")
@@ -186,18 +189,16 @@ SIGNALS = [first_insider_response_days, no_insider_response_share, outsider_insi
            active_maintainers, demand_per_maintainer]
 
 
-def insiders(db, repo, as_of, assignable=False):
-    """Insiders at as_of: build.py's maintainer rule (merged a PR, or 3+ direct commits, in the 24 months before as_of),
-    plus repo_assignable (write access) when asked and the table exists. That list is today's, so only `run` at the
-    collection month uses it; past dates (backtest, conversion's cohort) are behavioral only. Bots excluded."""
+def insiders(db, repo, as_of):
+    """Insiders at as_of: build.py's maintainer rule (merged a PR, or 3+ direct commits, in the 24 months before as_of).
+    Bots excluded. Assignable-aware variants (repo_assignable) come after the people step has run, under separate
+    signal names."""
     last = shift(as_of, -1).strftime("%Y-%m")
     logins = [r[0] for r in db.execute(
         "SELECT login FROM participation WHERE repo = ? AND is_bot = 0 AND month >= ? AND month <= ? "
         "AND role IN ('pr_merger', 'direct_committer') GROUP BY login "
         "HAVING SUM(role = 'pr_merger') > 0 OR SUM(CASE WHEN role = 'direct_committer' THEN n ELSE 0 END) >= 3",
         (repo, months_ago(24, last), last))]
-    if assignable and table_exists(db, "repo_assignable"):
-        logins += [r[0] for r in db.execute("SELECT login FROM repo_assignable WHERE repo = ?", (repo,))]
     return {l for l in logins if not is_bot({"login": l})}
 
 
@@ -210,17 +211,24 @@ def pushes_of(db, repo, as_of):
     return out
 
 
-def compute(db, as_of, assignable=False, only=None):
-    """Signals (all, or the names in `only`) for fully collected repos at as_of, one transaction per repo."""
+def compute(db, as_of, only=None):
+    """Signals (all, or the names in `only`) for fully collected repos at as_of, one transaction per repo.
+    Rows are labeled with the last closed month (as_of - 1), like build.py and repo_monthly."""
     files = {p.name[:-len(".json.gz")].replace("__", "/", 1).lower(): p for p in RAW.glob("*.json.gz")}
-    key = as_of.strftime("%Y-%m")
+    key = shift(as_of, -1).strftime("%Y-%m")
     # truncated repos miss their older PRs, so debuts and maintainer gaps would be wrong
     repos = [r[0] for r in db.execute("SELECT repo FROM repos WHERE found = 1 AND collection_mode IS NULL "
                                       "AND activity_truncated = 0 ORDER BY repo") if r[0] in files]
+    stale = 0
     for repo in repos:
-        raw = json.load(gzip.open(files[repo]))
-        prs, issues, ins = raw["prs"], raw["issues"], insiders(db, repo, as_of, assignable)
-        rows = {"conversion": conversion(prs, insiders(db, repo, shift(as_of, -12)), as_of)}
+        with gzip.open(files[repo]) as f:
+            raw = json.load(f)
+        if ts(raw["fetched_at"]) < as_of:  # fetched before the window ends: it would miss the window's last PRs
+            stale += 1
+            print(f"  skipped {repo}: fetched {raw['fetched_at']}, before {as_of:%Y-%m-%d}")
+            continue
+        prs, issues, ins = raw["prs"], raw["issues"], insiders(db, repo, as_of)
+        rows = {"conversion": conversion(prs, insiders(db, repo, shift(as_of, -24)), as_of)}
         for fn in SIGNALS:
             if only and fn.__name__ not in only:
                 continue
@@ -229,7 +237,7 @@ def compute(db, as_of, assignable=False, only=None):
         with db:
             db.executemany("INSERT OR REPLACE INTO repo_signals VALUES (?, ?, ?, ?, ?)",
                            [(repo, s, key, v, n) for s, (v, n) in rows.items()])
-    print(f"as_of {key}: {len(repos)} repos")
+    print(f"as_of {key}: {len(repos) - stale} repos ({stale} skipped as stale)")
     for s in ["conversion"] + [fn.__name__ for fn in SIGNALS if not only or fn.__name__ in only]:
         vals = [v for (v,) in db.execute("SELECT value FROM repo_signals WHERE signal = ? AND as_of = ? "
                                          "AND value IS NOT NULL", (s, key))]
@@ -250,18 +258,22 @@ def selftest():
 
     as_of = datetime(2026, 10, 1, tzinfo=timezone.utc)
     ins = {"maint", "renovate-bot"}  # a bot sneaking into the insiders must still be ignored
-    # 10 outside PRs answered only by a bot or by their author: none answered, all waited until as_of
-    prs = [pr(f"out{i}", "2026-09-01", revs=[(bot("renovate-bot"), "2026-09-02"), (f"out{i}", "2026-09-02")])
-           for i in range(10)]
+    # 10 outside PRs answered only by a bot: none answered, all waited until as_of
+    prs = [pr(f"out{i}", "2026-09-01", revs=[(bot("renovate-bot"), "2026-09-02")]) for i in range(10)]
     assert no_insider_response_share(prs, ins, as_of) == (1.0, 10)
     assert first_insider_response_days(prs, ins, as_of) == (30.0, 10)
+    # closed by their authors after 3 days with no insider response: unanswered, but waited only until the close
+    prs = [pr(f"out{i}", "2026-09-01", closed="2026-09-04", closed_by=f"out{i}") for i in range(10)]
+    assert no_insider_response_share(prs, ins, as_of) == (1.0, 10)
+    assert first_insider_response_days(prs, ins, as_of) == (3.0, 10)
+    # is_bot ignores case, like build.py's SQL
+    assert is_bot({"login": "SomeBot"}) and is_bot({"login": "x[bot]"}) and is_bot({"login": "Dependabot"}) and not is_bot(user("ana"))
     # insider review after 2 days; merge after as_of does not count (backtest sees only the past)
     prs = [pr(f"out{i}", "2026-09-01", revs=[("maint", "2026-09-03")]) for i in range(10)]
     prs.append(pr("late", "2026-09-01", merged="2026-10-05", by="maint"))
     assert first_insider_response_days(prs, ins, as_of) == (2.0, 11)
     assert no_insider_response_share(prs, ins, as_of) == (round(1 / 11, 3), 11)
-    # a close by the author is not a response; a close by an insider is
-    assert first_response(pr("x", "2026-09-01", closed="2026-09-02", closed_by="x"), ins, as_of) is None
+    # a close by an insider is a response
     assert first_response(pr("x", "2026-09-01", closed="2026-09-04", closed_by="maint"), ins, as_of) == ts(d("2026-09-04"))
     # below the minimum n
     assert first_insider_response_days(prs[:9], ins, as_of) == (None, 9)
@@ -275,7 +287,15 @@ def selftest():
            pr("f", "2025-05-01", merged="2025-05-02", by="maint"), pr("f", "2025-06-01", merged="2025-06-02", by="f"),  # later a maintainer
            pr("old", "2023-01-01", merged="2023-01-02", by="maint"), pr("old", "2025-03-01", merged="2025-03-02", by="maint"),
            pr("maint", "2025-01-01", merged="2025-01-02", by="maint"), pr("maint", "2025-02-01", merged="2025-02-02", by="maint")]
-    assert conversion(prs, {"maint"}, as_of) == (0.6, 5)  # c came back after 15 months: not converted
+    # insiders through insiders(): f self-merges inside the cohort window, so at as_of-12 f is an insider and would
+    # drop out of the cohort; at as_of-24 (what compute uses) f is still an outsider
+    mem = sqlite3.connect(":memory:")
+    mem.execute("CREATE TABLE participation(repo, month, role, login, is_bot, n)")
+    mem.executemany("INSERT INTO participation VALUES('r', ?, 'pr_merger', ?, 0, 1)", [("2024-06", "maint"), ("2025-06", "f")])
+    early, late = insiders(mem, "r", shift(as_of, -24)), insiders(mem, "r", shift(as_of, -12))
+    assert early == {"maint"} and late == {"maint", "f"}
+    assert conversion(prs, early, as_of) == (0.6, 5)  # c came back after 15 months: not converted
+    assert conversion(prs, late, as_of) == (None, 4)  # f dropped (and the cohort falls below 5), as the -12 insiders did
     assert conversion(prs[:9], {"maint"}, as_of) == (0.6, 5)
     assert conversion(prs[:7], {"maint"}, as_of) == (None, 4)
     # reviewing your own unmerged PR is not coming back
@@ -332,8 +352,8 @@ def main():
     last = db.execute("SELECT MAX(month) FROM repo_monthly").fetchone()[0]
     as_of = shift(datetime.strptime(last, "%Y-%m").replace(tzinfo=timezone.utc), 1)
     if cmd == "run":
-        compute(db, as_of, assignable=True)
-    else:  # signals at T, behavioral insiders only, and the outcome: conversion at T+12 (same as run's row)
+        compute(db, as_of)
+    else:  # signals at T and the outcome: conversion at T+12 (same as run's row)
         compute(db, shift(as_of, -12))
         compute(db, as_of, only={"conversion"})
 
