@@ -42,4 +42,5 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build # no GEMINI_API_KEY: only /api/explain needs it, at request time

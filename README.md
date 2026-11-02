@@ -82,6 +82,7 @@ cd web
 cp ../.env.example .env.local   # GEMINI_API_KEY is only needed for /api/explain
 npm install
 npm run dev                     # http://localhost:3000
+npm test                        # match and guide tests (node:test)
 ```
 
 ## Layout
