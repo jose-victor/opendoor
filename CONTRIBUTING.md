@@ -25,7 +25,7 @@ Setup instructions are in the [README](README.md#getting-started).
 - Keep PRs small and focused. Write `Closes #12` in the description.
 - Before opening the PR:
   - `python pipeline/collect.py selftest` if you touched the pipeline;
-  - `npm run lint` and `npm run build` in `web/` if you touched the site.
+  - `npm run lint`, `npm test` and `npm run build` in `web/` if you touched the site.
 - **Update the docs in the same PR.** Changed the database schema? Update `docs/data.md`. Changed the JSON or the API contract (`web/lib/types.ts`)? Update `docs/architecture.md`.
 - A maintainer reviews and merges. Expect questions; they are part of the review, not a rejection.
 
