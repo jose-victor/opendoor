@@ -25,7 +25,7 @@ DB = ROOT / "data" / "ecosystem.db"
 PROJECTS = ROOT / "web" / "public" / "data" / "projects.json"
 WAYS = ["code", "triage", "review", "refinement", "documentation", "translation", "security", "tests"]
 MAX_DOC = 6000
-# What each way covers (same text as docs/arquitetura.md, "Formas de contribuir")
+# What each way covers (same text as docs/architecture.md, "Ways to contribute")
 WAY_HELP = """- code: correções e funcionalidades pequenas, de preferência issues marcadas como "good first issue"
 - triage: reproduzir bugs relatados, pedir informações que faltam, achar duplicadas, responder dúvidas da comunidade
 - review: revisar PRs abertos: rodar localmente, reproduzir o bug e validar se o fix resolve

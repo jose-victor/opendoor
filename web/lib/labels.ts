@@ -1,4 +1,4 @@
-// Site labels ("Formas de contribuir" table in docs/arquitetura.md). The ids come from lib/types.ts.
+// Site labels ("Ways to contribute" table in docs/architecture.md). The ids come from lib/types.ts.
 import type { AiPolicy, Level, Profile, Way } from "./types";
 
 export const LEVEL_LABELS: Record<Level, string> = {

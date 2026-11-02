@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the site's data from the database (contract in docs/arquitetura.md).
+"""Builds the site's data from the database (contract in docs/architecture.md).
 
   python pipeline/build.py   ->  web/public/data/projects.json and web/public/data/skills.json
 

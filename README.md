@@ -21,7 +21,7 @@ OpenDoor maps the ecosystem, measures the health and openness of each project an
 1. **Map:** dependency graph of npm, PyPI and Go (deps.dev), plus a list of mainstream and AI apps that live on GitHub.
 2. **Health, from 2018 to today:** issues, PRs, reviews, merges and commits per month, with who played each role; OpenSSF Scorecard; beginner issues.
 3. **Project profile:** *Guardian*, *Open door*, *Needs hands* or *Stable* (see the [product vision](docs/vision.md)).
-4. **Ready for beginners:** only projects where the data shows newcomers actually getting in earn the badge (first-time contributors, acceptance of newcomers' PRs, recent outside PRs merged, response time and a contribution guide). See [docs/arquitetura.md](docs/arquitetura.md).
+4. **Ready for beginners:** only projects where the data shows newcomers actually getting in earn the badge (first-time contributors, acceptance of newcomers' PRs, recent outside PRs merged, response time and a contribution guide). See [docs/architecture.md](docs/architecture.md).
 5. **AI, offline:** a language model reads each project's contribution policy (does it accept AI? with disclosure? does it forbid it?), suggests where to help and writes the "where to start" guide. Everything is generated ahead of time and stored; the site never calls the model live.
 
 ## Data and AI
@@ -97,8 +97,8 @@ npm run dev                     # http://localhost:3000
 | `data/ecosystem.db` | SQLite database with everything collected |
 | `eval/` | `gabarito.csv` (hand-labeled AI policies) and `explain.md` (evaluation of model answers) |
 | `docs/vision.md` | product vision and the 4 project profiles |
-| `docs/arquitetura.md` | contracts: JSON format, types, API (Portuguese; English version in #91) |
-| `docs/dados.md` | data dictionary and example queries (Portuguese; English version in #91) |
+| `docs/architecture.md` | contracts: JSON format, types, API |
+| `docs/data.md` | data dictionary and example queries |
 | `AGENTS.md` / `CLAUDE.md` | instructions for coding agents |
 
 ## Contributing

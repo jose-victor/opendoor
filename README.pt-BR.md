@@ -21,7 +21,7 @@ O OpenDoor mapeia o ecossistema, mede a saúde e a abertura de cada projeto e ca
 1. **Mapa:** grafo de dependências do npm, PyPI e Go (deps.dev), mais uma lista de apps mainstream e de IA que vivem no GitHub.
 2. **Saúde, de 2018 até hoje:** issues, PRs, revisões, merges e commits por mês, com quem fez cada papel; OpenSSF Scorecard; issues para iniciantes.
 3. **Perfil de cada projeto:** *Guardião*, *Porta aberta*, *Precisa de mãos* ou *Estável* (ver a [visão do produto](docs/vision.pt-BR.md)).
-4. **Pronto para iniciante:** só ganha o selo o projeto em que os dados mostram gente nova conseguindo entrar (estreias, aceite de quem é novo, PRs de fora aceitos recentemente, tempo de resposta e guia de contribuição). Ver [docs/arquitetura.md](docs/arquitetura.md).
+4. **Pronto para iniciante:** só ganha o selo o projeto em que os dados mostram gente nova conseguindo entrar (estreias, aceite de quem é novo, PRs de fora aceitos recentemente, tempo de resposta e guia de contribuição). Ver [docs/architecture.md](docs/architecture.md).
 5. **IA, offline:** um modelo de linguagem lê a política de contribuição de cada projeto (aceita IA? com aviso? proíbe?), sugere onde ajudar e escreve o guia "por onde começar". Tudo é gerado antes e fica salvo; o site não chama o modelo na hora.
 
 ## Dados e IA
@@ -97,8 +97,8 @@ npm run dev                     # http://localhost:3000
 | `data/ecosystem.db` | banco SQLite com tudo que foi coletado |
 | `eval/` | `gabarito.csv` (política de IA rotulada à mão) e `explain.md` (avaliação das respostas do modelo) |
 | `docs/vision.pt-BR.md` | visão do produto e os 4 perfis de projeto |
-| `docs/arquitetura.md` | contratos: formato do JSON, tipos, API |
-| `docs/dados.md` | dicionário de dados e consultas de exemplo |
+| `docs/architecture.md` | contratos: formato do JSON, tipos, API (em inglês) |
+| `docs/data.md` | dicionário de dados e consultas de exemplo (em inglês) |
 | `AGENTS.md` / `CLAUDE.md` | instruções para agentes de código |
 
 ## Contribuindo

@@ -1,5 +1,5 @@
 // A1 (Anna): Gemini API client. Server only: uses process.env.GEMINI_API_KEY.
-// Output contract: ExplainResponse in lib/types.ts and docs/arquitetura.md.
+// Output contract: ExplainResponse in lib/types.ts and docs/architecture.md.
 import { GoogleGenAI } from "@google/genai";
 import type { ExplainResponse, Project, UserProfile } from "./types";
 
