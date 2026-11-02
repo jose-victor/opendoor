@@ -1,5 +1,25 @@
 # Data dictionary — `data/ecosystem.db`
 
+## Getting and publishing the data
+The database is not in git. Each collection is published as a GitHub Release tagged `data-YYYY-MM-DD`, with two files:
+- `ecosystem.db.gz`: this database;
+- `raw.tar.gz`: the raw API cache (`data/raw/`), so the aggregations can be recomputed (`collect.py reaggregate`) and `build.py` can compute review times.
+
+```bash
+python pipeline/collect.py fetch-db --raw    # latest data-* release -> data/ecosystem.db and data/raw/
+```
+`fetch-db` refuses to overwrite an existing database unless you pass `--force`, and only replaces it after an integrity check.
+
+After a new collection, a maintainer publishes it:
+```bash
+python pipeline/build.py                      # regenerate web/public/data/ and commit it in a PR
+gzip -9 -k data/ecosystem.db && tar czf data/raw.tar.gz -C data raw
+gh release create data-YYYY-MM-DD data/ecosystem.db.gz data/raw.tar.gz --latest=false \
+  --title "Data: collection of YYYY-MM-DD" --notes "What changed in this collection."
+```
+CI downloads the latest release and checks that `build.py` reproduces the committed JSON, so publish the release and merge the JSON PR together.
+
+## Conventions
 A repository is always identified as `owner/name` in lowercase. Months use the `YYYY-MM` format, closed months only, starting at `2018-01`.
 
 ## Map

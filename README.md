@@ -44,11 +44,12 @@ The central finding is that activity is not openness: a project can receive many
 `pipeline/llm.py` talks to the model through the Gemini API (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`) or a local Ollama. The data published today was generated with Gemma 4. The `/api/explain` route (live model) is still in the code, but the site does not use it; its future is discussed in #68.
 
 ## Getting started
-Requirements: Python 3.11+ (standard library only) and the [GitHub CLI](https://cli.github.com/) logged in (`gh auth login`), which provides the API token.
+Requirements: Python 3.11+ (standard library only). To collect data you also need the [GitHub CLI](https://cli.github.com/) logged in (`gh auth login`), which provides the API token.
 
-The database ships ready in `data/ecosystem.db` (SQLite). To explore it:
+The database (SQLite) is not in git: each collection is published as a [GitHub Release](https://github.com/jose-victor/opendoor/releases) tagged `data-YYYY-MM-DD`. To download and explore it:
 
 ```bash
+python pipeline/collect.py fetch-db          # -> data/ecosystem.db (add --raw for the raw API cache, needed by build.py's review times)
 sqlite3 data/ecosystem.db ".tables"
 python pipeline/collect.py stats
 ```
@@ -94,7 +95,7 @@ npm run dev                     # http://localhost:3000
 | `pipeline/guides.py` | "where to start" guide for each project, combined with the profile on the site (`web/lib/guide.ts`) |
 | `pipeline/llm.py` | minimal model client (Gemini API or Ollama) |
 | `web/` | Next.js site: pages, `/api/explain`, `lib/types.ts` (contract types) |
-| `data/ecosystem.db` | SQLite database with everything collected |
+| `data/ecosystem.db` | SQLite database with everything collected (not in git; `collect.py fetch-db`) |
 | `eval/` | `gabarito.csv` (hand-labeled AI policies) and `explain.md` (evaluation of model answers) |
 | `docs/vision.md` | product vision and the 4 project profiles |
 | `docs/architecture.md` | contracts: JSON format, types, API |

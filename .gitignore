@@ -5,6 +5,11 @@ kaiky/
 data/raw/
 data/*.log
 
+# database: published as a GitHub Release (python pipeline/collect.py fetch-db)
+data/*.db
+data/*.gz
+data/*.part
+
 # segredos
 .env
 *.key

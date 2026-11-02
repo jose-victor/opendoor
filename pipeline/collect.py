@@ -15,14 +15,17 @@ Every step can be re-run: it skips what's already in the database and resumes wh
   python pipeline/collect.py reaggregate           # recompute the aggregations from the raw cache, no API
   python pipeline/collect.py stats                 # database summary
   python pipeline/collect.py selftest              # check the monthly aggregation
+  python pipeline/collect.py fetch-db [--raw] [--force]  # download the published database (and raw cache) from GitHub Releases
 """
 import argparse
 import concurrent.futures as cf
 import gzip
 import json
 import sqlite3
+import os
 import subprocess
 import sys
+import tarfile
 import time
 import urllib.error
 import urllib.parse
@@ -142,6 +145,57 @@ def cached(kind, key, fetch):
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(value))
     return value
+
+
+# ---------- published data ----------
+DATA_REPO = "jose-victor/opendoor"  # releases tagged data-YYYY-MM-DD hold ecosystem.db.gz and raw.tar.gz
+
+
+def download(url, dest):
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = {"User-Agent": "hacktoberfest-ecosystem", **({"Authorization": f"Bearer {token}"} if token else {})}
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=300) as r, open(dest, "wb") as f:
+        while chunk := r.read(1 << 20):
+            f.write(chunk)
+
+
+def cmd_fetch_db(args):
+    """Downloads the latest data-* release. Never overwrites an existing database without --force."""
+    if DB.exists() and not args.force:
+        sys.exit(f"{DB.relative_to(ROOT)} already exists; use --force to replace it.")
+    releases = http_json(f"https://api.github.com/repos/{DATA_REPO}/releases?per_page=100") or []
+    release = next((r for r in releases if r["tag_name"].startswith("data-")), None)
+    if release is None:
+        sys.exit(f"No data-* release found in {DATA_REPO}.")
+    assets = {a["name"]: a["browser_download_url"] for a in release["assets"]}
+    log(f"release {release['tag_name']}")
+    DATA.mkdir(exist_ok=True)
+    gz, tmp = DATA / "ecosystem.db.gz.part", DATA / "ecosystem.db.part"
+    try:
+        download(assets["ecosystem.db.gz"], gz)
+        with gzip.open(gz) as src, open(tmp, "wb") as dst:
+            while chunk := src.read(1 << 20):
+                dst.write(chunk)
+        check = sqlite3.connect(tmp)
+        ok = check.execute("PRAGMA quick_check").fetchone()[0] == "ok" and check.execute(
+            "SELECT 1 FROM sqlite_master WHERE name = 'repo_monthly'").fetchone()
+        check.close()
+        if not ok:
+            sys.exit("The downloaded database failed the integrity check; nothing was replaced.")
+        tmp.replace(DB)  # atomic: the old database stays until the new one is complete and checked
+    finally:
+        gz.unlink(missing_ok=True)
+        tmp.unlink(missing_ok=True)
+    log(f"-> {DB.relative_to(ROOT)}")
+    if args.raw:
+        part = DATA / "raw.tar.gz.part"
+        try:
+            download(assets["raw.tar.gz"], part)
+            with tarfile.open(part) as tar:
+                tar.extractall(DATA, filter="data")  # "data" filter: no absolute paths, links or files outside data/
+        finally:
+            part.unlink(missing_ok=True)
+        log(f"-> {RAW.relative_to(ROOT)}/")
 
 
 # ---------- deps.dev ----------
@@ -750,11 +804,15 @@ def cmd_selftest(db, args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest"])
+    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db"])
     ap.add_argument("--limit", type=int, default=300, help="activity: how many repos (those with the most dependents first)")
     ap.add_argument("--workers", type=int, default=4, help="activity: repos in parallel")
     ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: deps.dev ecosystem")
+    ap.add_argument("--raw", action="store_true", help="fetch-db: also download the raw API cache (data/raw/)")
+    ap.add_argument("--force", action="store_true", help="fetch-db: replace an existing database")
     args = ap.parse_args()
+    if args.cmd == "fetch-db":  # before connecting: sqlite3.connect would create an empty database
+        return cmd_fetch_db(args)
     global SYSTEM
     SYSTEM = args.system
     DATA.mkdir(exist_ok=True)

@@ -44,11 +44,12 @@ O achado central é que atividade não é sinônimo de abertura: um projeto pode
 `pipeline/llm.py` fala com o modelo pela Gemini API (`GEMINI_MODEL`, padrão `gemini-3.5-flash-lite`) ou por um Ollama local. Os dados publicados hoje foram gerados com o Gemma 4. A rota `/api/explain` (modelo ao vivo) continua no código, mas o site não a usa; o futuro dela está na #68.
 
 ## Começando
-Requisitos: Python 3.11+ (só biblioteca padrão) e o [GitHub CLI](https://cli.github.com/) logado (`gh auth login`), que fornece o token da API.
+Requisitos: Python 3.11+ (só biblioteca padrão). Para coletar dados, também o [GitHub CLI](https://cli.github.com/) logado (`gh auth login`), que fornece o token da API.
 
-O banco já vem pronto em `data/ecosystem.db` (SQLite). Para explorar:
+O banco (SQLite) não fica no git: cada coleta é publicada como uma [Release do GitHub](https://github.com/jose-victor/opendoor/releases) com a tag `data-AAAA-MM-DD`. Para baixar e explorar:
 
 ```bash
+python pipeline/collect.py fetch-db          # -> data/ecosystem.db (com --raw, também o cache bruto, que o build.py usa no tempo de resposta)
 sqlite3 data/ecosystem.db ".tables"
 python pipeline/collect.py stats
 ```
@@ -94,7 +95,7 @@ npm run dev                     # http://localhost:3000
 | `pipeline/guides.py` | guia "por onde começar" de cada projeto, combinado com o perfil no site (`web/lib/guide.ts`) |
 | `pipeline/llm.py` | cliente mínimo do modelo (Gemini API ou Ollama) |
 | `web/` | site Next.js: páginas, `/api/explain`, `lib/types.ts` (tipos do contrato) |
-| `data/ecosystem.db` | banco SQLite com tudo que foi coletado |
+| `data/ecosystem.db` | banco SQLite com tudo que foi coletado (fora do git; `collect.py fetch-db`) |
 | `eval/` | `gabarito.csv` (política de IA rotulada à mão) e `explain.md` (avaliação das respostas do modelo) |
 | `docs/vision.pt-BR.md` | visão do produto e os 4 perfis de projeto |
 | `docs/architecture.md` | contratos: formato do JSON, tipos, API (em inglês) |
