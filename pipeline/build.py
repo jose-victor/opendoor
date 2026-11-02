@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Gera os dados do site a partir do banco (contrato em docs/arquitetura.md).
+"""Builds the site's data from the database (contract in docs/arquitetura.md).
 
-  python pipeline/build.py   ->  web/public/data/projects.json e web/public/data/skills.json
+  python pipeline/build.py   ->  web/public/data/projects.json and web/public/data/skills.json
 
-Antes, rode (com cache, só o que falta): pipeline/opportunities.py (sugestões da LLM) e
-pipeline/classify_ai_policy.py (política de IA) e pipeline/guides.py (guia por projeto);
-sem eles, os campos saem neutros.
+Run these first (cached, only what's missing): pipeline/opportunities.py (LLM suggestions),
+pipeline/classify_ai_policy.py (AI policy) and pipeline/guides.py (per-project guide);
+without them, those fields come out neutral.
 """
 import gzip
 import json
@@ -24,7 +24,7 @@ OUT = ROOT / "web" / "public" / "data"
 MIN_PROJECTS_PER_SKILL = 5
 MIN_PRS_FOR_OPENNESS = 5
 MIN_ACCEPTANCE = 0.2
-MIN_NEW_PEOPLE = 5  # pessoas novas que abriram PR em 12 meses, para a taxa por pessoa valer  # flask aceitou 4% dos PRs de fora em 12 meses; tornado, 30%
+MIN_NEW_PEOPLE = 5  # new people who opened a PR in 12 months, for the per-person rate to count  # flask accepted 4% of outside PRs in 12 months; tornado, 30%
 GUARDIAN_DEPENDENTS = 100_000
 YEAR_FIELDS = ["prs_opened", "prs_merged", "issues_opened", "issues_closed", "commits", "direct_commits", "people"]
 
@@ -36,37 +36,37 @@ def months_ago(n):
 
 
 def profile_of(dependents, maintainers, openness, newcomer_open, open_issues, acceptance=None, recent_merged=None):
-    """Os 4 perfis de docs/vision.md, nesta ordem de prioridade.
+    """The 4 profiles from docs/vision.md, in this order of priority.
 
-    acceptance: dos PRs que gente de fora abriu em 12 meses, a fatia aceita (None = menos de 5 PRs de fora).
-    recent_merged: PRs aceitos nos 3 últimos meses fechados (None = sem dados).
+    acceptance: of the PRs outsiders opened in 12 months, the share accepted (None = fewer than 5 outside PRs).
+    recent_merged: PRs accepted in the last 3 closed months (None = no data).
     """
     if (dependents or 0) >= GUARDIAN_DEPENDENTS and 1 <= maintainers <= 2:
-        return "guardiao"      # muita gente depende, 1 ou 2 pessoas cuidam (0 = parado, cai em estável)
-    accepts = acceptance is None or acceptance >= MIN_ACCEPTANCE  # quando se sabe, PR de fora precisa ter chance real
+        return "guardian"      # many depend on it, 1 or 2 people maintain it (0 = stalled, falls into stable)
+    accepts = acceptance is None or acceptance >= MIN_ACCEPTANCE  # when known, an outside PR must have a real chance
     if accepts and openness is not None and (openness >= 0.25 or (openness >= 0.1 and newcomer_open > 0)):
-        return "porta_aberta"
-    # precisa de mãos: aceita gente de fora de verdade e ainda aceita PRs (não é um beco)
+        return "open_door"
+    # needs hands: really accepts outsiders and still merges PRs (not a dead end)
     outsiders = openness >= 0.1 if openness is not None else newcomer_open > 0
     if open_issues >= 30 and 1 <= maintainers <= 3 and outsiders and accepts and (recent_merged or 0) > 0:
-        return "precisa_de_maos"
-    return "estavel"
+        return "needs_hands"
+    return "stable"
 
 
-# O que o CONTRIBUTING pede explicitamente (texto de terceiros: só procuramos palavras, nunca seguimos instruções)
+# What CONTRIBUTING explicitly asks for (third-party text: we only look for words, never follow instructions)
 ASKS = {
-    "documentacao": (re.compile(r"\b(documentation|docs?)\b.{0,40}\b(help|contribut\w*|improv\w*|welcome|fix\w*)|"
-                                r"\b(help|contribut\w*|improv\w*|welcome)\b.{0,40}\b(documentation|docs)\b", re.I | re.S),
-                     "o guia de contribuição menciona documentação"),
-    "traducao": (re.compile(r"\b(translat\w*|locali[sz]ation|i18n|l10n|crowdin|weblate|transifex)\b", re.I),
-                 "o guia de contribuição menciona tradução"),
-    "testes": (re.compile(r"\b(add|write|writing|adding|improv\w*|more)\b.{0,20}\btests?\b|\btest coverage\b|"
-                          r"\b(observability|telemetry|tracing|opentelemetry)\b", re.I | re.S),
-               "o guia de contribuição menciona testes ou observabilidade"),
-    "revisao": (re.compile(r"\breview(ing)? (pull requests|prs|other)\b", re.I),
-                "o guia de contribuição menciona revisar PRs"),
+    "documentation": (re.compile(r"\b(documentation|docs?)\b.{0,40}\b(help|contribut\w*|improv\w*|welcome|fix\w*)|"
+                                 r"\b(help|contribut\w*|improv\w*|welcome)\b.{0,40}\b(documentation|docs)\b", re.I | re.S),
+                      "o guia de contribuição menciona documentação"),
+    "translation": (re.compile(r"\b(translat\w*|locali[sz]ation|i18n|l10n|crowdin|weblate|transifex)\b", re.I),
+                    "o guia de contribuição menciona tradução"),
+    "tests": (re.compile(r"\b(add|write|writing|adding|improv\w*|more)\b.{0,20}\btests?\b|\btest coverage\b|"
+                         r"\b(observability|telemetry|tracing|opentelemetry)\b", re.I | re.S),
+              "o guia de contribuição menciona testes ou observabilidade"),
+    "review": (re.compile(r"\breview(ing)? (pull requests|prs|other)\b", re.I),
+               "o guia de contribuição menciona revisar PRs"),
 }
-# "não fazemos merge de traduções" (tdesktop), "não envie PRs de tradução" (Signal)
+# "we don't merge translations" (tdesktop), "don't send translation PRs" (Signal)
 NO_TRANSLATION = re.compile(r"\b(do not|don't|not|no|never|won't)\b[^.\n]{0,120}\btranslat\w*|\btranslat\w*[^.\n]{0,40}\b(elsewhere|not accepted|are not merged)\b", re.I)
 
 
@@ -75,60 +75,60 @@ def n_(n, one, many):
 
 
 def opportunities_of(r, profile, openness, maintainers, newcomer_open, scorecard, guide, recent_merged=None):
-    """D5: formas de contribuir com fonte 'projeto' (o guia menciona) ou 'dados' (os números mostram)."""
+    """D5: ways to contribute with source 'project' (the guide mentions it) or 'data' (the numbers show it)."""
     out = []
     for way, (rx, note) in ASKS.items():
-        if guide and rx.search(guide) and not (way == "traducao" and NO_TRANSLATION.search(guide)):
-            out.append({"way": way, "source": "projeto", "note": note})
+        if guide and rx.search(guide) and not (way == "translation" and NO_TRANSLATION.search(guide)):
+            out.append({"way": way, "source": "project", "note": note})
     open_issues, open_prs = r["open_issues"] or 0, r["open_prs"] or 0
     if newcomer_open:
-        out.append({"way": "codigo", "source": "projeto", "note": f"{n_(newcomer_open, 'issue aberta', 'issues abertas')} com \"good first issue\", \"help wanted\" ou parecido"})
+        out.append({"way": "code", "source": "project", "note": f"{n_(newcomer_open, 'issue aberta', 'issues abertas')} com \"good first issue\", \"help wanted\" ou parecido"})
     elif openness is not None and openness >= 0.1:
-        out.append({"way": "codigo", "source": "dados", "note": f"{round(openness * 100)}% dos PRs aceitos no último ano vieram de fora"})
+        out.append({"way": "code", "source": "data", "note": f"{round(openness * 100)}% dos PRs aceitos no último ano vieram de fora"})
     if open_issues >= 100 or (open_issues >= 30 and maintainers <= 3):
-        out.append({"way": "triagem", "source": "dados", "note": f"{open_issues} issues abertas para {n_(maintainers, 'pessoa que mantém', 'pessoas que mantêm')}"})
-    # revisar só ajuda se alguém aceita: sem PR aceito nos últimos 3 meses, os PRs abertos estão parados
-    if open_prs >= 20 and (recent_merged or 0) > 0 and not any(o["way"] == "revisao" for o in out):
-        out.append({"way": "revisao", "source": "dados", "note": f"{open_prs} PRs abertos: dá para rodar, reproduzir o bug e validar o fix"})
-    if profile == "guardiao" or (scorecard is not None and scorecard < 5):
+        out.append({"way": "triage", "source": "data", "note": f"{open_issues} issues abertas para {n_(maintainers, 'pessoa que mantém', 'pessoas que mantêm')}"})
+    # reviewing only helps if someone merges: with no PR merged in the last 3 months, open PRs are stuck
+    if open_prs >= 20 and (recent_merged or 0) > 0 and not any(o["way"] == "review" for o in out):
+        out.append({"way": "review", "source": "data", "note": f"{open_prs} PRs abertos: dá para rodar, reproduzir o bug e validar o fix"})
+    if profile == "guardian" or (scorecard is not None and scorecard < 5):
         note = f"OpenSSF Scorecard {scorecard:.1f}/10" if scorecard is not None else "muita gente depende, 1 ou 2 pessoas cuidam"
-        out.append({"way": "seguranca", "source": "dados", "note": note})
+        out.append({"way": "security", "source": "data", "note": note})
     return out
 
 
 def beginner_checks(debuts, tried, outside_recent, has_guide, review=None):
-    """Pronto para iniciante: os dados mostram que gente nova está conseguindo entrar. Todas as 4 precisam passar.
+    """Beginner-ready: the data shows new people are managing to get in. All 4 must pass.
 
-    debuts: pessoas de fora com o 1º PR aceito em 12 meses; tried: pessoas novas que abriram PR em 12 meses.
+    debuts: outsiders whose 1st PR was accepted in 12 months; tried: new people who opened a PR in 12 months.
     """
     if debuts is not None:
-        tried = max(tried or 0, debuts)  # quem abriu o PR antes da janela e estreou dentro dela também tentou ("20 de 19")
+        tried = max(tried or 0, debuts)  # whoever opened the PR before the window and debuted inside it also tried ("20 de 19")
     rate = debuts / tried if debuts is not None and tried and tried >= MIN_NEW_PEOPLE else None
     checks = [
-        ("estreias", (debuts or 0) >= 2,
+        ("debuts", (debuts or 0) >= 2,
          f"{n_(debuts, 'pessoa teve', 'pessoas tiveram')} o 1º PR aceito no último ano" if debuts is not None
          else "sem dados de estreias (repo grande: só temos uma amostra recente de PRs)"),
-        ("aceite", rate is not None and rate >= 0.25,
+        ("acceptance", rate is not None and rate >= 0.25,
          f"{debuts} de {tried} pessoas novas que abriram PR tiveram aceito" if rate is not None
          else f"poucas pessoas novas tentaram ({tried or 0}) para medir"),
-        # vivo para quem chega: PRs de gente de fora aceitos agora (merges internos e de bots não contam; nbformat)
-        ("vivo", outside_recent >= 2, f"{n_(outside_recent, 'PR de gente de fora aceito', 'PRs de gente de fora aceitos')} nos últimos 3 meses"),
-        # quem chega precisa de retorno: metade dos PRs de fora respondida em até 14 dias e no máximo 25% parados
-        ("resposta", review is not None and review["median_days"] <= 14 and review["stale_open"] <= 0.25 * review["prs"],
+        # active for newcomers: outside PRs accepted now (internal and bot merges don't count; nbformat)
+        ("active", outside_recent >= 2, f"{n_(outside_recent, 'PR de gente de fora aceito', 'PRs de gente de fora aceitos')} nos últimos 3 meses"),
+        # newcomers need feedback: half of outside PRs answered within 14 days and at most 25% stale
+        ("response", review is not None and review["median_days"] <= 14 and review["stale_open"] <= 0.25 * review["prs"],
          (("metade dos PRs de fora tem retorno no mesmo dia" if review["median_days"] == 0 else
            f"metade dos PRs de fora tem retorno em até {review['median_days']} {'dia' if review['median_days'] == 1 else 'dias'}")
           + (f"; {review['stale_open']} de {review['prs']} estão parados há mais de 30 dias sem revisão" if review["stale_open"] else ""))
          if review is not None else "sem dados de tempo de resposta"),
-        ("guia", has_guide, "tem guia de contribuição (CONTRIBUTING)" if has_guide else "não tem guia de contribuição (CONTRIBUTING)"),
+        ("guide", has_guide, "tem guia de contribuição (CONTRIBUTING)" if has_guide else "não tem guia de contribuição (CONTRIBUTING)"),
     ]
     return {"ready": all(ok for _, ok, _ in checks), "checks": [{"key": k, "ok": ok, "text": t} for k, ok, t in checks]}
 
 
 def review_of(path, maintainers, bots, now):
-    """Retorno aos PRs de gente de fora abertos em 12 meses, do cache bruto da etapa activity.
+    """Feedback on outside PRs opened in 12 months, from the activity step's raw cache.
 
-    Primeiro retorno = primeira revisão de outra pessoa, merge ou fechamento. PR sem retorno conta com o tempo
-    que já esperou. Parado = aberto há mais de 30 dias sem nenhuma revisão.
+    First feedback = first review by someone else, merge or close. A PR with no feedback counts with the time
+    it has waited so far. Stale = open for more than 30 days with no review.
     """
     parse = lambda t: datetime.strptime(t, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
     waits, stale = [], 0
@@ -176,14 +176,14 @@ def main():
     newcomer = dict(db.execute("SELECT repo, newcomer_open FROM repo_labels")) if table_exists(db, "repo_labels") else {}
     sample = {r["repo"]: r for r in db.execute("SELECT * FROM repo_sample")} if table_exists(db, "repo_sample") else {}
     commit_since = dict(db.execute("SELECT repo, since FROM commit_coverage")) if table_exists(db, "commit_coverage") else {}
-    # Abertura: do que entrou no projeto nos últimos 12 meses (PRs aceitos + commits diretos de quem mantém),
-    # a fatia que veio de quem não faz merge nem commit direto. Vale para todos os repos que têm participation;
-    # nos grandes ela vem da amostra de PRs (sem commits diretos). O authorAssociation do GitHub engana
-    # (membro com participação privada na organização aparece como CONTRIBUTOR), então só é usado sem participation.
+    # Openness: of what went into the project in the last 12 months (merged PRs + maintainers' direct commits),
+    # the share that came from people who neither merge nor commit directly. Applies to every repo with participation;
+    # for large ones it comes from the PR sample (no direct commits). GitHub's authorAssociation is misleading
+    # (a member with private org membership shows up as CONTRIBUTOR), so it's only used without participation.
     cut12 = months_ago(12)
     bots = "'github-actions','dependabot','dependabot-preview','renovate','greenkeeper','pre-commit-ci','mergify','allcontributors','web-flow','copilot','imgbot','snyk-bot'"
-    human = f"is_bot = 0 AND login NOT LIKE '%bot' AND login NOT IN ({bots})"  # bots com nome de gente (antfubot, prombot) não marcam is_bot
-    # quem mantém: fez merge, ou fez 3+ commits diretos em 24 meses (commit de terceiro aplicado à mão fica no nome do autor)
+    human = f"is_bot = 0 AND login NOT LIKE '%bot' AND login NOT IN ({bots})"  # bots with human-like names (antfubot, prombot) don't set is_bot
+    # maintainer: merged, or made 3+ direct commits in 24 months (a third-party commit applied by hand keeps the author's name)
     maintainers_sql = (f"SELECT repo, login FROM participation WHERE {human} AND month >= ? "
                        "AND role IN ('pr_merger', 'direct_committer') GROUP BY repo, login "
                        "HAVING SUM(role = 'pr_merger') > 0 OR SUM(CASE WHEN role = 'direct_committer' THEN n ELSE 0 END) >= 3")
@@ -196,17 +196,17 @@ def main():
     direct12 = dict(db.execute(f"SELECT repo, SUM(n) FROM participation WHERE role = 'direct_committer' AND {human} "
                                "AND month >= ? GROUP BY repo", (cut12,)))
     maint = dict(db.execute(f"SELECT repo, COUNT(*) FROM ({maintainers_sql}) GROUP BY repo", (cut24,)))
-    # Taxa de aceite: dos PRs que gente de fora abriu em 12 meses, quantos foram aceitos (precisa de 5+ PRs de fora).
+    # Acceptance rate: of the PRs outsiders opened in 12 months, how many were accepted (needs 5+ outside PRs).
     acceptance = {r: round(min(1, m / a), 2) for r, a, m in db.execute(
         f"WITH m AS ({maintainers_sql}) SELECT p.repo, SUM(CASE WHEN p.role = 'pr_author' THEN p.n ELSE 0 END), "
         "SUM(CASE WHEN p.role = 'merged_pr_author' THEN p.n ELSE 0 END) FROM participation p "
         "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login WHERE m.login IS NULL AND p.is_bot = 0 "
         f"AND p.login NOT LIKE '%bot' AND p.login NOT IN ({bots}) AND p.month >= ? AND p.role IN ('pr_author', 'merged_pr_author') GROUP BY p.repo",
         (cut24, cut12)) if a >= MIN_PRS_FOR_OPENNESS}
-    # Estreias: pessoas de fora cujo primeiro PR aceito (na história coletada) foi nos últimos 12 meses.
-    # Aceite de quem é novo, por pessoa: das pessoas de fora que abriram PR em 12 meses e nunca tinham tido um
-    # aceito antes, quantas tiveram (= estreias). Colaborador antigo sem permissão de merge (kleisauke no
-    # sharp-libvips, 29 de 29) não conta: para quem chega, a pergunta é "gente nova consegue entrar?".
+    # Debuts: outsiders whose first accepted PR (in the collected history) was in the last 12 months.
+    # Newcomer acceptance, per person: of the outsiders who opened a PR in 12 months and never had one
+    # accepted before, how many did (= debuts). A long-time contributor without merge rights (kleisauke on
+    # sharp-libvips, 29 of 29) doesn't count: for newcomers, the question is "can new people get in?".
     tried_new = dict(db.execute(
         f"WITH m AS ({maintainers_sql}), f AS (SELECT repo, login, MIN(month) first FROM participation "
         f"WHERE role = 'merged_pr_author' AND {human} GROUP BY repo, login) "
@@ -219,11 +219,11 @@ def main():
         f"WHERE role = 'merged_pr_author' AND {human} GROUP BY repo, login) "
         "SELECT f.repo, COUNT(*) FROM f LEFT JOIN m ON m.repo = f.repo AND m.login = f.login "
         "WHERE m.login IS NULL AND f.first >= ? GROUP BY f.repo", (cut24, cut12)))
-    # Nos grandes, a participation vem só da amostra recente; se ela cobre menos de 12 meses, vale a amostra.
+    # For large repos, participation only comes from the recent sample; if it covers less than 12 months, the sample wins.
     part_from = dict(db.execute("SELECT repo, MIN(month) FROM participation WHERE role = 'merged_pr_author' GROUP BY repo"))
-    # Repos que mudaram de dono aparecem duas vezes (facebook/react e react/react): fica o que tem mais meses coletados.
-    # shortcut: nomes antigos que o GitHub redireciona (conferidos à mão); com dados iguais, fica o nome atual.
-    # Melhor: guardar o nameWithOwner devolvido pela API na etapa repos.
+    # Repos that changed owner appear twice (facebook/react and react/react): keep the one with more collected months.
+    # shortcut: old names GitHub redirects (checked by hand); with equal data, the current name wins.
+    # Better: store the nameWithOwner returned by the API in the repos step.
     old_names = {"facebook/react", "facebook/jest", "dcodeio/protobuf.js"}
     keep = {}
     for repo, key, n in db.execute("SELECT r.repo, r.created_at || '|' || r.stars, COUNT(m.month) FROM repos r "
@@ -232,11 +232,11 @@ def main():
             keep[key] = (repo, n)
     canonical = {repo for repo, _ in keep.values()}
 
-    guides = defaultdict(str)  # CONTRIBUTING (qualquer caminho) de cada repo
+    guides = defaultdict(str)  # each repo's CONTRIBUTING (any path)
     for repo, text in db.execute("SELECT repo, text FROM repo_files WHERE path LIKE '%CONTRIBUTING.md'"):
         guides[repo] += text or ""
     ai_opps = {r: json.loads(s) for r, s in db.execute("SELECT repo, suggestions FROM repo_opportunities")} \
-        if table_exists(db, "repo_opportunities") else {}  # D5 camada 2 (pipeline/opportunities.py)
+        if table_exists(db, "repo_opportunities") else {}  # D5 layer 2 (pipeline/opportunities.py)
     guide_of = {r: json.loads(g) for r, g in db.execute("SELECT repo, guide FROM project_guides")} \
         if table_exists(db, "project_guides") else {}  # G1 (pipeline/guides.py)
     topics, langs = {}, {}
@@ -244,13 +244,13 @@ def main():
         for repo, t, l in db.execute("SELECT repo, topics, languages FROM repo_topics"):
             topics[repo] = json.loads(t)
             sizes = json.loads(l or "{}")
-            langs[repo] = [k for k, v in sizes.items() if v >= 0.1 * sum(sizes.values())]  # 10%+ do código
-    deps = defaultdict(set)  # dependências diretas do pacote publicado pelo repo (npm, PyPI, Go)
+            langs[repo] = [k for k, v in sizes.items() if v >= 0.1 * sum(sizes.values())]  # 10%+ of the code
+    deps = defaultdict(set)  # direct dependencies of the package the repo publishes (npm, PyPI, Go)
     for repo, dep in db.execute("SELECT DISTINCT p.repo, e.to_name FROM packages p JOIN dep_edges e "
                                 "ON e.system = p.system AND e.from_name = p.name WHERE p.repo IS NOT NULL"):
         deps[repo].add(dep)
 
-    # Atividade recente: os 3 últimos meses fechados (os dados são mensais; o mês corrente fica de fora).
+    # Recent activity: the last 3 closed months (data is monthly; the current month is left out).
     last = db.execute("SELECT MAX(month) FROM repo_monthly").fetchone()[0]
     recent_from = months_ago(3) if last is None else f"{int(last[:4]) - (int(last[5:]) <= 2)}-{(int(last[5:]) - 3) % 12 + 1:02d}"
     recent = {r[0]: dict(since=recent_from, until=last, issues_opened=r[1], issues_closed=r[2], prs_opened=r[3], prs_merged=r[4])
@@ -262,7 +262,7 @@ def main():
         "LEFT JOIN m ON m.repo = p.repo AND m.login = p.login WHERE p.role = 'merged_pr_author' AND m.login IS NULL "
         f"AND p.{human.replace(' AND login', ' AND p.login')} AND p.month >= ? GROUP BY p.repo", (cut24, recent_from)))
 
-    # Tempo até o primeiro retorno nos PRs de gente de fora (só repos com o cache bruto da activity).
+    # Time to first feedback on outside PRs (only repos with the activity raw cache).
     maintainer_sets = defaultdict(set)
     for repo, login in db.execute(maintainers_sql, (cut24,)):
         maintainer_sets[repo].add(login)
@@ -290,21 +290,21 @@ def main():
         repo = r["repo"]
         if repo not in canonical:
             continue
-        large = r["collection_mode"] == "contagem+amostra"
+        large = r["collection_mode"] == "sampled"
         smp = sample.get(repo)
-        if large:  # pessoas e commits diretos não existem para os grandes; abertura e mergers vêm da amostra
+        if large:  # people and direct commits don't exist for large repos; openness and mergers come from the sample
             for v in years[repo].values():
                 v.update(people=None, direct_commits=None)
         since = max(filter(None, [r["activity_since"] or "2018-01", commit_since.get(repo)]))
-        partial = large and (part_from.get(repo) or "9999") > cut12  # amostra de menos de 12 meses
+        partial = large and (part_from.get(repo) or "9999") > cut12  # sample covering less than 12 months
         if repo in merged12 and not large and repo not in commit_since:
-            total, outside = 0, 0  # sem os commits diretos, a abertura sairia inflada (csstree: 100% contra ~33% real)
+            total, outside = 0, 0  # without direct commits, openness would be inflated (csstree: 100% vs ~33% real)
         elif repo in merged12 and not partial:
             merged, outside = merged12[repo]
             total = merged + (direct12.get(repo) or 0)
         elif large and smp and smp["outsider_prs"] < 0.95 * smp["human_prs"]:
-            # shortcut: authorAssociation diz CONTRIBUTOR para membro com participação privada; 95%+ "de fora" é esse
-            # sintoma (Tailwind) e vira "sem dados". Melhor: coletar o mergedBy da amostra na participation.
+            # shortcut: authorAssociation says CONTRIBUTOR for members with private membership; 95%+ "outside" is that
+            # symptom (Tailwind) and becomes "no data". Better: collect the sample's mergedBy into participation.
             total, outside = smp["human_prs"], smp["outsider_prs"]
         else:
             total, outside = 0, 0
@@ -318,18 +318,18 @@ def main():
         deb = None if large else debuts.get(repo, 0)
         review = reviews.get(repo)
         beginner = beginner_checks(deb, tried_new.get(repo, 0), outside_recent.get(repo) or 0, bool(guides.get(repo)), review)
-        if profile == "guardiao":
-            beginner["ready"] = False  # crítico e com 1 ou 2 pessoas cuidando: não é lugar para aprender
-        if profile == "porta_aberta" and deb == 0:
-            profile = "estavel"  # ninguém novo entrou em 12 meses: não é porta aberta para quem chega (sharp-libvips)
-        if beginner["ready"] and profile == "estavel":
-            profile = "porta_aberta"  # postcss: abertura baixa (muitos commits do mantenedor), mas acolhe bem quem chega
+        if profile == "guardian":
+            beginner["ready"] = False  # critical and maintained by 1 or 2 people: not a place to learn
+        if profile == "open_door" and deb == 0:
+            profile = "stable"  # nobody new got in for 12 months: not an open door for newcomers (sharp-libvips)
+        if beginner["ready"] and profile == "stable":
+            profile = "open_door"  # postcss: low openness (many maintainer commits), but welcomes newcomers well
         opps = opportunities_of(r, profile, openness, maintainers, newcomer.get(repo) or 0, scorecard.get(repo), guides[repo],
                                 rec_merged)
-        if beginner["ready"] and not any(o["way"] == "codigo" for o in opps):
-            opps.append({"way": "codigo", "source": "dados", "note": f"{n_(deb, 'pessoa teve', 'pessoas tiveram')} o 1º PR aceito aqui no último ano"})
-        facts = list(dict.fromkeys(o["way"] for o in opps))  # needs: só o que o guia menciona ou os números mostram
-        opps += [{**g, "source": "gemini"} for g in ai_opps.get(repo, []) if g["way"] not in facts]  # o cache do banco guarda a fonte antiga
+        if beginner["ready"] and not any(o["way"] == "code" for o in opps):
+            opps.append({"way": "code", "source": "data", "note": f"{n_(deb, 'pessoa teve', 'pessoas tiveram')} o 1º PR aceito aqui no último ano"})
+        facts = list(dict.fromkeys(o["way"] for o in opps))  # needs: only what the guide mentions or the numbers show
+        opps += [{**g, "source": "gemini"} for g in ai_opps.get(repo, []) if g["way"] not in facts]  # the DB cache stores the old source
         projects.append({
             "repo": repo,
             "url": f"https://github.com/{repo}",
@@ -355,13 +355,13 @@ def main():
             "newcomer_open": newcomer.get(repo) or 0,
             "scorecard": scorecard.get(repo),
             "ai_policy": ai_policy.get(repo, {"classification": "unknown", "evidence": "", "source_file": ""}),
-            "collection": "contagem+amostra" if large else "completo",
+            "collection": "sampled" if large else "full",
             "coverage_since": since,
-            # anos anteriores ao início da cobertura ficam de fora para não parecerem "zero atividade"
+            # years before coverage starts are left out so they don't look like "zero activity"
             "years": {y: v for y, v in sorted(years[repo].items()) if y >= since[:4]},
         })
 
-    # só entra no filtro quem tem projetos suficientes: um checkbox que não devolve nada é ruído
+    # only skills with enough projects go into the filter: a checkbox that returns nothing is noise
     count = defaultdict(int)
     for p in projects:
         for sid in p["skills"]:
@@ -378,23 +378,23 @@ def main():
         json.dumps(skills, ensure_ascii=False, indent=1), encoding="utf-8"
     )
     size = (OUT / "projects.json").stat().st_size / 1e6
-    print(f"{len(projects)} projetos ({size:.1f} MB), {len(skills)} habilidades -> {OUT.relative_to(ROOT)}")
+    print(f"{len(projects)} projects ({size:.1f} MB), {len(skills)} skills -> {OUT.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
-    assert profile_of(912_802, 1, None, 0, 10) == "guardiao"          # debug-js/debug
-    assert profile_of(110_496, 5, 0.57, 1, 40) == "porta_aberta"      # expressjs/express
-    assert profile_of(500_000, 0, None, 0, 3) == "estavel"            # parado há 24 meses
-    assert profile_of(None, 2, 0.15, 0, 120, 0.3, 4) == "precisa_de_maos"
-    assert profile_of(None, 2, 0.15, 0, 120, 0.3, 0) == "estavel"           # nenhum PR aceito em 3 meses: beco
-    assert profile_of(None, 5, 0.42, 3, 300, 0.04, 20) == "estavel"         # flask: 4% dos PRs de fora aceitos
-    assert profile_of(None, 1, 0.04, 0, 900) == "estavel"             # open-webui: quase nada de fora entra
+    assert profile_of(912_802, 1, None, 0, 10) == "guardian"          # debug-js/debug
+    assert profile_of(110_496, 5, 0.57, 1, 40) == "open_door"         # expressjs/express
+    assert profile_of(500_000, 0, None, 0, 3) == "stable"             # stalled for 24 months
+    assert profile_of(None, 2, 0.15, 0, 120, 0.3, 4) == "needs_hands"
+    assert profile_of(None, 2, 0.15, 0, 120, 0.3, 0) == "stable"            # no PR merged in 3 months: dead end
+    assert profile_of(None, 5, 0.42, 3, 300, 0.04, 20) == "stable"          # flask: 4% of outside PRs accepted
+    assert profile_of(None, 1, 0.04, 0, 900) == "stable"              # open-webui: almost nothing from outside gets in
     ok_review = {"median_days": 3, "stale_open": 2, "prs": 50}
-    assert beginner_checks(13, 30, 9, True, ok_review)["ready"]           # 13 de 30 pessoas novas entraram
+    assert beginner_checks(13, 30, 9, True, ok_review)["ready"]           # 13 of 30 new people got in
     assert not beginner_checks(13, 30, 9, True, {"median_days": 24, "stale_open": 41, "prs": 107})["ready"]  # sqlparse
-    assert not beginner_checks(13, 30, 1, True, ok_review)["ready"]                  # só 1 PR de fora aceito em 3 meses (nbformat)
-    assert "20 de 20" in beginner_checks(20, 19, 9, True, ok_review)["checks"][1]["text"]  # nunca "20 de 19"
-    assert not beginner_checks(None, 30, 40, True)["ready"]               # repo grande: sem dados de estreias
-    assert not beginner_checks(6, 150, 20, True)["ready"]                 # 6 de 150: 4%
-    assert not beginner_checks(0, 1, 30, True)["ready"]                   # sharp-libvips: 0 de 1
+    assert not beginner_checks(13, 30, 1, True, ok_review)["ready"]                  # only 1 outside PR accepted in 3 months (nbformat)
+    assert "20 de 20" in beginner_checks(20, 19, 9, True, ok_review)["checks"][1]["text"]  # never "20 de 19"
+    assert not beginner_checks(None, 30, 40, True)["ready"]               # large repo: no debut data
+    assert not beginner_checks(6, 150, 20, True)["ready"]                 # 6 of 150: 4%
+    assert not beginner_checks(0, 1, 30, True)["ready"]                   # sharp-libvips: 0 of 1
     main()

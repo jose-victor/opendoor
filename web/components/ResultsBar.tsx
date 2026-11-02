@@ -1,5 +1,5 @@
 "use client";
-// Filtros e ordem da lista de resultados (em cima das portas). Só recortam o que o match já achou.
+// Filters and order of the results list (above the doors). They only narrow what the match already found.
 import { AI_LABELS, PROFILE_LABELS, PROFILE_TONE } from "@/lib/labels";
 import type { AiPolicy, Profile, Project } from "@/lib/types";
 
@@ -9,7 +9,7 @@ export type ResultFilter = {
   ai: AiPolicy["classification"] | "any";
   newcomerOnly: boolean;
   sort: Sort;
-  q: string; // busca no nome, no dono, na descrição e no resumo
+  q: string; // searches the name, owner, description and summary
 };
 export const NO_FILTER: ResultFilter = {
   profiles: [],
@@ -19,7 +19,7 @@ export const NO_FILTER: ResultFilter = {
   q: "",
 };
 
-// minúsculas e sem acento: "traducao" acha "tradução"
+// lowercase without accents: "traducao" matches "tradução"
 const norm = (s: string) =>
   s
     .normalize("NFD")
@@ -33,9 +33,9 @@ const SORTS: Record<Sort, string> = {
   stars: "Mais estrelas",
 };
 const SHOWN_PROFILES: Profile[] = [
-  "porta_aberta",
-  "precisa_de_maos",
-  "guardiao",
+  "open_door",
+  "needs_hands",
+  "guardian",
 ];
 
 export function applyFilter(list: Project[], f: ResultFilter): Project[] {
@@ -56,7 +56,7 @@ export function applyFilter(list: Project[], f: ResultFilter): Project[] {
   if (f.sort === "newcomer")
     out.sort((a, b) => b.newcomer_open - a.newcomer_open);
   if (f.sort === "stars") out.sort((a, b) => b.stars - a.stars);
-  return out; // "match": mantém a ordem do rankProjects
+  return out; // "match": keeps the rankProjects order
 }
 
 const chip = (on: boolean) =>
@@ -101,7 +101,7 @@ export default function ResultsBar({
   filter: ResultFilter;
   onChange: (f: ResultFilter) => void;
   counts: Record<Profile, number>;
-  newcomerCount: number; // quantos da lista têm issue "good first issue"/"help wanted" aberta
+  newcomerCount: number; // how many in the list have an open "good first issue"/"help wanted" issue
 }) {
   const toggle = (p: Profile) =>
     onChange({

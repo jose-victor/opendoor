@@ -1,5 +1,5 @@
 "use client";
-// S1: o que a pessoa sabe, o nível e como quer ajudar. O estado é um UserProfile (docs/arquitetura.md).
+// S1: what the person knows, their level and how they want to help. The state is a UserProfile (docs/arquitetura.md).
 import { LEVEL_LABELS, WAY_LABELS } from "@/lib/labels";
 import { LEVELS, WAYS, type Skill, type UserProfile } from "@/lib/types";
 
@@ -59,7 +59,7 @@ export default function FilterPanel({ skills, profile, onChange }: { skills: Ski
           ))}
         </div>
       </Group>
-      <Group label="Linguagens que você usa">{chips("linguagem")}</Group>
+      <Group label="Linguagens que você usa">{chips("language")}</Group>
       <details className="group space-y-2" open={areasOn > 0}>
         <summary className="cursor-pointer list-none text-sm font-semibold">
           Áreas de interesse <span className="font-normal text-muted">{areasOn ? `(${areasOn} marcadas)` : "(opcional)"}</span>

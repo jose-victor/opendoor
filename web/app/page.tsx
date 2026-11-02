@@ -1,5 +1,5 @@
 "use client";
-// Home: S1 (filtros, na coluna da esquerda) + S2 (portas). O match roda no navegador (lib/match.ts).
+// Home: S1 (filters, in the left column) + S2 (doors). The match runs in the browser (lib/match.ts).
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import DoorCard from "@/components/DoorCard";
@@ -18,8 +18,8 @@ const PAGE = 20;
 
 const EXAMPLE: UserProfile = {
   skills: ["javascript", "frontend"],
-  level: "iniciante",
-  ways: ["documentacao", "testes"],
+  level: "beginner",
+  ways: ["documentation", "tests"],
 };
 
 export default function Home() {
@@ -33,7 +33,7 @@ export default function Home() {
     const saved = loadProfile();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage only exists after mount; reading it here keeps the server HTML identical
     if (saved.skills.length || saved.ways.length) setProfile(saved);
-    else saveProfile(EXAMPLE); // a página do projeto usa o mesmo perfil de exemplo
+    else saveProfile(EXAMPLE); // the project page uses the same example profile
     Promise.all([
       fetch("/data/projects.json").then((r) => r.json()),
       fetch("/data/skills.json").then((r) => r.json()),
@@ -53,21 +53,21 @@ export default function Home() {
 
   const languages = useMemo(
     () =>
-      new Set(skills.filter((s) => s.kind === "linguagem").map((s) => s.id)),
+      new Set(skills.filter((s) => s.kind === "language").map((s) => s.id)),
     [skills],
   );
   const doors = useMemo(
     () => (projects ? rankProjects(projects, profile, languages) : []),
     [projects, profile, languages],
   );
-  const total = projects?.filter((p) => p.profile !== "estavel").length ?? 0;
+  const total = projects?.filter((p) => p.profile !== "stable").length ?? 0;
   const list = useMemo(() => applyFilter(doors, filter), [doors, filter]);
   const counts = useMemo(() => {
     const c = {
-      porta_aberta: 0,
-      precisa_de_maos: 0,
-      guardiao: 0,
-      estavel: 0,
+      open_door: 0,
+      needs_hands: 0,
+      guardian: 0,
+      stable: 0,
     } as Record<Profile, number>;
     for (const p of doors) c[p.profile]++;
     return c;

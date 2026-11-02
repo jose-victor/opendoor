@@ -3,7 +3,7 @@
 OpenDoor: plataforma que recomenda portas de entrada em projetos open source. Projeto da comunidade (nasceu no Hacktoberfest Hack Day SJC 2026). Contexto em `README.md`, `docs/vision.md` e `CONTRIBUTING.md`.
 
 ## Idioma
-- **Código em inglês:** identificadores, comentários e docstrings. O código antigo, ainda em português, está sendo migrado na #90.
+- **Código em inglês:** identificadores, comentários, docstrings, logs e valores do contrato (`open_door`, `beginner`, `tests`...). Ficam em pt-BR só os textos que aparecem no site e a prosa dos prompts, que pedem saída em pt-BR.
 - **Docs de entrada em inglês e pt-BR:** `README.md`/`README.pt-BR.md`, `CONTRIBUTING.md`/`CONTRIBUTING.pt-BR.md`, `docs/vision.md`/`docs/vision.pt-BR.md`. Mudou um? Mude o outro no mesmo PR.
 - **Docs técnicos em inglês** (`docs/arquitetura.md` e `docs/dados.md` serão traduzidos na #91).
 - O texto do site (UI) segue em pt-BR por enquanto (#50), com acentuação correta.
@@ -11,12 +11,14 @@ OpenDoor: plataforma que recomenda portas de entrada em projetos open source. Pr
 ## Comandos
 ```bash
 python pipeline/collect.py selftest     # rode depois de mexer na agregação
+python pipeline/build.py                # auto-testes do perfil e do selo, depois gera web/public/data/
+python pipeline/guides.py selftest      # auto-testes sem chamar o modelo (idem opportunities.py)
 python pipeline/collect.py stats        # resumo do banco
 python pipeline/collect.py graph --system pypi  # etapas de grafo e security aceitam npm | pypi | go
-python pipeline/llm.py "prompt"         # Gemma pelo pipeline (lê o .env da raiz)
-python pipeline/opportunities.py        # Gemma sugere oportunidades por projeto (cache em repo_opportunities)
-python pipeline/guides.py --limit 10    # Gemma escreve o guia de cada projeto (cache em project_guides); rode depois do classify_ai_policy
-python pipeline/classify_ai_policy.py   # Gemma classifica a política de IA (cache em ai_policy; repos com erro ficam para a próxima)
+python pipeline/llm.py "prompt"         # modelo pelo pipeline (lê o .env da raiz)
+python pipeline/opportunities.py        # o modelo sugere oportunidades por projeto (cache em repo_opportunities)
+python pipeline/guides.py --limit 10    # o modelo escreve o guia de cada projeto (cache em project_guides); rode depois do classify_ai_policy
+python pipeline/classify_ai_policy.py   # o modelo classifica a política de IA (cache em ai_policy; repos com erro ficam para a próxima)
 sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 ```
 
@@ -31,7 +33,7 @@ sqlite3 data/ecosystem.db      # consultas; esquema em docs/dados.md
 ## Armadilhas já conhecidas
 - **GH Archive / ClickHouse:** quebrado desde out/2025 (zero PRs mergeados em 2026). Não use para dados recentes.
 - **Estrelas por ano:** a API do GitHub não lista mais quem deu estrela (404). Só existe o total atual.
-- **Repos grandes** (`repos.collection_mode = 'contagem+amostra'`, mais de 6 mil issues + PRs): têm contagens mensais completas, mas **não** têm pessoas por ano nem commits diretos (`null` no JSON). A `participation` deles é parcial. Abertura e mantenedores vêm de `repo_sample`.
+- **Repos grandes** (`repos.collection_mode = 'sampled'`, mais de 6 mil issues + PRs): têm contagens mensais completas, mas **não** têm pessoas por ano nem commits diretos (`null` no JSON). A `participation` deles é parcial. Abertura e mantenedores vêm de `repo_sample`.
 - **`authorAssociation` é a de hoje:** quem estreou e teve o PR aceito aparece como `CONTRIBUTOR`. Não dá para contar estreias por ela.
 - **Next 16:** componente cliente com `useParams`/`useSearchParams` precisa de `<Suspense>` em volta, senão o build falha (exemplo em `web/app/p/[...repo]/page.tsx`).
 - **Zero PRs não é erro:** muitos pacotes minúsculos recebem commits diretos do mantenedor. Veja `commit_monthly.direct_commits`.

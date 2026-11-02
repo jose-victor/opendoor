@@ -1,5 +1,5 @@
 "use client";
-// S2: uma porta de entrada. O que é o projeto (em pt-BR, do guia salvo), 3 números, onde ajudar e por onde começar.
+// S2: one entry door. What the project is (in pt-BR, from the saved guide), 3 numbers, where to help and where to start.
 import Link from "next/link";
 import { WAY_LABELS } from "@/lib/labels";
 import type { Project, UserProfile } from "@/lib/types";

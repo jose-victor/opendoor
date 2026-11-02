@@ -1,19 +1,19 @@
-// D4: ranking do match, roda no navegador. Regras em docs/arquitetura.md ("Regras de ranking").
+// D4: match ranking, runs in the browser. Rules in docs/arquitetura.md ("Regras de ranking").
 import type { Level, Profile, Project, UserProfile, Way } from "./types";
 
 
-// Formas de ajudar que não exigem habilidade técnica em comum com o projeto.
-const NON_CODE: Way[] = ["triagem", "refinamento", "documentacao", "traducao"];
+// Ways to help that need no technical skill in common with the project.
+const NON_CODE: Way[] = ["triage", "refinement", "documentation", "translation"];
 
 const LEVEL_BONUS: Record<Level, Partial<Record<Profile, number>>> = {
-  iniciante: { porta_aberta: 4, precisa_de_maos: 1 },
-  intermediario: { porta_aberta: 2, precisa_de_maos: 3, guardiao: 1 },
-  experiente: { guardiao: 4, precisa_de_maos: 3, porta_aberta: 1 },
+  beginner: { open_door: 4, needs_hands: 1 },
+  intermediate: { open_door: 2, needs_hands: 3, guardian: 1 },
+  experienced: { guardian: 4, needs_hands: 3, open_door: 1 },
 };
 
-// languageIds: ids de skills.json com kind "linguagem". Se a pessoa marcou linguagens, o projeto precisa usar uma delas.
-// Para iniciante só entra o que está pronto: gente nova sendo aceita, PRs de fora com chance real,
-// projeto vivo e com guia de contribuição (calculado no build.py, beginner_checks).
+// languageIds: ids from skills.json with kind "language". If the person picked languages, the project must use one of them.
+// For beginners, only ready projects: newcomers getting accepted, outside PRs with a real chance,
+// an active project with a contribution guide (computed in build.py, beginner_checks).
 export function welcoming(p: Project): boolean {
   return p.beginner.ready;
 }
@@ -26,22 +26,22 @@ export function rankProjects(projects: Project[], profile: UserProfile, language
 
   const scored: { p: Project; score: number }[] = [];
   for (const p of projects) {
-    if (p.profile === "estavel") continue;
-    // guardião pede gente experiente e de confiança: não é porta para quem está começando
-    if (p.profile === "guardiao" && profile.level === "iniciante") continue;
-    if (profile.level === "iniciante" && !welcoming(p)) continue;
+    if (p.profile === "stable") continue;
+    // a guardian needs experienced, trusted people: not a door for someone just starting
+    if (p.profile === "guardian" && profile.level === "beginner") continue;
+    if (profile.level === "beginner" && !welcoming(p)) continue;
     if (ways.size > 0 && !p.needs.some((w) => ways.has(w))) continue;
     const common = p.skills.filter((s) => wanted.has(s)).length;
     if (wanted.size > 0 && common === 0 && !nonCodeOnly) continue;
     if (wantedLangs.length > 0 && !nonCodeOnly && !wantedLangs.some((l) => p.skills.includes(l))) continue;
 
     let score = common * 5 + (LEVEL_BONUS[profile.level][p.profile] ?? 0);
-    if (profile.level === "iniciante" && p.newcomer_open > 0) score += 2;
+    if (profile.level === "beginner" && p.newcomer_open > 0) score += 2;
     score += p.needs.filter((w) => ways.has(w)).length;
     scored.push({ p, score });
   }
   return scored
-    // desempate: gente nova sendo aceita, depois taxa de aceite (a abertura sozinha engana em projeto de 1 pessoa)
+    // tie-break: newcomers getting accepted, then acceptance rate (openness alone misleads in a 1-person project)
     .sort(
       (a, b) =>
         b.score - a.score ||

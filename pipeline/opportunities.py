@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""D5, camada 2: a LLM sugere oportunidades de contribuição que o projeto não lista explicitamente.
+"""D5, layer 2: the LLM suggests contribution opportunities the project doesn't list explicitly.
 
   python pipeline/build.py && python pipeline/opportunities.py && python pipeline/build.py
+  python pipeline/opportunities.py selftest   # checks parse() without calling the model
 
-Lê os projetos que aparecem no match (perfil diferente de "estavel") em web/public/data/projects.json,
-manda à LLM o guia de contribuição (ou o começo do README) e os números, e guarda a resposta em
-repo_opportunities (cache: cada repo é consultado uma vez). O build.py junta as sugestões com fonte "gemini".
+Reads the projects that show up in the match (profile other than "stable") from web/public/data/projects.json,
+sends the LLM the contributing guide (or the start of the README) and the numbers, and stores the answer in
+repo_opportunities (cache: each repo is queried once). build.py merges the suggestions with source "gemini".
 """
 import argparse
 import json
@@ -22,17 +23,17 @@ import llm
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "ecosystem.db"
 PROJECTS = ROOT / "web" / "public" / "data" / "projects.json"
-WAYS = ["codigo", "triagem", "revisao", "refinamento", "documentacao", "traducao", "seguranca", "testes"]
+WAYS = ["code", "triage", "review", "refinement", "documentation", "translation", "security", "tests"]
 MAX_DOC = 6000
-# O que cada forma inclui (mesmos textos de docs/arquitetura.md, "Formas de contribuir")
-WAY_HELP = """- codigo: correções e funcionalidades pequenas, de preferência issues marcadas como "good first issue"
-- triagem: reproduzir bugs relatados, pedir informações que faltam, achar duplicadas, responder dúvidas da comunidade
-- revisao: revisar PRs abertos: rodar localmente, reproduzir o bug e validar se o fix resolve
-- refinamento: transformar issues vagas em issues com passos de reprodução e critério de pronto
-- documentacao: documentação, exemplos e tutoriais
-- traducao: tradução e localização
-- seguranca: revisar dependências e alertas, melhorar práticas do OpenSSF Scorecard, auditar código sensível
-- testes: testes de regressão, cobertura e observabilidade (logs, métricas, tracing)"""
+# What each way covers (same text as docs/arquitetura.md, "Formas de contribuir")
+WAY_HELP = """- code: correções e funcionalidades pequenas, de preferência issues marcadas como "good first issue"
+- triage: reproduzir bugs relatados, pedir informações que faltam, achar duplicadas, responder dúvidas da comunidade
+- review: revisar PRs abertos: rodar localmente, reproduzir o bug e validar se o fix resolve
+- refinement: transformar issues vagas em issues com passos de reprodução e critério de pronto
+- documentation: documentação, exemplos e tutoriais
+- translation: tradução e localização
+- security: revisar dependências e alertas, melhorar práticas do OpenSSF Scorecard, auditar código sensível
+- tests: testes de regressão, cobertura e observabilidade (logs, métricas, tracing)"""
 
 PROMPT = """Você ajuda pessoas a encontrar como contribuir com responsabilidade em projetos open source.
 Projeto: {repo} — {description}
@@ -73,19 +74,29 @@ def ask(p, doc, repo_row):
     return parse(llm.generate(prompt), known)
 
 
+def selftest():
+    assert parse('x {"suggestions":[{"way":"translation","note":"traduzir"},{"way":"code","note":"y"},{"way":"bla","note":"z"}]}',
+                 {"code"}) == [{"way": "translation", "source": "gemini", "note": "traduzir"}]
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("cmd", nargs="?", choices=["selftest"], help="selftest: check parse() and exit, without the model")
     ap.add_argument("--limit", type=int, default=400)
     ap.add_argument("--workers", type=int, default=3)
     args = ap.parse_args()
+    selftest()
+    if args.cmd == "selftest":
+        print("selftest ok")
+        return
     db = sqlite3.connect(DB, timeout=60)
     db.execute("CREATE TABLE IF NOT EXISTS repo_opportunities(repo TEXT PRIMARY KEY, model TEXT, suggestions TEXT, fetched_at TEXT)")
     done = {r[0] for r in db.execute("SELECT repo FROM repo_opportunities")}
-    projects = [p for p in json.loads(PROJECTS.read_text()) if p["profile"] != "estavel" and p["repo"] not in done]
+    projects = [p for p in json.loads(PROJECTS.read_text()) if p["profile"] != "stable" and p["repo"] not in done]
     projects = sorted(projects, key=lambda p: -p["stars"])[:args.limit]
-    print(f"{len(projects)} projetos para o modelo", flush=True)
+    print(f"{len(projects)} projects for the model", flush=True)
 
-    inputs = []  # lê tudo antes: sqlite3 não pode ser dividido entre threads
+    inputs = []  # read everything first: sqlite3 can't be shared between threads
     for p in projects:
         files = dict(db.execute("SELECT path, text FROM repo_files WHERE repo = ?", (p["repo"],)))
         doc = next((files[k] for k in files if k.endswith("CONTRIBUTING.md")), files.get("README.md", ""))
@@ -95,7 +106,7 @@ def main():
         p, doc, row = item
         try:
             return p["repo"], ask(p, doc, row)
-        except Exception as e:  # um repo com erro não para os outros; fica para a próxima rodada
+        except Exception as e:  # one failing repo doesn't stop the others; it's retried on the next run
             print(f"  {p['repo']}: {e}", file=sys.stderr, flush=True)
             return p["repo"], None
 
@@ -110,6 +121,4 @@ def main():
 
 
 if __name__ == "__main__":
-    assert parse('x {"suggestions":[{"way":"traducao","note":"traduzir"},{"way":"codigo","note":"y"},{"way":"bla","note":"z"}]}',
-                 {"codigo"}) == [{"way": "traducao", "source": "gemini", "note": "traduzir"}]
     main()
