@@ -15,6 +15,7 @@ python pipeline/collect.py fetch-db --raw  # database + raw cache from the lates
 python pipeline/collect.py selftest     # run after touching the aggregation
 python pipeline/build.py                # profile and badge self-tests, then generates web/public/data/
 python pipeline/guides.py selftest      # self-tests without calling the model (same for opportunities.py)
+python pipeline/collect.py community    # CONTRIBUTING (incl. org-inherited), code of conduct, templates, funding -> repo_community
 python pipeline/collect.py stats        # database summary
 python pipeline/collect.py graph --system pypi  # graph and security steps take npm | pypi | go
 python pipeline/llm.py "prompt"         # the model through the pipeline (reads the root .env)

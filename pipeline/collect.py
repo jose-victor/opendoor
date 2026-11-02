@@ -9,6 +9,7 @@ Every step can be re-run: it skips what's already in the database and resumes wh
   python pipeline/collect.py activity [--limit N]  # GitHub: who opened/reviewed/merged/closed, per month since 2018
   python pipeline/collect.py commits [--limit N]   # GitHub: commits per month and how many went in directly, without a PR
   python pipeline/collect.py labels                # GitHub: open issues labeled for beginners / help wanted
+  python pipeline/collect.py community             # GitHub: CONTRIBUTING (incl. org-inherited), code of conduct, templates, security, funding
   python pipeline/collect.py security              # deps.dev: OpenSSF Scorecard + vulnerability advisories
   python pipeline/collect.py apps                  # track 2: tag and snapshot the mainstream apps (APPS list)
   python pipeline/collect.py large [--workers N]  # large repos: monthly counts + a sample of people
@@ -682,7 +683,7 @@ def cmd_large(db, args):
                 f"{out}/{h} from outside, {ft} debuts, {mg} merge")
 
 
-NEWCOMER_LABELS = '"good first issue","good-first-issue","first-timers-only","beginner","easy","help wanted"'
+NEWCOMER_LABELS = '"good first issue","good-first-issue","first-timers-only","beginner","beginner-friendly","starter","low-hanging-fruit","easy","help wanted"'
 
 
 def cmd_labels(db, args):
@@ -699,6 +700,55 @@ def cmd_labels(db, args):
             db.executemany("INSERT OR REPLACE INTO repo_labels VALUES(?,?,?)",
                            [(r, (data.get(f"a{i}") or {}).get("issueCount"), now()) for i, r in enumerate(batch)])
         log(f"  {min(start + 20, len(todo))}/{len(todo)} repositories")
+
+
+COMMUNITY_FIELDS = ("contributingGuidelines{url body} codeOfConduct{key} issueTemplates{name} pullRequestTemplates{filename} "
+                    "securityPolicyUrl hasDiscussionsEnabled fundingLinks{platform url}")
+
+
+def _inherited(repo, node):
+    g = node.get("contributingGuidelines")
+    # URL is https://github.com/<owner>/<repo>/blob/...: a different owner/repo means the org-wide .github one
+    return bool(g and g.get("url")) and "/".join(g["url"].split("/")[3:5]).lower() != repo.lower()
+
+
+def community_row(repo, node):
+    """Maps one GraphQL `repository` node to a repo_community row."""
+    g = node.get("contributingGuidelines") or {}
+    return (repo, g.get("url"), int(_inherited(repo, node)), (node.get("codeOfConduct") or {}).get("key"),
+            int(bool(node.get("issueTemplates"))), int(bool(node.get("pullRequestTemplates"))), node.get("securityPolicyUrl"),
+            int(bool(node.get("hasDiscussionsEnabled"))), json.dumps(node.get("fundingLinks") or []), now())
+
+
+def inherited_contributing(repo, node):
+    """Body of an inherited CONTRIBUTING (to store in repo_files), or None."""
+    return node["contributingGuidelines"].get("body") if _inherited(repo, node) else None
+
+
+def cmd_community(db, args):
+    """Community health: inherited CONTRIBUTING, code of conduct, templates, security policy, discussions, funding."""
+    db.execute("CREATE TABLE IF NOT EXISTS repo_community(repo TEXT PRIMARY KEY, contributing_url TEXT, contributing_inherited INT, "
+               "code_of_conduct TEXT, issue_templates INT, pr_templates INT, security_policy_url TEXT, discussions INT, "
+               "funding TEXT, fetched_at TEXT)")
+    todo = [r[0] for r in db.execute(
+        "SELECT r.repo FROM repos r LEFT JOIN repo_community c ON c.repo = r.repo WHERE r.found = 1 AND c.repo IS NULL")]
+    log(f"{len(todo)} repositories without community data")
+    for start in range(0, len(todo), 50):
+        batch = todo[start:start + 50]
+        parts = [f'c{i}: repository(owner:{json.dumps(r.split("/")[0])}, name:{json.dumps(r.split("/")[1])}){{{COMMUNITY_FIELDS}}}'
+                 for i, r in enumerate(batch)]
+        data = gh("query{ rateLimit{remaining resetAt} " + " ".join(parts) + " }").get("data") or {}
+        with db:
+            for i, repo in enumerate(batch):
+                node = data.get(f"c{i}")
+                if not node:
+                    continue  # not returned: retried next run
+                db.execute("INSERT OR REPLACE INTO repo_community VALUES(?,?,?,?,?,?,?,?,?,?)", community_row(repo, node))
+                body = inherited_contributing(repo, node)
+                if body is not None:  # GitHub resolves the repo's own file first, so inherited means it has none
+                    db.execute("INSERT OR REPLACE INTO repo_files VALUES(?,?,?,?,?)",
+                               (repo, f"{repo.split('/')[0]}/.github/CONTRIBUTING.md", None, body, now()))
+        log(f"  {min(start + 50, len(todo))}/{len(todo)} repositories")
 
 
 def cmd_topics(db, args):
@@ -799,12 +849,20 @@ def cmd_selftest(db, args):
     assert aggregate_commits(commits, "2018-01", "2025-03")[1][("2025-02", "direct_committer", "renovate[bot]", 1)] == 1
     assert [m[0] for m in month_range("2025-11", "2026-02")] == ["2025-11", "2025-12", "2026-01"]
     assert list(month_range("2025-12", "2026-01")) == [("2025-12", "2025-12-01", "2026-01-01")]
+    node = {"contributingGuidelines": {"url": "https://github.com/expressjs/.github/blob/master/CONTRIBUTING.md", "body": "x"},
+            "codeOfConduct": {"key": "contributor_covenant"}, "issueTemplates": [{"name": "bug"}], "pullRequestTemplates": [],
+            "securityPolicyUrl": None, "hasDiscussionsEnabled": True, "fundingLinks": [{"platform": "OPEN_COLLECTIVE", "url": "u"}]}
+    assert community_row("expressjs/express", node)[1:7] == ("https://github.com/expressjs/.github/blob/master/CONTRIBUTING.md", 1, "contributor_covenant", 1, 0, None)
+    assert inherited_contributing("expressjs/express", node) == "x"
+    own = dict(node, contributingGuidelines={"url": "https://github.com/a/b/blob/main/CONTRIBUTING.md", "body": "y"})
+    assert community_row("a/b", own)[2] == 0 and inherited_contributing("a/b", own) is None
+    assert community_row("a/b", dict(node, contributingGuidelines=None))[1:3] == (None, 0)
     log("selftest ok")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db"])
+    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "community", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db"])
     ap.add_argument("--limit", type=int, default=300, help="activity: how many repos (those with the most dependents first)")
     ap.add_argument("--workers", type=int, default=4, help="activity: repos in parallel")
     ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: deps.dev ecosystem")

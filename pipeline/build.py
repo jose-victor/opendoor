@@ -113,6 +113,7 @@ def beginner_checks(debuts, tried, outside_recent, has_guide, review=None):
          else "sem dados de estreias (repo grande: só temos uma amostra recente de PRs)"),
         ("acceptance", rate is not None and rate >= 0.25,
          f"{debuts} de {tried} pessoas novas que abriram PR tiveram aceito" if rate is not None
+         else "sem dados de estreias (repo grande: só temos uma amostra recente de PRs)" if debuts is None
          else f"poucas pessoas novas tentaram ({tried or 0}) para medir"),
         # active for newcomers: outside PRs accepted now (internal and bot merges don't count; nbformat)
         ("active", outside_recent >= 2, f"{n_(outside_recent, 'PR de gente de fora aceito', 'PRs de gente de fora aceitos')} nos últimos 3 meses"),
@@ -402,6 +403,7 @@ if __name__ == "__main__":
     assert beginner_checks(13, 30, 9, True, ok_review)["ready"]           # 13 of 30 new people got in
     assert not beginner_checks(13, 30, 9, True, {"median_days": 24, "stale_open": 41, "prs": 107})["ready"]  # sqlparse
     assert not beginner_checks(13, 30, 1, True, ok_review)["ready"]                  # only 1 outside PR accepted in 3 months (nbformat)
+    assert "poucas" not in beginner_checks(None, 289, 40, True)["checks"][1]["text"]
     assert "20 de 20" in beginner_checks(20, 19, 9, True, ok_review)["checks"][1]["text"]  # never "20 de 19"
     assert not beginner_checks(None, 30, 40, True)["ready"]               # large repo: no debut data
     assert not beginner_checks(6, 150, 20, True)["ready"]                 # 6 of 150: 4%
