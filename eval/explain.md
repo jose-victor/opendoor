@@ -16,7 +16,7 @@ Rodado em 31/10/2026 contra `POST /api/explain` local (`gemma-4-26b-a4b-it`, sem
 
 **Conclusões**
 - **9 de 9** respostas válidas, em pt-BR e específicas do projeto, citando números reais: "60 issues abertas", "147 PRs abertos", o Scorecard do debug.
-- O primeiro passo é sempre observar ou ler o guia. Nenhuma resposta começa por abrir PR, como pede `docs/visao.md`.
+- O primeiro passo é sempre observar ou ler o guia. Nenhuma resposta começa por abrir PR, como pede `docs/vision.md`.
 - Os alertas fazem sentido: debug com um mantenedor só, Godot com 13 mil issues.
 - Depois da rodada, o prompt passou a não citar a política de IA quando ela é `unknown` ou `silent`. Antes ele alertava "política desconhecida", o que era ruído.
 - **Latência: de 29 a 47 s.** O site precisa de um estado de carregamento claro (S2/S3).

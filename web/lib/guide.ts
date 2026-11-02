@@ -1,7 +1,7 @@
 // G1: monta o "por onde começar" a partir do guia salvo do projeto e do perfil. Sem modelo: mesma entrada, mesma saída.
 import type { Guide, Project, UserProfile, Way } from "./types";
 
-// Para quem começa: contribuições de baixo risco primeiro (docs/visao.md).
+// Para quem começa: contribuições de baixo risco primeiro (docs/vision.md).
 const BEGINNER_FIRST: Way[] = ["testes", "documentacao", "triagem", "traducao", "refinamento"];
 const MAX_WAYS = 2;
 

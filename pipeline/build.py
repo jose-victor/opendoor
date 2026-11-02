@@ -36,7 +36,7 @@ def months_ago(n):
 
 
 def profile_of(dependents, maintainers, openness, newcomer_open, open_issues, acceptance=None, recent_merged=None):
-    """Os 4 perfis de docs/visao.md, nesta ordem de prioridade.
+    """Os 4 perfis de docs/vision.md, nesta ordem de prioridade.
 
     acceptance: dos PRs que gente de fora abriu em 12 meses, a fatia aceita (None = menos de 5 PRs de fora).
     recent_merged: PRs aceitos nos 3 últimos meses fechados (None = sem dados).
