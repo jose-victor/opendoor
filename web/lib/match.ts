@@ -1,4 +1,4 @@
-// D4: match ranking, runs in the browser. Rules in docs/arquitetura.md ("Regras de ranking").
+// D4: match ranking, runs in the browser. Rules in docs/architecture.md ("Ranking rules").
 import type { Level, Profile, Project, UserProfile, Way } from "./types";
 
 

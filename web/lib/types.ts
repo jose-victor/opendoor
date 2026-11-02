@@ -1,4 +1,4 @@
-// Contract types (docs/arquitetura.md). Changed something here? Update the doc and tell the team.
+// Contract types (docs/architecture.md). Changed something here? Update the doc in the same PR.
 
 export type Skill = {
   id: string;
@@ -40,7 +40,7 @@ export type Guide = {
 // Activity in the last 3 closed months (since/until = "YYYY-MM"): does the project respond or pile up?
 export type Recent = { since: string; until: string; issues_opened: number; issues_closed: number; prs_opened: number; prs_merged: number };
 
-// Beginner-ready: the 4 checks must pass (debuts, acceptance, active, guide). See docs/arquitetura.md.
+// Beginner-ready: all 5 checks must pass (debuts, acceptance, active, response, guide). See docs/architecture.md.
 export type Beginner = { ready: boolean; checks: { key: "debuts" | "acceptance" | "active" | "response" | "guide"; ok: boolean; text: string }[] };
 
 // Response to outside PRs opened in 12 months (raw activity cache; null without data or with fewer than 5 PRs).

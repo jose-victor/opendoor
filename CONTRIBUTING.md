@@ -26,7 +26,7 @@ Setup instructions are in the [README](README.md#getting-started).
 - Before opening the PR:
   - `python pipeline/collect.py selftest` if you touched the pipeline;
   - `npm run lint` and `npm run build` in `web/` if you touched the site.
-- **Update the docs in the same PR.** Changed the database schema? Update `docs/dados.md`. Changed the JSON or the API contract (`web/lib/types.ts`)? Update `docs/arquitetura.md`.
+- **Update the docs in the same PR.** Changed the database schema? Update `docs/data.md`. Changed the JSON or the API contract (`web/lib/types.ts`)? Update `docs/architecture.md`.
 - A maintainer reviews and merges. Expect questions; they are part of the review, not a rejection.
 
 ## Project rules
@@ -41,7 +41,8 @@ Setup instructions are in the [README](README.md#getting-started).
 ## Language
 - **Code in English:** identifiers, comments, docstrings, logs and contract values (`open_door`, `beginner`, `tests`...). Only text shown on the website and the prose of the LLM prompts (which ask for Portuguese output) stay in Portuguese.
 - **Entry docs in English and Portuguese:** `README`, `CONTRIBUTING` and `docs/vision`. If you change one, update the other, or say in the PR that it still needs translating.
-- **Technical docs in English** (`docs/arquitetura.md` and `docs/dados.md` are being translated in #91).
+- **Technical docs in English** (`docs/architecture.md`, `docs/data.md`, `AGENTS.md`).
+- **GitHub:** maintainers write commits, issues and PRs in English; you may write in English or Portuguese.
 - The website's text is in Portuguese for now; an English version is planned in #50.
 
 ## AI-assisted contributions

@@ -1,4 +1,4 @@
-// POST /api/explain — contract in docs/arquitetura.md.
+// POST /api/explain — contract in docs/architecture.md.
 import { getProject } from "@/lib/projects";
 import { LEVELS, WAYS, type ExplainRequest, type ExplainResponse } from "@/lib/types";
 import { explain } from "@/lib/gemini";

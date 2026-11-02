@@ -26,7 +26,7 @@ As instruções de instalação estão no [README](README.pt-BR.md#começando).
 - Antes de abrir o PR:
   - `python pipeline/collect.py selftest` se você mexeu no pipeline;
   - `npm run lint` e `npm run build` em `web/` se você mexeu no site.
-- **Atualize a documentação no mesmo PR.** Mudou o esquema do banco? Atualize `docs/dados.md`. Mudou o JSON ou o contrato da API (`web/lib/types.ts`)? Atualize `docs/arquitetura.md`.
+- **Atualize a documentação no mesmo PR.** Mudou o esquema do banco? Atualize `docs/data.md`. Mudou o JSON ou o contrato da API (`web/lib/types.ts`)? Atualize `docs/architecture.md`.
 - Um mantenedor revisa e faz o merge. Espere perguntas: fazem parte da revisão, não são recusa.
 
 ## Regras do projeto
@@ -41,7 +41,8 @@ As instruções de instalação estão no [README](README.pt-BR.md#começando).
 ## Idioma
 - **Código em inglês:** identificadores, comentários, docstrings, logs e valores do contrato (`open_door`, `beginner`, `tests`...). Ficam em português só os textos que aparecem no site e a prosa dos prompts do modelo, que pedem saída em português.
 - **Docs de entrada em inglês e português:** `README`, `CONTRIBUTING` e `docs/vision`. Mudou um? Atualize o outro, ou diga no PR que falta traduzir.
-- **Docs técnicos em inglês** (`docs/arquitetura.md` e `docs/dados.md` estão sendo traduzidos na #91).
+- **Docs técnicos em inglês** (`docs/architecture.md`, `docs/data.md`, `AGENTS.md`).
+- **GitHub:** os mantenedores escrevem commits, issues e PRs em inglês; você pode escrever em inglês ou português.
 - O texto do site está em português por enquanto; a versão em inglês está planejada na #50.
 
 ## Contribuições com ajuda de IA

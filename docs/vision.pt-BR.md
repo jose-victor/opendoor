@@ -55,7 +55,7 @@ Cada projeto precisa de tipos diferentes de ajuda, e cada pessoa pode oferecer t
 | Segurança | Scorecard baixo, perfil guardião, commits diretos sem revisão |
 | Testes e observabilidade (regressão, cobertura, logs, métricas) | o guia pede testes ou observabilidade, pouca cobertura |
 
-Quando o projeto não lista o que precisa, um modelo de linguagem sugere oportunidades (marcadas como sugestão da IA). Detalhes em `docs/arquitetura.md`.
+Quando o projeto não lista o que precisa, um modelo de linguagem sugere oportunidades (marcadas como sugestão da IA). Detalhes em `docs/architecture.md`.
 
 ## Ainda não (no roadmap)
 O trabalho futuro está nas [issues com label `roadmap`](https://github.com/jose-victor/opendoor/issues?q=is%3Aopen+label%3Aroadmap). Alguns exemplos:

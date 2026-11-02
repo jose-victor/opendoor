@@ -55,7 +55,7 @@ Each project needs different kinds of help, and each person can offer different 
 | Security | low Scorecard, guardian profile, direct commits without review |
 | Tests and observability (regression, coverage, logs, metrics) | the guide asks for tests or observability, low coverage |
 
-When a project does not list what it needs, a language model suggests opportunities (labeled as AI suggestions). Details in `docs/arquitetura.md`.
+When a project does not list what it needs, a language model suggests opportunities (labeled as AI suggestions). Details in `docs/architecture.md`.
 
 ## Not yet (on the roadmap)
 Future work lives in the [issues labeled `roadmap`](https://github.com/jose-victor/opendoor/issues?q=is%3Aopen+label%3Aroadmap). Some examples:

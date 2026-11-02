@@ -1,5 +1,5 @@
 "use client";
-// S1: what the person knows, their level and how they want to help. The state is a UserProfile (docs/arquitetura.md).
+// S1: what the person knows, their level and how they want to help. The state is a UserProfile (docs/architecture.md).
 import { LEVEL_LABELS, WAY_LABELS } from "@/lib/labels";
 import { LEVELS, WAYS, type Skill, type UserProfile } from "@/lib/types";
 
