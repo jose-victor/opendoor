@@ -708,8 +708,9 @@ COMMUNITY_FIELDS = ("contributingGuidelines{url body} codeOfConduct{key} issueTe
 
 def _inherited(repo, node):
     g = node.get("contributingGuidelines")
-    # URL is https://github.com/<owner>/<repo>/blob/...: a different owner/repo means the org-wide .github one
-    return bool(g and g.get("url")) and "/".join(g["url"].split("/")[3:5]).lower() != repo.lower()
+    # URL is https://github.com/<owner>/<repo>/blob/...: only the org-wide <owner>/.github repo counts
+    # (a renamed or transferred repo also has a different owner/repo, but the file is its own)
+    return bool(g and g.get("url")) and g["url"].split("/")[4:5] == [".github"] and repo.split("/")[1] != ".github"
 
 
 def community_row(repo, node):
@@ -731,8 +732,9 @@ def cmd_community(db, args):
                "code_of_conduct TEXT, issue_templates INT, pr_templates INT, security_policy_url TEXT, discussions INT, "
                "funding TEXT, fetched_at TEXT)")
     todo = [r[0] for r in db.execute(
-        "SELECT r.repo FROM repos r LEFT JOIN repo_community c ON c.repo = r.repo WHERE r.found = 1 AND c.repo IS NULL")]
-    log(f"{len(todo)} repositories without community data")
+        "SELECT r.repo FROM repos r LEFT JOIN repo_community c ON c.repo = r.repo WHERE r.found = 1 AND (c.repo IS NULL OR ?)",
+        (getattr(args, "refresh", False),))]
+    log(f"{len(todo)} repositories to fetch community data for")
     for start in range(0, len(todo), 50):
         batch = todo[start:start + 50]
         parts = [f'c{i}: repository(owner:{json.dumps(r.split("/")[0])}, name:{json.dumps(r.split("/")[1])}){{{COMMUNITY_FIELDS}}}'
@@ -744,10 +746,12 @@ def cmd_community(db, args):
                 if not node:
                     continue  # not returned: retried next run
                 db.execute("INSERT OR REPLACE INTO repo_community VALUES(?,?,?,?,?,?,?,?,?,?)", community_row(repo, node))
+                # a refresh rewrites the inherited row (the repos step's refresh deletes all repo_files rows of a repo)
+                path = f"{repo.split('/')[0]}/.github/CONTRIBUTING.md"
+                db.execute("DELETE FROM repo_files WHERE repo = ? AND path = ?", (repo, path))
                 body = inherited_contributing(repo, node)
-                if body is not None:  # GitHub resolves the repo's own file first, so inherited means it has none
-                    db.execute("INSERT OR REPLACE INTO repo_files VALUES(?,?,?,?,?)",
-                               (repo, f"{repo.split('/')[0]}/.github/CONTRIBUTING.md", None, body, now()))
+                if body:  # GitHub resolves the repo's own file first, so inherited means it has none
+                    db.execute("INSERT OR REPLACE INTO repo_files VALUES(?,?,?,?,?)", (repo, path, None, body, now()))
         log(f"  {min(start + 50, len(todo))}/{len(todo)} repositories")
 
 
@@ -857,6 +861,8 @@ def cmd_selftest(db, args):
     own = dict(node, contributingGuidelines={"url": "https://github.com/a/b/blob/main/CONTRIBUTING.md", "body": "y"})
     assert community_row("a/b", own)[2] == 0 and inherited_contributing("a/b", own) is None
     assert community_row("a/b", dict(node, contributingGuidelines=None))[1:3] == (None, 0)
+    moved = dict(node, contributingGuidelines={"url": "https://github.com/newowner/newname/blob/main/CONTRIBUTING.md", "body": "z"})
+    assert community_row("old/name", moved)[2] == 0 and inherited_contributing("old/name", moved) is None  # renamed, not inherited
     log("selftest ok")
 
 
