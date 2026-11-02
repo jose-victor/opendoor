@@ -41,9 +41,12 @@ def github_repo(url):
     return f"{m[1]}/{m[2]}".lower() if m else None
 
 
+QUOTED = r"""['"]([^'"]+)['"]"""
+
+
 def parse_gfi_toml(text):
     """repositories.toml is `repositories = ['github.com/o/r', ...]`; a quoted-string scan is enough."""
-    return [r for r in (github_repo(s) for s in re.findall(r"""['"]([^'"]+)['"]""", text)) if r]
+    return [r for r in (github_repo(s) for s in re.findall(QUOTED, text)) if r]
 
 
 def parse_ufg_yaml(text):
@@ -106,22 +109,34 @@ def ufg_projects():
                 yield tar.extractfile(m).read().decode("utf-8", "replace")
 
 
+def load_gfi():
+    text = get(GFI_URL).decode()
+    return [(r, None, None) for r in parse_gfi_toml(text)], len(re.findall(QUOTED, text))
+
+
+def load_ufg():
+    files = list(ufg_projects())
+    return [(r, label, None) for r, label in filter(None, map(parse_ufg_yaml, files))], len(files)
+
+
+def load_gsoc():
+    orgs = json.loads(get(GSOC_URL))
+    return [(r, None, json.dumps({"ideas_link": ideas})) for r, ideas in parse_gsoc(orgs)], len(orgs)
+
+
 def cmd_lists(db):
-    sources = {
-        "goodfirstissue_dev": lambda: [(r, None, None) for r in parse_gfi_toml(get(GFI_URL).decode())],
-        "up_for_grabs": lambda: [(r, label, None) for r, label in filter(None, map(parse_ufg_yaml, ufg_projects()))],
-        "gsoc_2026": lambda: [(r, None, json.dumps({"ideas_link": ideas})) for r, ideas in parse_gsoc(json.loads(get(GSOC_URL)))],
-    }
+    """Each loader returns (rows, entries seen); the difference is what was skipped (not a GitHub repo, or malformed)."""
+    sources = {"goodfirstissue_dev": load_gfi, "up_for_grabs": load_ufg, "gsoc_2026": load_gsoc}
     for source, load in sources.items():
         try:
-            rows = load()
+            rows, seen = load()
         except Exception as e:  # GSoC's endpoint is undocumented: log and keep the previous rows
             log(f"{source}: skipped ({e})")
             continue
         with db:
             db.execute("DELETE FROM external_lists WHERE source = ?", (source,))
             db.executemany("INSERT OR REPLACE INTO external_lists VALUES(?,?,?,?,?)", [(source, r, l, x, now()) for r, l, x in rows])
-        log(f"{source}: {len(rows)} repos")
+        log(f"{source}: {len(rows)} repos, {seen - len(rows)} of {seen} entries skipped (not a GitHub repo or malformed)")
 
 
 # ---------- ecosystems ----------
