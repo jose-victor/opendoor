@@ -16,6 +16,7 @@ python pipeline/collect.py selftest     # run after touching the aggregation
 python pipeline/build.py                # profile and badge self-tests, then generates web/public/data/
 python pipeline/guides.py selftest      # self-tests without calling the model (same for opportunities.py)
 python pipeline/collect.py stats        # database summary
+python pipeline/collect.py people --limit 5  # assignable users per repo (repo_assignable, repo_people); 1 GraphQL point per 100 users
 python pipeline/collect.py graph --system pypi  # graph and security steps take npm | pypi | go
 python pipeline/llm.py "prompt"         # the model through the pipeline (reads the root .env)
 python pipeline/opportunities.py        # the model suggests opportunities per project (cached in repo_opportunities)

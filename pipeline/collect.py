@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS repo_monthly(repo TEXT, month TEXT, issues_opened INT
   prs_closed_unmerged INT, reviews INT, PRIMARY KEY(repo, month));
 CREATE TABLE IF NOT EXISTS participation(repo TEXT, month TEXT, role TEXT, login TEXT, is_bot INT, n INT,
   PRIMARY KEY(repo, month, role, login));
+CREATE TABLE IF NOT EXISTS repo_assignable(repo TEXT, login TEXT, PRIMARY KEY(repo, login));
+CREATE TABLE IF NOT EXISTS repo_people(repo TEXT PRIMARY KEY, assignable INT, capped INT, public_members INT, fetched_at TEXT);
 """
 MONTHLY_FIELDS = ["issues_opened", "issues_closed", "issues_closed_completed", "issues_closed_not_planned",
                   "prs_opened", "prs_merged", "prs_closed_unmerged", "reviews"]
@@ -503,6 +505,63 @@ def cmd_activity(db, args):
             log(f"  [{i}/{len(todo)}] {repo}: {n_pr} PRs, {n_is} issues since {since}{' (truncated)' if trunc else ''}")
 
 
+ASSIGNABLE_MAX_PAGES = 20  # 2,000 logins per repo; beyond that the row is marked capped
+ASSIGNABLE_QUERY = """query($o:String!,$n:String!,$c:String){ rateLimit{remaining resetAt}
+ repository(owner:$o,name:$n){ assignableUsers(first:100, after:$c){ pageInfo{hasNextPage endCursor} nodes{login} } } }"""
+
+
+def people_row(repo, logins, capped, public_members):
+    return (repo, len(logins), int(capped), public_members)
+
+
+def public_members_count(owner):
+    """Count of public members of an org (REST, count only); None when the owner is a user. At most 1,000 (10 pages)."""
+    n = 0
+    for page in range(1, 11):
+        r = http_json(f"https://api.github.com/orgs/{owner}/public_members?per_page=100&page={page}",
+                      headers={"Authorization": f"bearer {_token}"})
+        if r is None:
+            return None if page == 1 else n
+        n += len(r)
+        if len(r) < 100:
+            break
+    return n
+
+
+def cmd_people(db, args):
+    """Who can be assigned (write access, plus org members with read): sees private org members that authorAssociation misses."""
+    todo = [r[0] for r in db.execute(
+        "SELECT r.repo FROM repos r LEFT JOIN packages p ON p.repo = r.repo WHERE r.found = 1 "
+        "AND r.repo NOT IN (SELECT repo FROM repo_people) "
+        "GROUP BY r.repo ORDER BY MAX(COALESCE(p.dependents, 0)) DESC LIMIT ?", (args.limit,))]
+    log(f"{len(todo)} repositories to collect people for")
+    for i, repo in enumerate(todo, 1):
+        owner, name = repo.split("/")
+        logins, cursor, capped = [], None, False
+        for page in range(ASSIGNABLE_MAX_PAGES):
+            d = gh(ASSIGNABLE_QUERY, {"o": owner, "n": name, "c": cursor})
+            repo_data = (d.get("data") or {}).get("repository")
+            if not repo_data:
+                logins = None
+                break
+            au = repo_data["assignableUsers"]
+            logins += [u["login"] for u in au["nodes"]]
+            if not au["pageInfo"]["hasNextPage"]:
+                break
+            cursor = au["pageInfo"]["endCursor"]
+        else:
+            capped = True
+        if logins is None:
+            log(f"  [{i}/{len(todo)}] {repo}: no data, will retry next run")
+            continue
+        row = people_row(repo, logins, capped, public_members_count(owner))
+        with db:
+            db.execute("DELETE FROM repo_assignable WHERE repo = ?", (repo,))
+            db.executemany("INSERT OR IGNORE INTO repo_assignable VALUES(?, ?)", [(repo, x) for x in logins])
+            db.execute("INSERT OR REPLACE INTO repo_people VALUES(?,?,?,?,?)", (*row, now()))
+        log(f"  [{i}/{len(todo)}] {repo}: {row[1]} assignable{' (capped)' if capped else ''}, {row[3]} public members")
+
+
 COMMIT_ROLES = ("committer", "direct_committer")
 COMMIT_QUERY = """query($o:String!,$n:String!,$c:String,$since:GitTimestamp!){ rateLimit{remaining resetAt}
  repository(owner:$o,name:$n){ defaultBranchRef{ target{ ... on Commit{
@@ -799,12 +858,14 @@ def cmd_selftest(db, args):
     assert aggregate_commits(commits, "2018-01", "2025-03")[1][("2025-02", "direct_committer", "renovate[bot]", 1)] == 1
     assert [m[0] for m in month_range("2025-11", "2026-02")] == ["2025-11", "2025-12", "2026-01"]
     assert list(month_range("2025-12", "2026-01")) == [("2025-12", "2025-12-01", "2026-01-01")]
+    assert people_row("a/b", ["x", "y"], False, 1)[1:4] == (2, 0, 1)
+    assert people_row("a/b", [], True, None)[2] == 1
     log("selftest ok")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db"])
+    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "people", "labels", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db"])
     ap.add_argument("--limit", type=int, default=300, help="activity: how many repos (those with the most dependents first)")
     ap.add_argument("--workers", type=int, default=4, help="activity: repos in parallel")
     ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: deps.dev ecosystem")
