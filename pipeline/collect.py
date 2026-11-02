@@ -8,6 +8,7 @@ Every step can be re-run: it skips what's already in the database and resumes wh
   python pipeline/collect.py repos                 # GitHub: current snapshot + policy files -> repos, repo_files
   python pipeline/collect.py activity [--limit N]  # GitHub: who opened/reviewed/merged/closed, per month since 2018
   python pipeline/collect.py commits [--limit N]   # GitHub: commits per month and how many went in directly, without a PR
+  python pipeline/collect.py people [--limit N]   # GitHub: assignable users and public org members -> repo_assignable, repo_people
   python pipeline/collect.py labels                # GitHub: open issues labeled for beginners / help wanted
   python pipeline/collect.py security              # deps.dev: OpenSSF Scorecard + vulnerability advisories
   python pipeline/collect.py apps                  # track 2: tag and snapshot the mainstream apps (APPS list)
@@ -19,6 +20,7 @@ Every step can be re-run: it skips what's already in the database and resumes wh
 """
 import argparse
 import concurrent.futures as cf
+import functools
 import gzip
 import json
 import sqlite3
@@ -511,9 +513,10 @@ ASSIGNABLE_QUERY = """query($o:String!,$n:String!,$c:String){ rateLimit{remainin
 
 
 def people_row(repo, logins, capped, public_members):
-    return (repo, len(logins), int(capped), public_members)
+    return (repo, len(set(logins)), int(capped), public_members)
 
 
+@functools.cache  # repos of the same org share it: one set of REST calls per owner per run
 def public_members_count(owner):
     """Count of public members of an org (REST, count only); None when the owner is a user. At most 1,000 (10 pages)."""
     n = 0
@@ -529,11 +532,11 @@ def public_members_count(owner):
 
 
 def cmd_people(db, args):
-    """Who can be assigned (write access, plus org members with read): sees private org members that authorAssociation misses."""
+    """Who can be assigned (write access, plus some org members with read): sees private org members that authorAssociation misses."""
     todo = [r[0] for r in db.execute(
-        "SELECT r.repo FROM repos r LEFT JOIN packages p ON p.repo = r.repo WHERE r.found = 1 "
-        "AND r.repo NOT IN (SELECT repo FROM repo_people) "
-        "GROUP BY r.repo ORDER BY MAX(COALESCE(p.dependents, 0)) DESC LIMIT ?", (args.limit,))]
+        "SELECT r.repo FROM repos r LEFT JOIN packages p ON p.repo = r.repo LEFT JOIN repo_people pp ON pp.repo = r.repo "
+        "WHERE r.found = 1 AND (pp.repo IS NULL OR ?) "
+        "GROUP BY r.repo ORDER BY MAX(COALESCE(p.dependents, 0)) DESC LIMIT ?", (getattr(args, "refresh", False), args.limit))]
     log(f"{len(todo)} repositories to collect people for")
     for i, repo in enumerate(todo, 1):
         owner, name = repo.split("/")
@@ -557,7 +560,7 @@ def cmd_people(db, args):
         row = people_row(repo, logins, capped, public_members_count(owner))
         with db:
             db.execute("DELETE FROM repo_assignable WHERE repo = ?", (repo,))
-            db.executemany("INSERT OR IGNORE INTO repo_assignable VALUES(?, ?)", [(repo, x) for x in logins])
+            db.executemany("INSERT OR IGNORE INTO repo_assignable VALUES(?, ?)", [(repo, x) for x in set(logins)])
             db.execute("INSERT OR REPLACE INTO repo_people VALUES(?,?,?,?,?)", (*row, now()))
         log(f"  [{i}/{len(todo)}] {repo}: {row[1]} assignable{' (capped)' if capped else ''}, {row[3]} public members")
 
@@ -860,6 +863,7 @@ def cmd_selftest(db, args):
     assert list(month_range("2025-12", "2026-01")) == [("2025-12", "2025-12-01", "2026-01-01")]
     assert people_row("a/b", ["x", "y"], False, 1)[1:4] == (2, 0, 1)
     assert people_row("a/b", [], True, None)[2] == 1
+    assert people_row("a/b", ["x", "y", "x"], False, 1)[1] == 2  # a login repeated across pages counts once
     log("selftest ok")
 
 

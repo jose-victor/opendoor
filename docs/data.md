@@ -49,7 +49,7 @@ A repository is always identified as `owner/name` in lowercase. Months use the `
 | `repo_monthly(repo, month, ...)` | issues opened/closed (completed or "not planned"), PRs opened/merged/closed without merge, reviews |
 | `commit_monthly(repo, month, commits, direct_commits)` | commits on the main branch; `direct_commits` = no associated PR (landed without review) |
 | `participation(repo, month, role, login, is_bot, n)` | **who played each role**, how many times in the month |
-| `repo_assignable(repo, login)` | who GitHub lets be assigned on the repo (`assignableUsers`: write access plus org members with read); sees private org members that `authorAssociation` misses. Up to 2,000 logins per repo |
+| `repo_assignable(repo, login)` | who GitHub lets be assigned on the repo (`assignableUsers`: write access plus some org members with read access; not every org member, e.g. microsoft/vscode has 85 assignable vs 1,000+ public members); sees private org members that `authorAssociation` misses. Up to 2,000 logins per repo |
 | `repo_people(repo, assignable, capped, public_members, fetched_at)` | one row per repo: logins count, `capped` = hit the 20-page cap, `public_members` = public org members count (REST, max 1,000; `NULL` when the owner is a user) |
 
 Roles in `participation.role`:
