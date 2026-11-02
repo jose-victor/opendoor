@@ -1,23 +1,36 @@
 # First analysis of the Tier 1 signals (November 2026)
 
-Issue #107. Data: the collection of 2026-10-31 (last closed month 2026-09), `repo_signals` from `pipeline/signals.py` (branch `jose/106-signals`, recomputed on 2026-11-02 with the corrected definitions: closed PRs stop waiting at their close, insiders are behavioral only, `as_of` = last closed month), `web/public/data/projects.json` as committed on 2026-11-02, `external_lists` and `repo_ecosystems`. Design this feeds: `docs/deep-analysis.md` (#86).
+Issue #107. Sections 1–6: the collection of 2026-10-31 (last closed month 2026-09), `repo_signals` from `pipeline/signals.py` (branch `jose/106-signals`, recomputed on 2026-11-02 with the corrected definitions: closed PRs stop waiting at their close, insiders are behavioral only, `as_of` = last closed month), `web/public/data/projects.json` as committed on 2026-11-02, `external_lists` and `repo_ecosystems`. Design this feeds: `docs/deep-analysis.md` (#86).
 
 `as_of` labels: **2026-09** = window of the 12 months ending with September 2026 (current). **2025-09** = the same window one year earlier (T, the backtest). Signals at 2025-09 pair with `conversion` at 2026-09: outsiders whose first merged PR fell between 2024-10 and 2025-09, and whether they came back within 12 months.
 
 ## Summary
 
-1. **Most of the catalog cannot be rated on welcome yet.** Of 958 projects, 93 (9.7%) have `conversion` and 180 (18.8%) have the insider-response signals. The rest are 216 projects with no PR and no commit recorded since 2018, 102 large (sampled) projects, and 459 with fewer than 10 outside PRs in 12 months.
-2. **The noise ceiling is moderate.** Conversion one year against the next gives Spearman +0.45 [+0.19, +0.64], n 66. With a cohort of 5, a rate of 0.2 has a 95% half-width of ±0.35.
-3. **Past conversion is the only solid predictor of conversion.** `conversion@T ≥ 0.1` alone lifts next year's mean by +0.137 [+0.074, +0.199]. Demand per active maintainer goes the other way, −0.27 [−0.46, −0.07]. Insider response time and the no-response share are flat (−0.05 and −0.08, CIs cross 0). About 16 predictors were tested, so one borderline hit is expected by chance: treat demand as a lead.
-4. **Neither today's badge nor a v1 rule separates projects better than chance.** Rebuilt at T, "ready" projects have a mean conversion +0.025 higher [−0.053, +0.106]. A v1 beginner rule gives +0.058 [−0.014, +0.134], and without its conversion clause only +0.030 [−0.044, +0.105].
-5. **Redundancy.** Response days and no-response share overlap heavily (+0.76). Both repeat today's review median (+0.85 / +0.68) and acceptance (−0.49 / −0.76). Reviewer diversity repeats active maintainers (+0.67) and `maintainers_24m` (+0.65). Demand repeats debuts (+0.76).
-6. **What is new.** Conversion (its strongest link to today's numbers is acceptance, +0.34). Active maintainers: 115 projects have every insider on a break, which `maintainers_24m` cannot see. Insider-only response puts 45 projects 7+ days slower than today's review median.
-7. **A fast response can be a fast "no".** `pallets/jinja` answers outside PRs in a median of 0.0 days, but it merged 0 of 116 PRs opened in 2026, and 0 of 22 debuts came back. Response has to be read together with acceptance.
-8. **The `guide` check is broken, mostly on our side.** 37 projects fail it although ecosyste.ms sees a contributing file: 14 are `CONTRIBUTING.rst`, 14 sit in `docs/` or `.github/`. `build.py` only reads `%CONTRIBUTING.md`. 55 projects fail only this check.
-9. **The data supports three entry paths for experienced people.** Review (41 projects: one reviewer, high demand, someone answers), triage (79), and successor (73: no active insider, outside PRs still arriving).
-10. **Two cautions on conversion.** 9.1% of the cohort were already a merger or direct committer in another of our repos (1.4% same owner), which inflates conversion where orgs share people (`pypa/build`: 3 of 5). Drop `outsider_insider_gap` from the rules: it has a value for only 36 projects.
+Updated after the collection of 2026-11-02 (section 7). Numbers come from that collection unless marked otherwise.
 
-Scripts: [`docs/research/analysis-2026-11/analysis.py`](analysis-2026-11/analysis.py) (all tables; `python3 analysis.py <worktree> 2026-09 2025-09 > out.md`, stdlib only, DB opened `mode=ro`) and [`cases.sql`](analysis-2026-11/cases.sql) next to it; [`out.md`](analysis-2026-11/out.md) is the printed output this report quotes. Every number below was printed by one of them. "Script section N" in the Pending list refers to the script's printed sections, not this report's.
+1. **Coverage grew, but most projects still can't be rated on welcome.** Of 957 projects, 133 (13.9%) have `conversion`, up from 93, and 280 (29.3%) have the insider-response signals, up from 180. The rest: 111 sampled, 34 with no PR since 2018, 565 with fewer than 10 outside PRs. Correction to the first run: its 216 "no PR" projects had simply never been collected.
+2. **Past conversion is the only predictor that holds.** Year over year it gives +0.33 [+0.11, +0.54], n 89 (+0.45 on the first data). `conversion@T ≥ 0.1` lifts next year's mean by +0.091 [+0.035, +0.148].
+3. **Demand per active maintainer predicts lower conversion, on both datasets.** −0.30 [−0.46, −0.12], n 124, falling across terciles: 0.28 → 0.22 → 0.18 pooled.
+4. **Insider response time and no-response share do not predict conversion** (+0.06, −0.03, CIs around 0). Keep them as product rules: a newcomer who never hears back learns nothing.
+5. **Neither today's badge nor a v1 rule beats chance at T.** Badge +0.004 [−0.069, +0.085]; v1 +0.026; v1 without past conversion −0.002. The data defends the null rules (insufficient, nobody active, no team response), not a good/ok split.
+6. **Redundancy.**
+   - Response days ≈ today's review median (+0.88).
+   - No-response share ≈ inverse of acceptance (−0.72).
+   - Reviewer diversity ≈ active maintainers (+0.68).
+   - Demand ≈ debuts (+0.78).
+
+   New information: conversion, `active_maintainers` (131 projects with every insider on a break) and the insider-only no-response share.
+7. **A fast answer can be a fast "no".** `pallets/jinja` answers in a median of 0.0 days but merged 0 of 116 PRs in 2026, so response must be read with acceptance. The reverse also happens: bot-merged Kubernetes repos look 100% open and are badged ready, while no human insider ever answers (no-resp 1.00).
+8. **The `guide` fix worked, and it alone made 14 projects ready.** Passes went 247 → 443, with 0 mismatches against ecosyste.ms left.
+   - Trust 8 of the 14.
+   - Tag 2 "poucos dados".
+   - Drop the badge on 4: `aio-libs/yarl`, `aio-libs/frozenlist`, `pyca/pyopenssl`, `privatenumber/get-tsconfig`.
+
+   The new labels changed nothing.
+9. **Use assignableUsers as insiders for "who answers / maintains", not for "who debuted".** It is today's list, and successful newcomers become members. Keep the backtest behavioral, and in huge orgs count only assignable logins who acted.
+10. **Entry paths for experienced people:** review 55 projects, triage 105, successor 93. Drop `outsider_insider_gap` (48 projects). Maintainers of other repos are 10.6% of conversion cohorts and inflate it.
+
+Scripts: [`analysis.py`](analysis-2026-11/analysis.py) (all tables; `python3 analysis.py <worktree> <now> <T> > out.md`, stdlib only, DB opened `mode=ro`), [`after.py`](analysis-2026-11/after.py) (section 7) and [`cases.sql`](analysis-2026-11/cases.sql). Sections 1–6 are the first run on the data of 2026-10-31 (labels 2026-09 / 2025-09), quoted from [`out-2026-10-31.md`](analysis-2026-11/out-2026-10-31.md). Section 7 is the re-run on the collection of 2026-11-02 (labels 2026-10 / 2025-10), from [`out.md`](analysis-2026-11/out.md) and [`after.out`](analysis-2026-11/after.out). Every number below was printed by one of them. "Script section N" in the Pending list refers to the script's printed sections, not this report's.
 
 ---
 
@@ -28,7 +41,7 @@ Denominator: the 958 projects in `projects.json`. `repo_signals` has 650 repos, 
 | Stage | Projects | What happens |
 |---|---|---|
 | Computed (full collection, raw file) | 639 | signals exist; a value needs the minimum n |
-| Full, no raw activity file | 216 | **all 216 have 0 PRs since 2018 and no `commit_monthly` row** (all `stable`) |
+| Full, no raw activity file | 216 | not collected yet (`activity_fetched_at` NULL; see the correction in section 7); 207 have PRs in the new data |
 | Sampled (large) | 102 | not computed (76 `open_door`, 23 `stable`, 3 `guardian`; 0 ready) |
 | Truncated | 1 | not computed |
 
@@ -88,7 +101,7 @@ Most of the bug is on **our side**. `build.py` only reads `repo_files` paths mat
 
 | Group | Projects | Proposed state |
 |---|---|---|
-| No PRs since 2018 | 216 | "dados insuficientes" + the reason: no PR and no commit recorded. Not a bad rating. |
+| Not collected yet | 216 (34 after the new collection, all with really 0 PRs) | "dados insuficientes" + the reason. Not a bad rating. |
 | Sampled | 102 | "dados insuficientes" until the per-author debut search exists (deep-analysis §4) |
 | 1–9 outside PRs | 263 | show the raw count ("3 de 5 PRs de fora tiveram resposta do time") marked "poucos dados", no rating |
 | 0 outside PRs | 196 | "ninguém de fora mandou PR no último ano" |
@@ -368,7 +381,171 @@ Next to #2 and #3, when acceptance is below 0.1, add: "o time responde, mas quas
 | Does response time *cause* staying | observational data, one T | several T's + person-level model; still not causal |
 | Does the rating help OpenDoor users | no outcome from the site | track debuts of people who came via OpenDoor (opt-in) |
 
+## 7. After the new collection (2026-11-02)
+
+**What ran.** The collection `data-2026-11-02` (data up to October 2026) ran in an integration tree with #108–#112. It added:
+
+- 218 newly collected repos (all Go repos among them);
+- `repo_community` (org-level CONTRIBUTING through GraphQL);
+- `repo_people` and `repo_assignable` (973 repos, 22,328 assignable logins, 0 capped);
+- refreshed `repo_labels`, with the 3 new labels;
+- recomputed `repo_signals`, with labels **2026-10** (current) and **2025-10** (T).
+
+Measured effects of the collection itself are in [`analysis-2026-11/collection-2026-11-02.md`](analysis-2026-11/collection-2026-11-02.md). The tables below come from [`analysis.py`](analysis-2026-11/analysis.py) run as `analysis.py <int-tree> 2026-10 2025-10` (output [`out.md`](analysis-2026-11/out.md); sections 1–6 quote [`out-2026-10-31.md`](analysis-2026-11/out-2026-10-31.md)), and from [`after.py`](analysis-2026-11/after.py) (output [`after.out`](analysis-2026-11/after.out); its second argument is the pre-collection `projects.json` saved by the collection run).
+
+**Correction to section 1.** The 216 "no raw file" projects were **never collected** (`activity_fetched_at` NULL, no `repo_monthly` rows). They were not projects without PRs: 207 of them have PRs in the new data. The "Não vimos PRs nem commits" copy in 5.2 applies only to the 34 projects that really have 0 PRs since 2018.
+
+### 7.1 Coverage and distributions, before and after
+
+| | 2026-10-31 data (as_of 2026-09) | 2026-11-02 data (as_of 2026-10) |
+|---|---|---|
+| projects / computed / sampled | 958 / 639 / 102 | 957 / 845 / 111 |
+| conversion has value | 93 (9.7%) | **133 (13.9%)** |
+| response signals have value | 180 (18.8%) | **280 (29.3%)** |
+| outsider_insider_gap has value | 36 | 48 |
+| active_maintainers = 0 | 115 | 131 |
+| no_insider_response_share median | 0.31 | **0.42** |
+| first_insider_response_days median | 6.0 d | 9.2 d |
+| demand_per_maintainer p75 | 2.10 | 2.69 |
+| beginner `ready` (site) | 30 | 57 (43 in the pre-collection build of this tree) |
+
+The no-response median rose because the new projects (Go, Kubernetes) merge through bots. With behavioral insiders, nobody there counts as an insider who answers (section 7.3). Redundancy is unchanged:
+
+| Pair | Before | After |
+|---|---|---|
+| resp_days vs today's review median | +0.85 | +0.88 (280) |
+| no_resp vs acceptance | −0.76 | −0.72 (280) |
+| rev_div vs active | +0.67 | +0.68 (274) |
+| demand vs debuts | +0.76 | +0.78 (504) |
+| conversion vs acceptance | +0.34 | +0.26 (129) |
+
+### 7.2 Do the backtest conclusions hold? (133 repos, 1,832 people, pooled 0.22)
+
+| Predictor @T vs conversion@now | 2026-10-31 data | 2026-11-02 data |
+|---|---|---|
+| noise ceiling: conversion@T | +0.45 [+0.19, +0.64], n 66 | +0.33 [+0.11, +0.54], n 89 |
+| demand_per_maintainer@T | −0.27 [−0.46, −0.07], n 90 | **−0.30 [−0.46, −0.12]**, n 124 |
+| reviewer_diversity@T | +0.22 [+0.00, +0.41] | +0.19 [+0.00, +0.37] |
+| first_insider_response_days@T | −0.05 [−0.26, +0.18] | +0.06 [−0.12, +0.25] |
+| no_insider_response_share@T | −0.08 [−0.29, +0.14] | −0.03 [−0.23, +0.15] |
+| active_maintainers@T | +0.11 | +0.04 [−0.15, +0.23] |
+| debuts_12m@T (coupled) | −0.13 | −0.22 [−0.39, −0.05] |
+| today's acceptance (concurrent, coupled) | +0.34 | +0.26 [+0.09, +0.42] |
+
+| Flag, mean conversion flagged minus rest | 2026-10-31 data | 2026-11-02 data |
+|---|---|---|
+| `conversion@T ≥ 0.1` alone | +0.137 [+0.074, +0.199] | **+0.091 [+0.035, +0.148]** (89 repos, 64 flagged) |
+| badge@T ready | +0.025 [−0.053, +0.106] | +0.004 [−0.069, +0.085] (133, 33) |
+| v1 beginner `good` @T | +0.058 [−0.014, +0.134] | +0.026 [−0.041, +0.092] (133, 43) |
+| v1 without its conversion clause | +0.030 [−0.044, +0.105] | −0.002 [−0.065, +0.064] (133, 52) |
+| today's ready (concurrent) | +0.016 | +0.020 [−0.046, +0.090] (133, 35) |
+
+Demand by tercile at T: 0.28 / 0.22 / 0.18 pooled (518 / 476 / 778 people).
+
+v1 beginner rule at T, by rating:
+
+| Rating | Repos | Pooled conversion |
+|---|---|---|
+| good | 43 | 0.25 |
+| ok | 42 | 0.18 |
+| bad | 31 | 0.22 |
+| insufficient | 17 | 0.32 |
+
+**They hold, with more data:**
+
+- **Past conversion still predicts conversion.** It is still the only flag clear of 0.
+- **Demand per maintainer predicts lower conversion.** This is now the most stable signal against conversion: CI clear of 0 on both datasets, and the dose-response by tercile is monotonic.
+- **Insider response time and no-response share still do not predict conversion.**
+- **Neither today's badge nor v1 beats chance.** Both separate projects less than before, and v1 without past conversion is exactly 0. "Bad" still cannot be validated by conversion, because bad projects have no cohort (section 3).
+- **Cross-repo insiders inflate conversion more than before.** They now make up 10.6% of the cohort (190 of 1,789; 1.8% same owner), up from 9.1%. In `kubernetes-sigs/structured-merge-diff`, 10 of the 11 cohort people are mergers elsewhere.
+
+### 7.3 What the three fixes changed
+
+| Fix | Effect | Reading |
+|---|---|---|
+| Org-level + non-`.md` CONTRIBUTING (#103) | `guide` passes 247 → 443 (196 flips, all False→True). ecosyste.ms-has-it-but-check-fails went 37 → **0**. 155 projects pass with a file ecosyste.ms does not see (inherited from the org's `.github`) | The bug in section 1 is fixed. 75 projects still fail **only** `guide`, and ecosyste.ms finds no contributing file in any of them: they really have none |
+| New labels (`beginner-friendly`, `starter`, `low-hanging-fruit`) | 2,995 → 2,994 open newcomer issues, 177 → 178 repos; 3 repos changed | No effect on this set. Keep the labels for new repos; nothing to recalibrate |
+| assignableUsers (#108) | 458 assignable logins in 164 repos count as outsiders today, with 4,112 merged PRs in 12 months. Openness falls 0.14 on average in the 105 affected full repos (42 by 0.10+) | Big effect where merges go through bots (see below) |
+
+All 14 newly ready projects flipped on `guide` alone. 7 profiles moved to `open_door` (6 from `stable`, 1 from `needs_hands`): `aio-libs/multidict`, `fastify/fast-uri`, `kludex/python-multipart`, `pyca/pyopenssl`, `sindresorhus/type-fest`, `tox-dev/python-discovery`, `webpack/minimizer-webpack-plugin`. In each case the ready rule promoted the profile.
+
+**Kubernetes shows the insider problem at its worst.** Merges there go through a bot, so with behavioral insiders the projects have **0 maintainers**. Every human PR becomes an "outside" PR, and no human insider ever answers.
+
+| Project | Site today | Insider signals | Assignable |
+|---|---|---|---|
+| `kubernetes/kube-openapi` | `open_door`, **ready**, openness 1.00, acceptance 0.59 | no-resp **1.00** (75), rev_div 0, active n/a, conversion 0.00 (6) | 644 logins |
+| `kubernetes-sigs/structured-merge-diff` | `open_door`, **ready**, openness 1.00, acceptance 0.80 | no-resp **1.00** (35), rev_div 0, conversion 0.455 (11), 10 of 11 already mergers elsewhere | 450 |
+| `kubernetes/klog` | `open_door`, openness 1.00 | no-resp 0.917 (12) | 633 |
+| `kubernetes/utils` | `open_door`, openness 0.71 | no-resp 0.90 (20) | 650 |
+
+Two of the 57 ready badges are false positives of this kind; v1 rates both `bad` for beginners. With assignable as insider, openness would drop to 0.14 and 0.04 (collection report).
+
+**Mastodon** (sampled, so no signals): 20 assignable logins. One of them, `mjankowski`, has 257 merged PRs in 12 months and never merges. The behavioral outsider share on the sample drops from 0.25 to 0.09 if assignable logins count as insiders.
+
+### 7.4 Recommendation: should the insider rule include assignableUsers?
+
+**Yes for "who answers / who reviews / who maintains". No for "who debuted".**
+
+1. **Use assignable logins as insiders in `run`** for these signals:
+   - `first_insider_response_days`, `no_insider_response_share`, `reviewer_diversity`, `active_maintainers`, `demand_per_maintainer`;
+   - in `build.py`, for openness and `maintainers_24m`.
+
+   It fixes the bot-merged projects (Kubernetes), the "member who never merges" (Mastodon) and the 458 hidden insiders.
+2. **Do not use today's list to remove debuts or to define the conversion cohort.** It is today's list: a newcomer who did well becomes a member later (Kubernetes promotes contributors to org members after a few PRs), so excluding them would erase exactly the successes we count. 88 of the 1,789 people in the conversion cohort (4.9%) are assignable today, and so are 114 of the 3,587 debuts of the last 12 months in full repos (84 repos). That share is small, which also shows how often debuts later get access.
+3. **The backtest must stay behavioral** (as `signals.py` does now). For a past T, use assignable only if a snapshot from before T exists; start keeping one per monthly collection (`repo_assignable` with `fetched_at`).
+4. **Huge orgs.** Kubernetes lists 437–774 assignable logins per repo, which is the whole org. As insiders, that is right for "did a human insider answer", but it makes `active_maintainers` and `demand_per_maintainer` meaningless. Count only assignable logins who **acted** in the repo (reviewed, merged or closed) in 24 months.
+
+### 7.5 The 14 newly ready projects: which to trust
+
+All 14 flipped on `guide` only (10 of them through an inherited org-level CONTRIBUTING). Columns: debuts in 12 months (how many are assignable today), outside acceptance, conversion (cohort n), insider response median, no-response share (outside PRs n), reviewer_diversity, v1 beginner rating.
+
+| Project | Debuts (assign.) | Acc. | Conv (n) | Resp d | No-resp (n) | Rev | v1 | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| `sindresorhus/type-fest` | 19 (0) | 0.32 | 0.27 (37) | 0.5 | 0.19 (93) | 2 | good | **trust**: large cohort, fast answers, 5 open newcomer issues |
+| `pypa/packaging` | 30 (4) | 0.62 | 0.29 (14) | 1.1 | 0.22 (209) | 4 | good | **trust**, but 6 of its 14 cohort people maintain other repos: conversion is inflated |
+| `aio-libs/multidict` | 13 (2) | 0.70 | – (4) | 10.4 | 0.12 (43) | 4 | good | **trust** |
+| `expressjs/body-parser` | 9 (2) | 0.65 | – (4) | 1.4 | 0.23 (26) | 3 | good | **trust** |
+| `fastify/fast-uri` | 4 (1) | 0.54 | – (1) | 3.9 | 0.00 (13) | 4 | good | **trust**, few debuts |
+| `antfu-collective/package-manager-detector` | 9 (1) | 0.56 | 0.25 (12) | 5.7 | 0.22 (18) | 2 | good | **trust** |
+| `aio-libs/propcache` | 7 (1) | 0.92 | 0.57 (7) | 0.7 | 0.00 (12) | 3 | good | **trust, "poucos dados"** (12 PRs, cohort 7) |
+| `kludex/python-multipart` | 6 (0) | 0.46 | – (2) | 11.4 | 0.11 (28) | 1 | good | **trust, with a caveat**: one reviewer and one active maintainer |
+| `tox-dev/python-discovery` | 9 (0) | 0.89 | – (0) | 0.1 | 0.00 (18) | 1 | good | plausible, "poucos dados": one reviewer, no cohort yet |
+| `webpack/minimizer-webpack-plugin` | 3 (1) | 0.25 | – (1) | 2.1 | 0.17 (12) | 1 | good | plausible, "poucos dados": 3 debuts, 12 outside PRs, one reviewer |
+| `pyca/pyopenssl` | 6 (0) | 0.50 | – (4) | 0.1 | **0.43** (14) | 3 | ok | **don't badge**: 43% of outside PRs never get an insider answer |
+| `aio-libs/frozenlist` | 6 (1) | 0.39 | – (4) | **25.3** | **0.50** (18) | 2 | ok | **don't badge**: half of outside PRs never get an insider answer, median 25 days |
+| `aio-libs/yarl` | 15 (3) | 0.42 | 0.20 (10) | **35.8** | **0.45** (65) | 4 | bad | **don't badge** |
+| `privatenumber/get-tsconfig` | 7 (0) | 1.00 | – (1) | – | – (9) | – | insufficient | **don't badge**: 9 outside PRs, too few to read the response |
+
+So: 8 to trust, 2 plausible with a "poucos dados" tag, 4 that the badge should not carry. The badge alone cannot tell them apart, because it shares the `guide` and `response` checks with all of them. The no-response share against insiders is what separates them.
+
+Across all 57 ready projects under v1: 32 good, 15 ok, 7 bad, 3 insufficient.
+
+- The 7 bad: `aio-libs/yarl`, `bytedance/sonic` (no-resp 0.60), `google/brotli` (0.52), `kubernetes-sigs/structured-merge-diff` (1.00), `kubernetes/kube-openapi` (1.00), `motdotla/dotenv`, `pyparsing/pyparsing`.
+- The 3 insufficient: `jaredwray/cacheable`, `narwhals-dev/narwhals` (sampled), `privatenumber/get-tsconfig`.
+
+### 7.6 v1 counts on the new data
+
+| Level | good | ok | bad | insufficient |
+|---|---|---|---|---|
+| beginner | 62 | 74 | 304 (133 guardian, 88 nobody active, 83 unanswered) | 517 (371 <10 outside PRs, 112 large, 34 no PRs) |
+| intermediate | 84 | 97 | 189 | 587 |
+| experienced | 69 | 450 (93 successor) | 72 | 366 |
+
+Entry paths (rules in 5.3, p75 demand now 2.69):
+
+| Path | Before | After |
+|---|---|---|
+| review | 41 | 55 |
+| triage | 79 | 105 |
+| successor | 73 | 93 |
+| "people come back" | 12 | 18 |
+| beginner code on newcomer issues | 11 | 17 |
+
+New examples: `prometheus/client_golang` (20 open newcomer issues), `valyala/fasthttp` (14), `yaml/go-yaml`.
+
 ## Pending: after the new collection
+
+**Status (2026-11-02):** steps 1–3 below ran in the integration collection; results in section 7. In step 1, #103 (`repo_community`) supersedes the `%CONTRIBUTING.md` pattern fix. Step 2 now has a recommendation (7.4) instead of a re-run. Step 4 is still pending.
 
 Built but not run yet: the community-files fix (org-level CONTRIBUTING through GraphQL), the `people`/assignableUsers step, and the new newcomer labels (`beginner-friendly`, `starter`, `low-hanging-fruit`). Re-run `analysis.py <worktree> <now> <T>` after each step, in this order.
 

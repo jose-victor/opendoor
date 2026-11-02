@@ -15,6 +15,13 @@ from pathlib import Path
 ROOT = Path(sys.argv[1])
 # as_of labels of repo_signals: the collection window and the backtest window (pass them if the labels change)
 NOW, TT = (sys.argv[2], sys.argv[3]) if len(sys.argv) > 3 else ("2026-09", "2025-09")
+
+
+def _back(m, k):
+    y, mo = divmod(int(m[:4]) * 12 + int(m[5:]) - 1 - k, 12)
+    return f"{y}-{mo + 1:02d}"
+
+
 DB = (ROOT / "data" / "ecosystem.db").resolve()
 db = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
 RAW = DB.parent / "raw" / "github_activity"
@@ -160,7 +167,7 @@ table(["Stage", "Projects"], sorted(st.items(), key=lambda x: -x[1]))
 
 # what are the "no raw file" ones?
 noraw = [r for r in P if stage(r) == "full, no raw activity file"]
-last12 = dict(db.execute("SELECT repo, SUM(prs_opened) FROM repo_monthly WHERE month >= '2025-10' GROUP BY repo"))
+last12 = dict(db.execute("SELECT repo, SUM(prs_opened) FROM repo_monthly WHERE month >= ? GROUP BY repo", (_back(NOW, 11),)))
 all_prs = dict(db.execute("SELECT repo, SUM(prs_opened) FROM repo_monthly GROUP BY repo"))
 print("No raw file, PRs opened (repo_monthly):")
 table(["Group", "Projects"], [
@@ -168,6 +175,7 @@ table(["Group", "Projects"], [
     ["PRs ever but 0 in last 12 months", sum(1 for r in noraw if all_prs.get(r) and not last12.get(r))],
     ["1+ PRs in last 12 months", sum(1 for r in noraw if last12.get(r))],
 ])
+print("Computed projects with 0 PRs since 2018 (repo_monthly):", sum(1 for r in P if stage(r) == "computed" and not all_prs.get(r)))
 print("No raw file, by profile:", dict(Counter(projects[r]["profile"] for r in noraw)), "\n")
 
 rows = []
@@ -178,8 +186,8 @@ for s in SIG:
     has = sum(1 for r in comp if sv(r, s) is not None)
     has25 = sum(1 for r in comp if sv(r, s, TT) is not None)
     rows.append([s, MIN[s], len(comp), n0, low, has, f"{has / len(P):.1%}", has25])
-print("Per signal at 2026-09 among the computed projects (denominator for % = all 958 projects):")
-table(["Signal", "min n", "computed", "n = 0", "0 < n < min", "has value", "% of 958", "has value @2025-09"], rows)
+print("Per signal at 2026-09 among the computed projects (denominator for % = all projects):")
+table(["Signal", "min n", "computed", "n = 0", "0 < n < min", "has value", "% of all projects", "has value @T"], rows)
 
 # who drops from the response signals (no outside PRs)
 print("Computed projects by outside PRs in 12 months (n of first_insider_response_days) and profile:")
@@ -211,7 +219,7 @@ for src, repo in db.execute("SELECT source, repo FROM external_lists"):
     ext[repo.lower()].add(src)
 inl = [r for r in P if r in ext]
 print(f"Projects in an external newcomer list: {len(inl)}; by stage: {dict(Counter(stage(r) for r in inl))}; "
-      f"with conversion@2026-09: {sum(1 for r in inl if sv(r, 'conversion') is not None)}; "
+      f"with conversion@now: {sum(1 for r in inl if sv(r, 'conversion') is not None)}; "
       f"ready: {sum(projects[r]['beginner']['ready'] for r in inl)}\n")
 eco = {}
 for repo, files in db.execute("SELECT repo, files FROM repo_ecosystems"):
@@ -242,14 +250,14 @@ table(["Signal", "as_of", "n repos", "p10", "p25", "p50", "p75", "p90", "mean"],
 rd = Counter(int(sv(r, "reviewer_diversity")) for r in comp if sv(r, "reviewer_diversity") is not None)
 print("demand_per_maintainer NULL split: active_maintainers = 0:", sum(1 for r in comp if sv(r, "demand_per_maintainer") is None and sv(r, "active_maintainers") == 0),
       "| no insider at all:", sum(1 for r in comp if sv(r, "demand_per_maintainer") is None and sv(r, "active_maintainers") is None), "\n")
-print("reviewer_diversity@2026-09 counts:", sorted(rd.items()), "\n")
+print("reviewer_diversity@now counts:", sorted(rd.items()), "\n")
 am = Counter(int(sv(r, "active_maintainers")) for r in comp if sv(r, "active_maintainers") is not None)
-print("active_maintainers@2026-09 counts:", sorted(am.items()), "\n")
-print("active_maintainers = 0 but insiders > 0 @2026-09:",
+print("active_maintainers@now counts:", sorted(am.items()), "\n")
+print("active_maintainers = 0 but insiders > 0 @now:",
       sum(1 for r in comp if sv(r, "active_maintainers") == 0), "\n")
 
 # Spearman matrix
-print("Spearman, pairwise complete, signals @2026-09 and today's numbers (rho / n):\n")
+print("Spearman, pairwise complete, signals @now and today's numbers (rho / n):\n")
 COLS = [s for s in SIG] + TODAY
 get = {s: (lambda s: lambda r: sv(r, s))(s) for s in SIG}
 get.update({k: (lambda k: lambda r: today(r, k))(k) for k in TODAY})
@@ -269,7 +277,7 @@ for a in SIG:
     rows.append(row)
 table(["", *[short[c] for c in COLS]], rows)
 
-print("Median of each signal @2026-09 by today's profile (value / n):")
+print("Median of each signal @now by today's profile (value / n):")
 rows = []
 for prof in ("open_door", "stable", "guardian", "needs_hands"):
     row = [prof, sum(1 for r in P if projects[r]["profile"] == prof)]
@@ -298,13 +306,14 @@ print("## 3. Backtest\n")
 conv_out = lambda r: sv(r, "conversion", NOW)
 x, y = pairs(P, lambda r: sv(r, "conversion", TT), conv_out)
 lo, hi = boot_ci(x, y)
-print(f"Noise ceiling: conversion@2025-09 vs conversion@2026-09: rho {spearman(x, y):+.2f} [{lo:+.2f}, {hi:+.2f}], n {len(x)}\n")
+print(f"Noise ceiling: conversion@T vs conversion@now: rho {spearman(x, y):+.2f} [{lo:+.2f}, {hi:+.2f}], n {len(x)}\n")
 
 # badge at 2025-10 rebuilt from participation, every window capped at 2025-09 (no leak)
 BOTS = "'github-actions','dependabot','dependabot-preview','renovate','greenkeeper','pre-commit-ci','mergify','allcontributors','web-flow','copilot','imgbot','snyk-bot'"
 HUMAN = f"is_bot = 0 AND login NOT LIKE '%bot' AND login NOT IN ({BOTS})"
 PH = HUMAN.replace("is_bot", "p.is_bot").replace("login NOT", "p.login NOT")
-T_LAST, C24, C12, C3 = "2025-09", "2023-10", "2024-10", "2025-07"
+assert _back("2025-09", 23) == "2023-10" and _back("2025-09", 2) == "2025-07"
+T_LAST, C24, C12, C3 = TT, _back(TT, 23), _back(TT, 11), _back(TT, 2)  # windows end at the last closed month T
 M = (f"SELECT repo, login FROM participation WHERE {HUMAN} AND month >= '{C24}' AND month <= '{T_LAST}' "
      "AND role IN ('pr_merger','direct_committer') GROUP BY repo, login "
      "HAVING SUM(role='pr_merger') > 0 OR SUM(CASE WHEN role='direct_committer' THEN n ELSE 0 END) >= 3")
@@ -364,7 +373,7 @@ for name, fn in PRED:
         rows.append([name, len(x), f"{spearman(x, y):+.2f}", f"[{lo:+.2f}, {hi:+.2f}]"])
     else:
         rows.append([name, len(x), "-", "-"])
-print("Spearman with conversion@2026-09 (cohort debuted 2024-10..2025-09, followed 12 months), 95% bootstrap CI (1000):")
+print(f"Spearman with conversion@now (cohort debuted {_back(TT, 11)}..{TT}, followed 12 months), 95% bootstrap CI (1000):")
 table(["Predictor", "n", "rho", "95% CI"], rows)
 
 conv_back = lambda r: round(sv(r, "conversion") * sn(r, "conversion"))
@@ -390,7 +399,7 @@ def terciles(fn, name):
 rows = []
 for name, fn in PRED[:11]:
     rows += terciles(fn, name)
-print("Conversion@2026-09 by tercile of each predictor (mean of repo rates; pooled = sum came back / sum cohort):")
+print("Conversion@now by tercile of each predictor (mean of repo rates; pooled = sum came back / sum cohort):")
 table(["Predictor", "tercile", "repos", "range", "mean conv", "pooled conv", "cohort people"], rows)
 
 
@@ -410,7 +419,7 @@ rows += groups(lambda r: int(all(B25[r].values())) if B25[r] else None, [1, 0], 
 rows += groups(lambda r: projects[r]["profile"], ["open_door", "stable", "guardian", "needs_hands"], "TODAY profile (concurrent)")
 for key in ("debuts", "acceptance", "active", "response", "guide"):
     rows += groups(lambda r, key=key: (int(B25[r][key]) if B25[r] else None), [1, 0], f"badge@T check {key}")
-print("Conversion@2026-09 by badge / profile group:")
+print("Conversion@now by badge / profile group:")
 table(["Grouping", "group", "repos", "mean conv", "pooled conv", "cohort people"], rows)
 print("badge@T ready overall:", Counter(int(all(b.values())) for b in B25.values() if b), "| today ready vs badge@T ready (both, today only, T only):",
       sum(1 for r in P if B25[r] and all(B25[r].values()) and today(r, 'ready')),
@@ -457,7 +466,7 @@ show("open_door with conversion <= 0.15", lambda r: projects[r]["profile"] == "o
      key=lambda r: g(r, "conversion"))
 
 # ================= 5. Entry-path support =================
-print("## 5. Entry-path counts (2026-09)\n")
+print("## 5. Entry-path counts (now)\n")
 hd = [r for r in comp if g(r, "demand_per_maintainer") is not None]
 d75 = q([g(r, "demand_per_maintainer") for r in hd])[3]
 rows = [
@@ -480,7 +489,7 @@ def chk(r, key):
 
 
 def rate(r, level, T=False):
-    """v1 rules. T=True: the beginner rule at 2025-10 (signals@2025-09, badge checks rebuilt at T; profile and
+    """v1 rules. T=True: the beginner rule at 2025-10 (signals@T, badge checks rebuilt at T; profile and
     guardian are today's), for the backtest."""
     st_ = stage(r)
     if T:
@@ -490,7 +499,7 @@ def rate(r, level, T=False):
         g_, chk_ = g, chk
     if st_ in ("sampled (large)", "truncated"):
         return "insufficient", "large/truncated repo"
-    if st_ == "full, no raw activity file":
+    if st_ == "full, no raw activity file" or not all_prs.get(r):
         return "insufficient", "no PRs since 2018"
     act, nr, rdays = g_(r, "active_maintainers"), g_(r, "no_insider_response_share"), g_(r, "first_insider_response_days")
     conv, dem = g_(r, "conversion"), g_(r, "demand_per_maintainer")
@@ -547,7 +556,7 @@ for level in ("beginner", "intermediate", "experienced"):
         if gg:
             rows.append([level, lab, len(gg), f"{statistics.fmean(conv_out(r) for r in gg):.2f}",
                          f"{sum(conv_back(r) for r in gg) / sum(sn(r, 'conversion') for r in gg):.2f}", sum(sn(r, 'conversion') for r in gg)])
-print("Sanity only (concurrent, same window as the rules): conversion@2026-09 by v1 rating:")
+print("Sanity only (concurrent, same window as the rules): conversion@now by v1 rating:")
 table(["Level", "rating", "repos", "mean conv", "pooled conv", "cohort people"], rows)
 rows = []
 for lab in ("good", "ok", "bad", "insufficient"):
@@ -555,7 +564,7 @@ for lab in ("good", "ok", "bad", "insufficient"):
     if gg:
         rows.append(["beginner @T=2025-10", lab, len(gg), f"{statistics.fmean(conv_out(r) for r in gg):.2f}",
                      f"{sum(conv_back(r) for r in gg) / sum(sn(r, 'conversion') for r in gg):.2f}", sum(sn(r, 'conversion') for r in gg)])
-print("Backtest of the v1 beginner rule: rated with data before 2025-10, outcome conversion@2026-09:")
+print("Backtest of the v1 beginner rule: rated with data before 2025-10, outcome conversion@now:")
 table(["Level", "rating", "repos", "mean conv", "pooled conv", "cohort people"], rows)
 print("Today's ready=True (30) under v1 beginner:", dict(Counter(rate(r, "beginner")[0] for r in P if today(r, "ready"))))
 print("Today's profile x v1 beginner:")
@@ -594,7 +603,7 @@ for name, fl in [("badge@T ready", lambda r: all(B25[r].values()) if B25[r] else
                  ("TODAY ready (concurrent)", lambda r: bool(today(r, "ready")))]:
     n_, k_, d_, lo, hi = diff_ci(fl)
     rows.append([name, n_, k_, f"{d_:+.3f}", f"[{lo:+.3f}, {hi:+.3f}]"])
-print("Mean conversion@2026-09, flagged minus rest (bootstrap 95% CI):")
+print("Mean conversion@now, flagged minus rest (bootstrap 95% CI):")
 table(["Flag", "repos", "flagged", "diff", "95% CI"], rows)
 print()
 print("code for beginners list (conv >= 0.3, no_resp <= 0.3):", [r for r in comp if (g(r, "conversion") or 0) >= 0.3 and g(r, "no_insider_response_share") is not None and g(r, "no_insider_response_share") <= 0.3])
@@ -637,9 +646,9 @@ print(f"\nv1 beginner good @T WITHOUT the conversion clause: repos {n_}, flagged
 n_, k_, d_, lo, hi = diff_ci(lambda r: (sv(r, "conversion", TT) or 0) >= 0.1 if sv(r, "conversion", TT) is not None else None)
 print(f"conversion@T >= 0.1 alone (repos with conversion@T): repos {n_}, flagged {k_}, diff {d_:+.3f} [{lo:+.3f}, {hi:+.3f}]")
 # (c) the 216 no-PR projects: any commits in the last 24 months?
-c24 = dict(db.execute("SELECT repo, SUM(commits) FROM commit_monthly WHERE month >= '2024-10' GROUP BY repo"))
-d24 = dict(db.execute("SELECT repo, SUM(direct_commits) FROM commit_monthly WHERE month >= '2024-10' GROUP BY repo"))
-print(f"\nNo-PR projects (216): commits in last 24 months > 0: {sum(1 for r in noraw if (c24.get(r) or 0) > 0)}; "
+c24 = dict(db.execute("SELECT repo, SUM(commits) FROM commit_monthly WHERE month >= ? GROUP BY repo", (_back(NOW, 23),)))
+d24 = dict(db.execute("SELECT repo, SUM(direct_commits) FROM commit_monthly WHERE month >= ? GROUP BY repo", (_back(NOW, 23),)))
+print(f"\nNo-PR projects: commits in last 24 months > 0: {sum(1 for r in noraw if (c24.get(r) or 0) > 0)}; "
       f"direct commits > 0: {sum(1 for r in noraw if (d24.get(r) or 0) > 0)}; no commit row: {sum(1 for r in noraw if r not in c24)}")
 # (d) the 37 guide mismatches: what file does ecosyste.ms see?
 mis = [r for r, e in eco_contrib.items() if e and not guide_ok[r]]
