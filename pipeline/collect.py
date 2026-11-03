@@ -8,7 +8,9 @@ Every step can be re-run: it skips what's already in the database and resumes wh
   python pipeline/collect.py repos                 # GitHub: current snapshot + policy files -> repos, repo_files
   python pipeline/collect.py activity [--limit N]  # GitHub: who opened/reviewed/merged/closed, per month since 2018
   python pipeline/collect.py commits [--limit N]   # GitHub: commits per month and how many went in directly, without a PR
+  python pipeline/collect.py people [--limit N]   # GitHub: assignable users and public org members -> repo_assignable, repo_people
   python pipeline/collect.py labels                # GitHub: open issues labeled for beginners / help wanted
+  python pipeline/collect.py community             # GitHub: CONTRIBUTING (incl. org-inherited), code of conduct, templates, security, funding
   python pipeline/collect.py security              # deps.dev: OpenSSF Scorecard + vulnerability advisories
   python pipeline/collect.py apps                  # track 2: tag and snapshot the mainstream apps (APPS list)
   python pipeline/collect.py large [--workers N]  # large repos: monthly counts + a sample of people
@@ -20,6 +22,7 @@ Every step can be re-run: it skips what's already in the database and resumes wh
 """
 import argparse
 import concurrent.futures as cf
+import functools
 import gzip
 import json
 import sqlite3
@@ -103,6 +106,8 @@ CREATE TABLE IF NOT EXISTS repo_monthly(repo TEXT, month TEXT, issues_opened INT
   prs_closed_unmerged INT, reviews INT, PRIMARY KEY(repo, month));
 CREATE TABLE IF NOT EXISTS participation(repo TEXT, month TEXT, role TEXT, login TEXT, is_bot INT, n INT,
   PRIMARY KEY(repo, month, role, login));
+CREATE TABLE IF NOT EXISTS repo_assignable(repo TEXT, login TEXT, PRIMARY KEY(repo, login));
+CREATE TABLE IF NOT EXISTS repo_people(repo TEXT PRIMARY KEY, assignable INT, capped INT, public_members INT, fetched_at TEXT);
 """
 MONTHLY_FIELDS = ["issues_opened", "issues_closed", "issues_closed_completed", "issues_closed_not_planned",
                   "prs_opened", "prs_merged", "prs_closed_unmerged", "reviews"]
@@ -596,6 +601,64 @@ def cmd_activity(db, args):
             log(f"  [{i}/{len(todo)}] {repo}: {n_pr} PRs, {n_is} issues since {since}{' (truncated)' if trunc else ''}")
 
 
+ASSIGNABLE_MAX_PAGES = 20  # 2,000 logins per repo; beyond that the row is marked capped
+ASSIGNABLE_QUERY = """query($o:String!,$n:String!,$c:String){ rateLimit{remaining resetAt}
+ repository(owner:$o,name:$n){ assignableUsers(first:100, after:$c){ pageInfo{hasNextPage endCursor} nodes{login} } } }"""
+
+
+def people_row(repo, logins, capped, public_members):
+    return (repo, len(set(logins)), int(capped), public_members)
+
+
+@functools.cache  # repos of the same org share it: one set of REST calls per owner per run
+def public_members_count(owner):
+    """Count of public members of an org (REST, count only); None when the owner is a user. At most 1,000 (10 pages)."""
+    n = 0
+    for page in range(1, 11):
+        r = http_json(f"https://api.github.com/orgs/{owner}/public_members?per_page=100&page={page}",
+                      headers={"Authorization": f"bearer {_token}"})
+        if r is None:
+            return None if page == 1 else n
+        n += len(r)
+        if len(r) < 100:
+            break
+    return n
+
+
+def cmd_people(db, args):
+    """Who can be assigned (write access, plus some org members with read): sees private org members that authorAssociation misses."""
+    todo = [r[0] for r in db.execute(
+        "SELECT r.repo FROM repos r LEFT JOIN packages p ON p.repo = r.repo LEFT JOIN repo_people pp ON pp.repo = r.repo "
+        "WHERE r.found = 1 AND (pp.repo IS NULL OR ?) "
+        "GROUP BY r.repo ORDER BY MAX(COALESCE(p.dependents, 0)) DESC LIMIT ?", (getattr(args, "refresh", False), args.limit))]
+    log(f"{len(todo)} repositories to collect people for")
+    for i, repo in enumerate(todo, 1):
+        owner, name = repo.split("/")
+        logins, cursor, capped = [], None, False
+        for page in range(ASSIGNABLE_MAX_PAGES):
+            d = gh(ASSIGNABLE_QUERY, {"o": owner, "n": name, "c": cursor})
+            repo_data = (d.get("data") or {}).get("repository")
+            if not repo_data:
+                logins = None
+                break
+            au = repo_data["assignableUsers"]
+            logins += [u["login"] for u in au["nodes"]]
+            if not au["pageInfo"]["hasNextPage"]:
+                break
+            cursor = au["pageInfo"]["endCursor"]
+        else:
+            capped = True
+        if logins is None:
+            log(f"  [{i}/{len(todo)}] {repo}: no data, will retry next run")
+            continue
+        row = people_row(repo, logins, capped, public_members_count(owner))
+        with db:
+            db.execute("DELETE FROM repo_assignable WHERE repo = ?", (repo,))
+            db.executemany("INSERT OR IGNORE INTO repo_assignable VALUES(?, ?)", [(repo, x) for x in set(logins)])
+            db.execute("INSERT OR REPLACE INTO repo_people VALUES(?,?,?,?,?)", (*row, now()))
+        log(f"  [{i}/{len(todo)}] {repo}: {row[1]} assignable{' (capped)' if capped else ''}, {row[3]} public members")
+
+
 COMMIT_ROLES = ("committer", "direct_committer")
 COMMIT_QUERY = """query($o:String!,$n:String!,$c:String,$since:GitTimestamp!){ rateLimit{remaining resetAt}
  repository(owner:$o,name:$n){ defaultBranchRef{ target{ ... on Commit{
@@ -832,7 +895,7 @@ def update_large(db, args):
             log(f"  [{i}/{len(rows)}] {repo}: {len(counts)} new months")
 
 
-NEWCOMER_LABELS = '"good first issue","good-first-issue","first-timers-only","beginner","easy","help wanted"'
+NEWCOMER_LABELS = '"good first issue","good-first-issue","first-timers-only","beginner","beginner-friendly","starter","low-hanging-fruit","easy","help wanted"'
 
 
 def cmd_labels(db, args):
@@ -850,6 +913,73 @@ def cmd_labels(db, args):
             db.executemany("INSERT OR REPLACE INTO repo_labels VALUES(?,?,?)",
                            [(r, (data.get(f"a{i}") or {}).get("issueCount"), now()) for i, r in enumerate(batch)])
         log(f"  {min(start + 20, len(todo))}/{len(todo)} repositories")
+
+
+COMMUNITY_FIELDS = ("contributingGuidelines{url body} codeOfConduct{key} issueTemplates{name} pullRequestTemplates{filename} "
+                    "securityPolicyUrl hasDiscussionsEnabled fundingLinks{platform url}")
+
+
+def _inherited(repo, node):
+    g = node.get("contributingGuidelines")
+    # URL is https://github.com/<owner>/<repo>/blob/...: only the org-wide <owner>/.github repo counts
+    # (a renamed or transferred repo also has a different owner/repo, but the file is its own)
+    return bool(g and g.get("url")) and g["url"].split("/")[4:5] == [".github"] and repo.split("/")[1] != ".github"
+
+
+def community_row(repo, node):
+    """Maps one GraphQL `repository` node to a repo_community row."""
+    g = node.get("contributingGuidelines") or {}
+    return (repo, g.get("url"), int(_inherited(repo, node)), (node.get("codeOfConduct") or {}).get("key"),
+            int(bool(node.get("issueTemplates"))), int(bool(node.get("pullRequestTemplates"))), node.get("securityPolicyUrl"),
+            int(bool(node.get("hasDiscussionsEnabled"))), json.dumps(node.get("fundingLinks") or []), now())
+
+
+def contributing_file(repo, node):
+    """(path, body) of the CONTRIBUTING GitHub resolved for the repo, or None.
+
+    Own file: its path in the repo (`blob/<ref>/<path>`). Inherited: `<owner>/.github/<path>`.
+    """
+    g = node.get("contributingGuidelines")
+    if not (g and g.get("url") and g.get("body")) or "/blob/" not in g["url"]:
+        return None
+    path = g["url"].split("/blob/", 1)[1].split("/", 1)[-1]  # drop the ref (shortcut: a ref with a slash breaks this)
+    return (f"{repo.split('/')[0]}/.github/{path}" if _inherited(repo, node) else path), g["body"]
+
+
+def store_contributing(db, repo, node):
+    """Puts GitHub's CONTRIBUTING into repo_files unless the repo already has one fetched by the repos step."""
+    # a refresh rewrites our row (oid NULL); rows from the repos step have an oid and are left alone
+    db.execute("DELETE FROM repo_files WHERE repo = ? AND oid IS NULL AND path LIKE '%CONTRIBUTING%'", (repo,))
+    f = contributing_file(repo, node)
+    if f and not db.execute("SELECT 1 FROM repo_files WHERE repo = ? AND path LIKE '%CONTRIBUTING%'", (repo,)).fetchone():
+        db.execute("INSERT INTO repo_files VALUES(?,?,?,?,?)", (repo, f[0], None, f[1], now()))
+
+
+COMMUNITY_BATCH = 10  # 50 repos with CONTRIBUTING bodies per query made GitHub answer 502/504
+
+
+def cmd_community(db, args):
+    """Community health: CONTRIBUTING (any file GitHub recognizes, incl. inherited), code of conduct, templates, security policy, discussions, funding."""
+    db.execute("CREATE TABLE IF NOT EXISTS repo_community(repo TEXT PRIMARY KEY, contributing_url TEXT, contributing_inherited INT, "
+               "code_of_conduct TEXT, issue_templates INT, pr_templates INT, security_policy_url TEXT, discussions INT, "
+               "funding TEXT, fetched_at TEXT)")
+    todo = [r[0] for r in db.execute(
+        "SELECT r.repo FROM repos r LEFT JOIN repo_community c ON c.repo = r.repo WHERE r.found = 1 AND (c.repo IS NULL OR ?)",
+        (getattr(args, "refresh", False),))]
+    log(f"{len(todo)} repositories to fetch community data for")
+    for start in range(0, len(todo), COMMUNITY_BATCH):
+        batch = todo[start:start + COMMUNITY_BATCH]
+        parts = [f'c{i}: repository(owner:{json.dumps(r.split("/")[0])}, name:{json.dumps(r.split("/")[1])}){{{COMMUNITY_FIELDS}}}'
+                 for i, r in enumerate(batch)]
+        data = gh("query{ rateLimit{remaining resetAt} " + " ".join(parts) + " }").get("data") or {}
+        with db:
+            for i, repo in enumerate(batch):
+                node = data.get(f"c{i}")
+                if not node:
+                    continue  # not returned: retried next run
+                db.execute("INSERT OR REPLACE INTO repo_community VALUES(?,?,?,?,?,?,?,?,?,?)", community_row(repo, node))
+                store_contributing(db, repo, node)
+        log(f"  {min(start + COMMUNITY_BATCH, len(todo))}/{len(todo)} repositories")
 
 
 def cmd_topics(db, args):
@@ -911,7 +1041,8 @@ def cmd_update(db, args):
     New repos (never collected) get their full history. The dependency graph (`graph`) is not refreshed here.
     """
     args.refresh, args.limit = True, 10 ** 6
-    for step in (cmd_repos, cmd_labels, cmd_topics):
+    # community after repos: repos rewrites repo_files, community puts the inherited CONTRIBUTING back
+    for step in (cmd_repos, cmd_community, cmd_people, cmd_labels, cmd_topics):
         log(f"== {step.__name__.removeprefix('cmd_')}")
         step(db, args)
     # large: only repos collected for the first time now. An already collected repo keeps its mode, or a full one
@@ -969,6 +1100,28 @@ def cmd_selftest(db, args):
     assert aggregate_commits(commits, "2018-01", "2025-03")[1][("2025-02", "direct_committer", "renovate[bot]", 1)] == 1
     assert [m[0] for m in month_range("2025-11", "2026-02")] == ["2025-11", "2025-12", "2026-01"]
     assert list(month_range("2025-12", "2026-01")) == [("2025-12", "2025-12-01", "2026-01-01")]
+    node = {"contributingGuidelines": {"url": "https://github.com/expressjs/.github/blob/master/CONTRIBUTING.md", "body": "x"},
+            "codeOfConduct": {"key": "contributor_covenant"}, "issueTemplates": [{"name": "bug"}], "pullRequestTemplates": [],
+            "securityPolicyUrl": None, "hasDiscussionsEnabled": True, "fundingLinks": [{"platform": "OPEN_COLLECTIVE", "url": "u"}]}
+    assert community_row("expressjs/express", node)[1:7] == ("https://github.com/expressjs/.github/blob/master/CONTRIBUTING.md", 1, "contributor_covenant", 1, 0, None)
+    assert contributing_file("expressjs/express", node) == ("expressjs/.github/CONTRIBUTING.md", "x")
+    own = dict(node, contributingGuidelines={"url": "https://github.com/a/b/blob/main/CONTRIBUTING.md", "body": "y"})
+    assert community_row("a/b", own)[2] == 0 and contributing_file("a/b", own) == ("CONTRIBUTING.md", "y")
+    assert community_row("a/b", dict(node, contributingGuidelines=None))[1:3] == (None, 0)
+    moved = dict(node, contributingGuidelines={"url": "https://github.com/newowner/newname/blob/main/CONTRIBUTING.md", "body": "z"})
+    assert community_row("old/name", moved)[2] == 0 and contributing_file("old/name", moved)[0] == "CONTRIBUTING.md"  # renamed, not inherited
+    assert contributing_file("a/b", dict(node, contributingGuidelines=None)) is None
+    rst = dict(node, contributingGuidelines={"url": "https://github.com/a/b/blob/main/docs/contributing.rst", "body": "r"})
+    mem = sqlite3.connect(":memory:")
+    mem.execute("CREATE TABLE repo_files(repo TEXT, path TEXT, oid TEXT, text TEXT, fetched_at TEXT)")
+    store_contributing(mem, "a/b", rst)
+    store_contributing(mem, "a/b", rst)  # refresh: replaced, not duplicated
+    assert mem.execute("SELECT path, text FROM repo_files").fetchall() == [("docs/contributing.rst", "r")]
+    mem.execute("INSERT INTO repo_files VALUES('c/d', 'CONTRIBUTING.md', 'abc', 'own', 'now')")
+    store_contributing(mem, "c/d", dict(own, contributingGuidelines={"url": "https://github.com/c/d/blob/main/CONTRIBUTING.md", "body": "y"}))
+    assert mem.execute("SELECT COUNT(*) FROM repo_files WHERE repo = 'c/d'").fetchone()[0] == 1  # fetched file kept
+    store_contributing(mem, "e/f", node)  # inherited
+    assert mem.execute("SELECT path FROM repo_files WHERE repo = 'e/f'").fetchone()[0] == "e/.github/CONTRIBUTING.md"
     # update: an updated item replaces its old copy (by number, or by createdAt+author for caches without numbers)
     old = [{"createdAt": "2025-01-01T00:00:00Z", "author": {"login": "ana"}, "state": "OPEN"},
            {"number": 7, "createdAt": "2025-02-01T00:00:00Z", "author": {"login": "rui"}, "state": "OPEN"},
@@ -979,12 +1132,15 @@ def cmd_selftest(db, args):
     merged = merge_items(old, new)
     assert [x["state"] for x in merged] == ["MERGED", "CLOSED", "OPEN", "OPEN"] and merged[2]["author"] is None, merged
     assert merge_items(merged, new) == merged  # idempotent
+    assert people_row("a/b", ["x", "y"], False, 1)[1:4] == (2, 0, 1)
+    assert people_row("a/b", [], True, None)[2] == 1
+    assert people_row("a/b", ["x", "y", "x"], False, 1)[1] == 2  # a login repeated across pages counts once
     log("selftest ok")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db", "update"])
+    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "people", "labels", "community", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db", "update"])
     ap.add_argument("--limit", type=int, default=300, help="activity: how many repos (those with the most dependents first)")
     ap.add_argument("--workers", type=int, default=4, help="activity: repos in parallel")
     ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: deps.dev ecosystem")

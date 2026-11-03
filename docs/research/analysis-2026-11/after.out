@@ -1,0 +1,30 @@
+projects before/after/both: 957 957 957
+ready before/after: 43 57
+newly ready: 14 | lost ready: []
+
+Debuts (12m, build.py rule) that are assignable today: 276 of 7251 in 115 repos
+
+repo_community columns: ['repo', 'contributing_url', 'contributing_inherited', 'code_of_conduct', 'issue_templates', 'pr_templates', 'security_policy_url', 'discussions', 'funding', 'fetched_at']
+
+| repo | profile old→new | guide old→new | debuts (assignable) | acceptance | conv (n) | insider resp d | no-resp (n) | rev_div | active | newcomer_open | contributing |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `aio-libs/frozenlist` | open_door→open_door | 0→1 | 6 (1) | 0.39 | None (4) | 25.3 | 0.5 (18) | 2.0 | 3.0 | 0 | inherited |
+| `aio-libs/multidict` | stable→open_door | 0→1 | 13 (2) | 0.7 | None (4) | 10.4 | 0.116 (43) | 4.0 | 4.0 | 1 | inherited |
+| `aio-libs/propcache` | open_door→open_door | 0→1 | 7 (1) | 0.92 | 0.57 (7) | 0.7 | 0.0 (12) | 3.0 | 2.0 | 0 | inherited |
+| `aio-libs/yarl` | open_door→open_door | 0→1 | 15 (3) | 0.42 | 0.2 (10) | 35.8 | 0.446 (65) | 4.0 | 4.0 | 1 | inherited |
+| `antfu-collective/package-manager-detector` | open_door→open_door | 0→1 | 9 (1) | 0.56 | 0.25 (12) | 5.7 | 0.222 (18) | 2.0 | 2.0 | 0 | inherited |
+| `expressjs/body-parser` | open_door→open_door | 0→1 | 9 (2) | 0.65 | None (4) | 1.4 | 0.231 (26) | 3.0 | 3.0 | 1 | inherited |
+| `fastify/fast-uri` | stable→open_door | 0→1 | 4 (1) | 0.54 | None (1) | 3.9 | 0.0 (13) | 4.0 | 8.0 | 0 | inherited |
+| `kludex/python-multipart` | stable→open_door | 0→1 | 6 (0) | 0.46 | None (2) | 11.4 | 0.107 (28) | 1.0 | 1.0 | 0 | inherited |
+| `privatenumber/get-tsconfig` | open_door→open_door | 0→1 | 7 (0) | 1 | None (1) | None | None (9) | None | 1.0 | 0 | inherited |
+| `pyca/pyopenssl` | needs_hands→open_door | 0→1 | 6 (0) | 0.5 | None (4) | 0.1 | 0.429 (14) | 3.0 | 3.0 | 1 | own |
+| `pypa/packaging` | open_door→open_door | 0→1 | 30 (4) | 0.62 | 0.29 (14) | 1.1 | 0.22 (209) | 4.0 | 3.0 | 0 | own |
+| `sindresorhus/type-fest` | stable→open_door | 0→1 | 19 (0) | 0.32 | 0.27 (37) | 0.5 | 0.194 (93) | 2.0 | 4.0 | 5 | own |
+| `tox-dev/python-discovery` | stable→open_door | 0→1 | 9 (0) | 0.89 | None (0) | 0.1 | 0.0 (18) | 1.0 | 1.0 | 0 | own |
+| `webpack/minimizer-webpack-plugin` | stable→open_door | 0→1 | 3 (1) | 0.25 | None (1) | 2.1 | 0.167 (12) | 1.0 | 1.0 | 1 | inherited |
+
+Checks that flipped False->True among the newly ready: Counter({'guide': 14})
+profile flips: [('aio-libs/multidict', 'stable', 'open_door'), ('fastify/fast-uri', 'stable', 'open_door'), ('kludex/python-multipart', 'stable', 'open_door'), ('pyca/pyopenssl', 'needs_hands', 'open_door'), ('sindresorhus/type-fest', 'stable', 'open_door'), ('tox-dev/python-discovery', 'stable', 'open_door'), ('webpack/minimizer-webpack-plugin', 'stable', 'open_door')]
+
+Full repos only: debuts 12m 3587, assignable today 114 in 84 repos
+T=2025-10: cohort people in repos with conversion: 1789; assignable today: 88
