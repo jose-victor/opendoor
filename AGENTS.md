@@ -11,7 +11,8 @@ OpenDoor: a platform that recommends entry points into open source projects. A c
 
 ## Commands
 ```bash
-python pipeline/collect.py fetch-db --raw  # database + raw cache from the latest data-* release (not in git)
+python pipeline/collect.py fetch-db --raw  # database + raw cache from the release in data/RELEASE (not in git)
+python pipeline/collect.py update       # monthly incremental update; routine in docs/data.md
 python pipeline/collect.py selftest     # run after touching the aggregation
 python pipeline/build.py                # profile and badge self-tests, then generates web/public/data/
 python pipeline/guides.py selftest      # self-tests without calling the model (same for opportunities.py)

@@ -6,18 +6,26 @@ The database is not in git. Each collection is published as a GitHub Release tag
 - `raw.tar.gz`: the raw API cache (`data/raw/`), so the aggregations can be recomputed (`collect.py reaggregate`) and `build.py` can compute review times.
 
 ```bash
-python pipeline/collect.py fetch-db --raw    # latest data-* release -> data/ecosystem.db and data/raw/
+python pipeline/collect.py fetch-db --raw    # the release named in data/RELEASE -> data/ecosystem.db and data/raw/
 ```
 `fetch-db` refuses to overwrite an existing database unless you pass `--force`, and only replaces it after an integrity check.
 
-After a new collection, a maintainer publishes it:
+### Monthly update
+Once a month, after the month closes, a maintainer updates and publishes the data:
 ```bash
-python pipeline/build.py                      # regenerate web/public/data/ and commit it in a PR
+python pipeline/collect.py fetch-db --raw     # start from the current release (skip if data/ is up to date)
+python pipeline/collect.py update             # refresh snapshots; fetch only what changed since the last run (~1 h)
+python pipeline/build.py                      # regenerate web/public/data/; compare with the published numbers
+sqlite3 data/ecosystem.db VACUUM
 gzip -9 -k data/ecosystem.db && tar czf data/raw.tar.gz -C data raw
 gh release create data-YYYY-MM-DD data/ecosystem.db.gz data/raw.tar.gz --latest=false \
   --title "Data: collection of YYYY-MM-DD" --notes "What changed in this collection."
+echo data-YYYY-MM-DD > data/RELEASE           # commit it together with web/public/data/ in one PR
 ```
-CI downloads the latest release and checks that `build.py` reproduces the committed JSON, so publish the release and merge the JSON PR together.
+- `update` refreshes the snapshots (`repos`, then `community`, `labels`, `topics`) and fetches only PRs, issues and commits changed since the last run. Repos never collected get their full history. A repo already collected keeps its collection mode (full or sampled).
+- It does not refresh the dependency graph (`graph`); run that now and then, followed by `repos` and `update`.
+- CI downloads the release named in `data/RELEASE` and checks that `build.py` reproduces the committed JSON. Publishing a new release does not affect `main` until the PR that bumps `data/RELEASE` merges.
+- Before publishing, compare the build with the published data (profiles, beginner badges). A large jump usually means a collection problem, not a real change.
 
 ## Conventions
 A repository is always identified as `owner/name` in lowercase. Months use the `YYYY-MM` format, closed months only, starting at `2018-01`.

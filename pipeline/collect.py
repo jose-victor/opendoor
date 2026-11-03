@@ -17,6 +17,7 @@ Every step can be re-run: it skips what's already in the database and resumes wh
   python pipeline/collect.py stats                 # database summary
   python pipeline/collect.py selftest              # check the monthly aggregation
   python pipeline/collect.py fetch-db [--raw] [--force]  # download the published database (and raw cache) from GitHub Releases
+  python pipeline/collect.py update                # monthly: refresh snapshots, fetch only what changed since the last run
 """
 import argparse
 import concurrent.futures as cf
@@ -138,9 +139,9 @@ def http_json(url, data=None, headers=None, tries=6):
             raise
 
 
-def cached(kind, key, fetch):
+def cached(kind, key, fetch, refresh=False):
     p = RAW / kind / (urllib.parse.quote(key, safe="") + ".json")
-    if p.exists():
+    if p.exists() and not refresh:
         return json.loads(p.read_text())
     value = fetch()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -150,6 +151,7 @@ def cached(kind, key, fetch):
 
 # ---------- published data ----------
 DATA_REPO = "jose-victor/opendoor"  # releases tagged data-YYYY-MM-DD hold ecosystem.db.gz and raw.tar.gz
+RELEASE_FILE = DATA / "RELEASE"  # versioned: the release that web/public/data/ was built from
 
 
 def download(url, dest):
@@ -161,13 +163,13 @@ def download(url, dest):
 
 
 def cmd_fetch_db(args):
-    """Downloads the latest data-* release. Never overwrites an existing database without --force."""
+    """Downloads the release named in data/RELEASE. Never overwrites an existing database without --force."""
     if DB.exists() and not args.force:
         sys.exit(f"{DB.relative_to(ROOT)} already exists; use --force to replace it.")
-    releases = http_json(f"https://api.github.com/repos/{DATA_REPO}/releases?per_page=100") or []
-    release = next((r for r in releases if r["tag_name"].startswith("data-")), None)
+    tag = RELEASE_FILE.read_text().strip()
+    release = http_json(f"https://api.github.com/repos/{DATA_REPO}/releases/tags/{tag}")
     if release is None:
-        sys.exit(f"No data-* release found in {DATA_REPO}.")
+        sys.exit(f"Release {tag} not found in {DATA_REPO}.")
     assets = {a["name"]: a["browser_download_url"] for a in release["assets"]}
     log(f"release {release['tag_name']}")
     DATA.mkdir(exist_ok=True)
@@ -341,7 +343,7 @@ def cmd_apps(db, args):
 def cmd_repos(db, args):
     todo = [r[0] for r in db.execute(
         "SELECT DISTINCT x.repo FROM (SELECT repo FROM packages WHERE repo IS NOT NULL UNION SELECT repo FROM repo_tags) x "
-        "LEFT JOIN repos r ON r.repo = x.repo WHERE r.repo IS NULL")]
+        "LEFT JOIN repos r ON r.repo = x.repo WHERE r.repo IS NULL OR ?", (getattr(args, "refresh", False),))]
     log(f"{len(todo)} repositories to snapshot")
     files = " ".join(f'f{j}: object(expression:"HEAD:{path}"){{... on Blob{{oid text}}}}'
                      for j, path in enumerate(POLICY_FILES))
@@ -354,15 +356,21 @@ def cmd_repos(db, args):
         for i, repo in enumerate(batch):
             x = data.get(f"r{i}")
             if not x:
-                db.execute("INSERT OR REPLACE INTO repos(repo, found, fetched_at) VALUES(?,0,?)", (repo, now()))
+                db.execute("INSERT INTO repos(repo, found, fetched_at) VALUES(?,0,?) "
+                           "ON CONFLICT(repo) DO UPDATE SET found=0, fetched_at=excluded.fetched_at", (repo, now()))
                 continue
-            db.execute("INSERT OR REPLACE INTO repos(repo, found, description, language, license, created_at, pushed_at, "
+            # upsert: a refresh must keep the columns other steps own (activity_*, collection_mode)
+            db.execute("INSERT INTO repos(repo, found, description, language, license, created_at, pushed_at, "
                        "archived, stars, forks, open_issues, total_issues, open_prs, total_prs, fetched_at) "
-                       "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+                       "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(repo) DO UPDATE SET " + ", ".join(
+                           f"{c}=excluded.{c}" for c in ("found", "description", "language", "license", "created_at",
+                           "pushed_at", "archived", "stars", "forks", "open_issues", "total_issues", "open_prs",
+                           "total_prs", "fetched_at")), (
                 repo, 1, x["description"], (x["primaryLanguage"] or {}).get("name"),
                 (x["licenseInfo"] or {}).get("spdxId"), x["createdAt"], x["pushedAt"], int(x["isArchived"]),
                 x["stargazerCount"], x["forkCount"], x["openIssues"]["totalCount"], x["allIssues"]["totalCount"],
                 x["openPRs"]["totalCount"], x["allPRs"]["totalCount"], now()))
+            db.execute("DELETE FROM repo_files WHERE repo=?", (repo,))  # a file removed upstream must disappear too
             for j, path in enumerate(POLICY_FILES):
                 blob = x.get(f"f{j}")
                 if blob and blob.get("text") is not None:
@@ -375,13 +383,15 @@ def cmd_repos(db, args):
 PERSON = "login __typename"
 PR_QUERY = """query($o:String!,$n:String!,$c:String){ rateLimit{remaining resetAt} repository(owner:$o,name:$n){
  pullRequests(first:100, after:$c, orderBy:{field:CREATED_AT, direction:DESC}){ pageInfo{hasNextPage endCursor}
-  nodes{ createdAt closedAt mergedAt state author{%s} mergedBy{%s}
+  nodes{ number updatedAt createdAt closedAt mergedAt state author{%s} mergedBy{%s}
    reviews(first:30){ nodes{ author{%s} submittedAt } }
    closeEvt: timelineItems(itemTypes:[CLOSED_EVENT], last:1){ nodes{ ... on ClosedEvent{ actor{%s} } } } } } } }""" % ((PERSON,) * 4)
 ISSUE_QUERY = """query($o:String!,$n:String!,$c:String){ rateLimit{remaining resetAt} repository(owner:$o,name:$n){
  issues(first:100, after:$c, orderBy:{field:CREATED_AT, direction:DESC}){ pageInfo{hasNextPage endCursor}
-  nodes{ createdAt closedAt closed stateReason author{%s}
+  nodes{ number updatedAt createdAt closedAt closed stateReason author{%s}
    closeEvt: timelineItems(itemTypes:[CLOSED_EVENT], last:1){ nodes{ ... on ClosedEvent{ actor{%s} } } } } } } }""" % ((PERSON,) * 2)
+
+PR_UPDATED, ISSUE_UPDATED = (s.replace("field:CREATED_AT", "field:UPDATED_AT") for s in (PR_QUERY, ISSUE_QUERY))
 
 
 def fetch_items(repo, query, key):
@@ -450,7 +460,7 @@ def aggregate(prs, issues, since, until):
 def activity_for(repo):
     prs, t1 = fetch_items(repo, PR_QUERY, "pullRequests")
     issues, t2 = fetch_items(repo, ISSUE_QUERY, "issues")
-    p = RAW / "github_activity" / (repo.replace("/", "__") + ".json.gz")
+    p = activity_path(repo)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_bytes(gzip.compress(json.dumps({"fetched_at": now(), "prs": prs, "issues": issues}).encode()))
     since = SINCE
@@ -475,12 +485,86 @@ def write_activity(db, repo, since, trunc, monthly, part, fetched_at):
                    (since, trunc, fetched_at, repo))
 
 
+def activity_path(repo):
+    return RAW / "github_activity" / (repo.replace("/", "__") + ".json.gz")
+
+
+def fetch_updated(repo, query, key, cutoff):
+    """Items updated since `cutoff` (ISO timestamp), newest first."""
+    owner, name = repo.split("/")
+    items, cursor = [], None
+    for _ in range(MAX_PAGES):
+        d = gh(query, {"o": owner, "n": name, "c": cursor})
+        conn = (((d.get("data") or {}).get("repository") or {}).get(key)) or {"nodes": [], "pageInfo": {}}
+        fresh = [x for x in conn["nodes"] if x["updatedAt"] >= cutoff]
+        items += fresh
+        if len(fresh) < len(conn["nodes"]) or not conn["pageInfo"].get("hasNextPage"):
+            return items
+        cursor = conn["pageInfo"]["endCursor"]
+    log(f"  WARNING {repo}: more than {MAX_PAGES} pages of {key} updated since {cutoff}; older updates are missing")
+    return items
+
+
+def merge_items(old, new):
+    """Newer copies replace older ones: by number, or by (createdAt, author) for items cached before numbers were kept."""
+    key = lambda x: (x["createdAt"], (x.get("author") or {}).get("login"))
+    by_number = {x["number"]: i for i, x in enumerate(old) if "number" in x}
+    by_key = {}
+    for i, x in enumerate(old):
+        if "number" not in x:
+            by_key.setdefault(key(x), i)
+    out = list(old)
+    for x in new:
+        i = by_number.get(x["number"])
+        if i is None:
+            i = by_key.pop(key(x), None)
+        if i is None:
+            out.append(x)
+        else:
+            out[i] = x
+    return out
+
+
+def activity_update(repo):
+    p = activity_path(repo)
+    raw = json.loads(gzip.decompress(p.read_bytes()))
+    started = now()  # the next update starts here, so nothing changed during this fetch is lost
+    prs = fetch_updated(repo, PR_UPDATED, "pullRequests", raw["fetched_at"])
+    issues = fetch_updated(repo, ISSUE_UPDATED, "issues", raw["fetched_at"])
+    raw = {"fetched_at": started, "prs": merge_items(raw["prs"], prs), "issues": merge_items(raw["issues"], issues)}
+    p.write_bytes(gzip.compress(json.dumps(raw).encode()))
+    return repo, raw, len(prs), len(issues)
+
+
+def update_activity(db, args):
+    """Fully collected repos: fetch only the PRs and issues updated since the last fetch and merge them into the raw cache."""
+    rows = {r[0]: r[1:] for r in db.execute("SELECT repo, activity_since, activity_truncated FROM repos "
+                                            "WHERE found = 1 AND activity_fetched_at IS NOT NULL AND collection_mode IS NULL")}
+    missing = [r for r in rows if not activity_path(r).exists()]
+    if missing:
+        sys.exit(f"{len(missing)} repos have no raw cache (e.g. {missing[0]}): run `collect.py fetch-db --raw --force` first.")
+    log(f"{len(rows)} repositories to update activity for")
+    until = datetime.now(timezone.utc).strftime("%Y-%m")
+    with cf.ThreadPoolExecutor(args.workers) as ex:
+        futures = [ex.submit(activity_update, r) for r in rows]
+        for i, fut in enumerate(cf.as_completed(futures), 1):
+            try:
+                repo, raw, n_pr, n_is = fut.result()
+            except Exception as e:
+                log(f"  ERROR: {e}")
+                continue
+            since, trunc = rows[repo]
+            monthly, part = aggregate(raw["prs"], raw["issues"], since, until)
+            write_activity(db, repo, since, trunc, monthly, part, raw["fetched_at"])
+            log(f"  [{i}/{len(rows)}] {repo}: {n_pr} PRs, {n_is} issues updated")
+
+
 def cmd_reaggregate(db, args):
     """Recompute repo_monthly and participation from data/raw/github_activity, without calling the API."""
     rows = db.execute("SELECT repo, activity_since, activity_truncated, activity_fetched_at FROM repos "
                       "WHERE activity_fetched_at IS NOT NULL AND collection_mode IS NULL").fetchall()  # large repos: large step
     for repo, since, trunc, fetched_at in rows:
-        raw = json.loads(gzip.decompress((RAW / "github_activity" / (repo.replace("/", "__") + ".json.gz")).read_bytes()))
+        raw = json.loads(gzip.decompress(activity_path(repo).read_bytes()))
         monthly, part = aggregate(raw["prs"], raw["issues"], since, raw["fetched_at"][:7])
         write_activity(db, repo, since, trunc, monthly, part, fetched_at)
     log(f"{len(rows)} repositories recomputed")
@@ -530,11 +614,12 @@ def aggregate_commits(commits, since, until):
     return monthly, part
 
 
-def commits_for(repo):
+def commits_for(repo, start=None):
+    """start = first month to fetch ("YYYY-MM"); None = the whole history since SINCE."""
     owner, name = repo.split("/")
     commits, cursor, truncated = [], None, False
     for page in range(MAX_PAGES):
-        d = gh(COMMIT_QUERY, {"o": owner, "n": name, "c": cursor, "since": f"{SINCE}-01T00:00:00Z"})
+        d = gh(COMMIT_QUERY, {"o": owner, "n": name, "c": cursor, "since": f"{start or SINCE}-01T00:00:00Z"})
         ref = ((d.get("data") or {}).get("repository") or {}).get("defaultBranchRef") or {}
         hist = (ref.get("target") or {}).get("history") or {"nodes": [], "pageInfo": {}}
         commits += hist["nodes"]
@@ -543,7 +628,7 @@ def commits_for(repo):
         cursor = hist["pageInfo"]["endCursor"]
     else:
         truncated = True
-    since = SINCE
+    since = start or SINCE
     if truncated and commits:  # only valid from the month after the oldest commit that fit
         y, m = map(int, commits[-1]["committedDate"][:7].split("-"))
         since = f"{y + m // 12}-{m % 12 + 1:02d}"
@@ -570,19 +655,43 @@ def cmd_commits(db, args):
                 log(f"  ERROR: {e}")
                 continue
             with db:
-                db.execute("DELETE FROM commit_monthly WHERE repo=?", (repo,))
-                db.execute("DELETE FROM participation WHERE repo=? AND role IN (?,?)", (repo, *COMMIT_ROLES))
-                db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,?)",
-                               [(repo, mo, c["commits"], c["direct_commits"]) for mo, c in monthly.items()])
-                # the same person can show up as a user and as a bot in the same month: one row per key
-                rows = {}
-                for (mo, role, login, bot), k in part.items():
-                    b, total = rows.get((mo, role, login), (0, 0))
-                    rows[(mo, role, login)] = (max(b, bot), total + k)
-                db.executemany("INSERT INTO participation VALUES(?,?,?,?,?,?)",
-                               [(repo, mo, role, login, b, k) for (mo, role, login), (b, k) in rows.items()])
+                write_commits(db, repo, monthly, part)
                 db.execute("INSERT OR REPLACE INTO commit_coverage VALUES(?,?,?,?)", (repo, since, trunc, now()))
             log(f"  [{i}/{len(todo)}] {repo}: {n} commits since {since}{' (truncated)' if trunc else ''}")
+
+
+def write_commits(db, repo, monthly, part, start="0000-00"):
+    """Replaces the commit months >= start (all of them by default)."""
+    db.execute("DELETE FROM commit_monthly WHERE repo=? AND month>=?", (repo, start))
+    db.execute("DELETE FROM participation WHERE repo=? AND role IN (?,?) AND month>=?", (repo, *COMMIT_ROLES, start))
+    db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,?)",
+                   [(repo, mo, c["commits"], c["direct_commits"]) for mo, c in monthly.items()])
+    # the same person can show up as a user and as a bot in the same month: one row per key
+    rows = {}
+    for (mo, role, login, bot), k in part.items():
+        b, total = rows.get((mo, role, login), (0, 0))
+        rows[(mo, role, login)] = (max(b, bot), total + k)
+    db.executemany("INSERT INTO participation VALUES(?,?,?,?,?,?)",
+                   [(repo, mo, role, login, b, k) for (mo, role, login), (b, k) in rows.items()])
+
+
+def update_commits(db, args):
+    """Repos with commits collected: fetch from the first month not stored yet (the month of the last fetch)."""
+    rows = db.execute("SELECT c.repo, substr(c.fetched_at, 1, 7) FROM commit_coverage c JOIN repos r ON r.repo = c.repo "
+                      "WHERE r.found = 1 AND r.collection_mode IS NULL").fetchall()
+    log(f"{len(rows)} repositories to update commits for")
+    with cf.ThreadPoolExecutor(args.workers) as ex:
+        futures = {ex.submit(commits_for, r, start): start for r, start in rows}
+        for i, fut in enumerate(cf.as_completed(futures), 1):
+            try:
+                repo, _, _, monthly, part, n = fut.result()
+            except Exception as e:
+                log(f"  ERROR: {e}")
+                continue
+            with db:
+                write_commits(db, repo, monthly, part, futures[fut])
+                db.execute("UPDATE commit_coverage SET fetched_at=? WHERE repo=?", (now(), repo))
+            log(f"  [{i}/{len(rows)}] {repo}: {n} commits since {futures[fut]}")
 
 
 LARGE_ITEMS = 6000  # above this (total issues + PRs) the repo is "large": counts + sample, not a copy
@@ -605,11 +714,12 @@ def month_range(since, until):
         y, m = nxt
 
 
-def large_for(repo, created):
+def large_for(repo, created, start=None):
+    """start = first month to count ("YYYY-MM"); None = since SINCE (or the repo's creation)."""
     owner, name = repo.split("/")
     until = datetime.now(timezone.utc).strftime("%Y-%m")
     since = max(SINCE, created[:7])
-    months = list(month_range(since, until))
+    months = list(month_range(max(since, start or since), until))
     counts = defaultdict(dict)
     # 1) monthly counts via search: only the total, without downloading items (~30 counts per call)
     jobs = [(mo, f, q.format(r=f"{a}..{b}")) for mo, a, b in months for f, q in COUNT_QUERIES.items()]
@@ -657,6 +767,8 @@ def cmd_large(db, args):
         "WHERE r.found = 1 AND COALESCE(r.collection_mode, '') != 'sampled' AND "
         "(r.activity_truncated = 1 OR c.truncated = 1 OR COALESCE(r.total_issues, 0) + COALESCE(r.total_prs, 0) > ?)",
         (LARGE_ITEMS,)).fetchall()
+    if getattr(args, "only", None) is not None:
+        todo = [(r, c) for r, c in todo if r in args.only]
     log(f"{len(todo)} large repositories")
     with cf.ThreadPoolExecutor(args.workers) as ex:
         futures = [ex.submit(large_for, r, c) for r, c in todo]
@@ -667,20 +779,49 @@ def cmd_large(db, args):
                 log(f"  ERROR: {e}")
                 continue
             with db:
-                # fields only the item-by-item copy provides (closed unmerged, reviews, direct commits) stay NULL
-                db.execute("DELETE FROM repo_monthly WHERE repo=?", (repo,))
-                db.executemany("INSERT INTO repo_monthly(repo, month, issues_opened, issues_closed, prs_opened, prs_merged) "
-                               "VALUES(?,?,?,?,?,?)", [(repo, mo, c.get("issues_opened"), c.get("issues_closed"),
-                                                         c.get("prs_opened"), c.get("prs_merged")) for mo, c in counts.items()])
-                db.execute("DELETE FROM commit_monthly WHERE repo=?", (repo,))
-                db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,NULL)", [(repo, mo, n) for mo, n in commits.items()])
-                db.execute("INSERT OR REPLACE INTO repo_sample VALUES(?,?,?,?,?,?,?,?,?)", (repo, *sample, now()))
+                write_large(db, repo, counts, commits, sample)
                 db.execute("UPDATE repos SET collection_mode='sampled', activity_since=?, activity_truncated=0, "
                            "activity_fetched_at=COALESCE(activity_fetched_at, ?) WHERE repo=?", (since, now(), repo))  # activity skips it
                 db.execute("INSERT OR REPLACE INTO commit_coverage VALUES(?,?,0,?)", (repo, since, now()))
             _, n, h, out, ft, mg, au = sample
             log(f"  [{i}/{len(todo)}] {repo}: {len(counts)} months; sample {n} merged PRs, "
                 f"{out}/{h} from outside, {ft} debuts, {mg} merge")
+
+
+def write_large(db, repo, counts, commits, sample, start="0000-00"):
+    """Replaces the months >= start (all of them by default) and the sample."""
+    # fields only the item-by-item copy provides (closed unmerged, reviews, direct commits) stay NULL
+    db.execute("DELETE FROM repo_monthly WHERE repo=? AND month>=?", (repo, start))
+    db.executemany("INSERT INTO repo_monthly(repo, month, issues_opened, issues_closed, prs_opened, prs_merged) "
+                   "VALUES(?,?,?,?,?,?)", [(repo, mo, c.get("issues_opened"), c.get("issues_closed"),
+                                             c.get("prs_opened"), c.get("prs_merged")) for mo, c in counts.items()])
+    db.execute("DELETE FROM commit_monthly WHERE repo=? AND month>=?", (repo, start))
+    db.executemany("INSERT INTO commit_monthly VALUES(?,?,?,NULL)", [(repo, mo, n) for mo, n in commits.items()])
+    db.execute("INSERT OR REPLACE INTO repo_sample VALUES(?,?,?,?,?,?,?,?,?)", (repo, *sample, now()))
+
+
+def update_large(db, args):
+    """Large repos: count only the months after the last stored one, and take a new sample of people."""
+    rows = db.execute("SELECT r.repo, r.created_at, MAX(m.month) FROM repos r JOIN repo_monthly m ON m.repo = r.repo "
+                      "WHERE r.found = 1 AND r.collection_mode = 'sampled' GROUP BY r.repo").fetchall()
+    log(f"{len(rows)} large repositories to update")
+    with cf.ThreadPoolExecutor(args.workers) as ex:
+        futures = {}
+        for repo, created, last in rows:
+            y, m = map(int, last.split("-"))
+            start = f"{y + m // 12}-{m % 12 + 1:02d}"  # the month after the last stored one
+            futures[ex.submit(large_for, repo, created, start)] = start
+        for i, fut in enumerate(cf.as_completed(futures), 1):
+            try:
+                repo, _, counts, commits, sample = fut.result()
+            except Exception as e:
+                log(f"  ERROR: {e}")
+                continue
+            with db:
+                write_large(db, repo, counts, commits, sample, futures[fut])
+                db.execute("UPDATE repos SET activity_fetched_at=? WHERE repo=?", (now(), repo))
+                db.execute("UPDATE commit_coverage SET fetched_at=? WHERE repo=?", (now(), repo))
+            log(f"  [{i}/{len(rows)}] {repo}: {len(counts)} new months")
 
 
 NEWCOMER_LABELS = '"good first issue","good-first-issue","first-timers-only","beginner","beginner-friendly","starter","low-hanging-fruit","easy","help wanted"'
@@ -690,7 +831,8 @@ def cmd_labels(db, args):
     """Entry point: how many open issues are labeled for people who want to start contributing."""
     db.execute("CREATE TABLE IF NOT EXISTS repo_labels(repo TEXT PRIMARY KEY, newcomer_open INT, fetched_at TEXT)")
     todo = [r[0] for r in db.execute(
-        "SELECT r.repo FROM repos r LEFT JOIN repo_labels l ON l.repo = r.repo WHERE r.found = 1 AND l.repo IS NULL")]
+        "SELECT r.repo FROM repos r LEFT JOIN repo_labels l ON l.repo = r.repo WHERE r.found = 1 AND (l.repo IS NULL OR ?)",
+        (getattr(args, "refresh", False),))]
     for start in range(0, len(todo), 20):
         batch = todo[start:start + 20]
         parts = [f'a{i}: search(type:ISSUE, first:0, query:{json.dumps(f"repo:{r} is:issue is:open label:{NEWCOMER_LABELS}")}){{issueCount}}'
@@ -776,7 +918,7 @@ def cmd_topics(db, args):
         db.execute("ALTER TABLE repo_topics ADD COLUMN languages TEXT")  # {"C++": bytes, ...}
     todo = [r[0] for r in db.execute(
         "SELECT r.repo FROM repos r LEFT JOIN repo_topics t ON t.repo = r.repo "
-        "WHERE r.found = 1 AND (t.repo IS NULL OR t.languages IS NULL)")]
+        "WHERE r.found = 1 AND (t.repo IS NULL OR t.languages IS NULL OR ?)", (getattr(args, "refresh", False),))]
     for start in range(0, len(todo), 50):
         batch = todo[start:start + 50]
         parts = [f'r{i}: repository(owner:{json.dumps(r.split("/")[0])}, name:{json.dumps(r.split("/")[1])})'
@@ -800,7 +942,8 @@ def cmd_security(db, args):
     CREATE TABLE IF NOT EXISTS package_advisories(system TEXT, name TEXT, version TEXT, advisory TEXT,
       PRIMARY KEY(system, name, version, advisory));""")
     repos = [r[0] for r in db.execute("SELECT repo FROM repos WHERE found = 1")]
-    proj = lambda r: cached("depsdev_project", r, lambda: http_json(f"{DD}/v3/projects/{q('github.com/' + r)}"))
+    refresh = getattr(args, "refresh", False)
+    proj = lambda r: cached("depsdev_project", r, lambda: http_json(f"{DD}/v3/projects/{q('github.com/' + r)}"), refresh)
     with cf.ThreadPoolExecutor(8) as ex:
         results = list(zip(repos, ex.map(proj, repos)))
     # shortcut: advisories only for each package's current (default) version, not the history; from the graph step's cache
@@ -819,6 +962,25 @@ def cmd_security(db, args):
         db.executemany("INSERT OR IGNORE INTO package_advisories VALUES(?,?,?,?)", advisories)
     log(f"scorecard: {sum(1 for _, p in results if (p or {}).get('scorecard'))}/{len(repos)} repos; "
         f"advisories: {len(advisories)} in {len({a[1] for a in advisories})} packages")
+
+
+def cmd_update(db, args):
+    """Monthly update (#100): refresh the snapshots, then fetch only what changed since the last collection.
+
+    New repos (never collected) get their full history. The dependency graph (`graph`) is not refreshed here.
+    """
+    args.refresh, args.limit = True, 10 ** 6
+    # community after repos: repos rewrites repo_files, community puts the inherited CONTRIBUTING back
+    for step in (cmd_repos, cmd_community, cmd_labels, cmd_topics):
+        log(f"== {step.__name__.removeprefix('cmd_')}")
+        step(db, args)
+    # large: only repos collected for the first time now. An already collected repo keeps its mode, or a full one
+    # with truncated commits would become "sampled" and lose debuts and per-person acceptance.
+    args.only = {r[0] for r in db.execute("SELECT repo FROM repos WHERE found = 1 AND activity_fetched_at IS NULL")}
+    for step in (update_activity, cmd_activity, update_commits, cmd_commits, update_large, cmd_large, cmd_security):
+        log(f"== {step.__name__.removeprefix('cmd_')}")
+        step(db, args)
+    log("update done: run build.py, then publish a data-YYYY-MM-DD release (docs/data.md)")
 
 
 def cmd_stats(db, args):
@@ -889,12 +1051,22 @@ def cmd_selftest(db, args):
     assert mem.execute("SELECT COUNT(*) FROM repo_files WHERE repo = 'c/d'").fetchone()[0] == 1  # fetched file kept
     store_contributing(mem, "e/f", node)  # inherited
     assert mem.execute("SELECT path FROM repo_files WHERE repo = 'e/f'").fetchone()[0] == "e/.github/CONTRIBUTING.md"
+    # update: an updated item replaces its old copy (by number, or by createdAt+author for caches without numbers)
+    old = [{"createdAt": "2025-01-01T00:00:00Z", "author": {"login": "ana"}, "state": "OPEN"},
+           {"number": 7, "createdAt": "2025-02-01T00:00:00Z", "author": {"login": "rui"}, "state": "OPEN"},
+           {"createdAt": "2025-03-01T00:00:00Z", "author": None, "state": "OPEN"}]
+    new = [{"number": 3, "createdAt": "2025-01-01T00:00:00Z", "author": {"login": "ana"}, "state": "MERGED"},
+           {"number": 7, "createdAt": "2025-02-01T00:00:00Z", "author": {"login": "rui"}, "state": "CLOSED"},
+           {"number": 9, "createdAt": "2025-04-01T00:00:00Z", "author": {"login": "ana"}, "state": "OPEN"}]
+    merged = merge_items(old, new)
+    assert [x["state"] for x in merged] == ["MERGED", "CLOSED", "OPEN", "OPEN"] and merged[2]["author"] is None, merged
+    assert merge_items(merged, new) == merged  # idempotent
     log("selftest ok")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "community", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db"])
+    ap.add_argument("cmd", choices=["graph", "repos", "activity", "commits", "labels", "community", "topics", "security", "apps", "reaggregate", "large", "stats", "selftest", "fetch-db", "update"])
     ap.add_argument("--limit", type=int, default=300, help="activity: how many repos (those with the most dependents first)")
     ap.add_argument("--workers", type=int, default=4, help="activity: repos in parallel")
     ap.add_argument("--system", default="npm", choices=sorted(SEEDS_BY_SYSTEM), help="graph/security: deps.dev ecosystem")
