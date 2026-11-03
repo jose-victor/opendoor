@@ -26,6 +26,8 @@ MIN_PRS_FOR_OPENNESS = 5
 MIN_ACCEPTANCE = 0.2
 MIN_NEW_PEOPLE = 5  # new people who opened a PR in 12 months, for the per-person rate to count  # flask accepted 4% of outside PRs in 12 months; tornado, 30%
 GUARDIAN_DEPENDENTS = 100_000
+BOTS = ("github-actions", "dependabot", "dependabot-preview", "renovate", "greenkeeper", "pre-commit-ci", "mergify",
+        "allcontributors", "web-flow", "copilot", "imgbot", "snyk-bot")  # bot logins without a Bot type
 YEAR_FIELDS = ["prs_opened", "prs_merged", "issues_opened", "issues_closed", "commits", "direct_commits", "people"]
 
 
@@ -190,7 +192,7 @@ def main():
     # for large ones it comes from the PR sample (no direct commits). GitHub's authorAssociation is misleading
     # (a member with private org membership shows up as CONTRIBUTOR), so it's only used without participation.
     cut12 = months_ago(12, last)
-    bots = "'github-actions','dependabot','dependabot-preview','renovate','greenkeeper','pre-commit-ci','mergify','allcontributors','web-flow','copilot','imgbot','snyk-bot'"
+    bots = ",".join(f"'{b}'" for b in BOTS)
     human = f"is_bot = 0 AND login NOT LIKE '%bot' AND login NOT IN ({bots})"  # bots with human-like names (antfubot, prombot) don't set is_bot
     # maintainer: merged, or made 3+ direct commits in 24 months (a third-party commit applied by hand keeps the author's name)
     maintainers_sql = (f"SELECT repo, login FROM participation WHERE {human} AND month >= ? "
@@ -278,7 +280,7 @@ def main():
     for repo, login in db.execute(maintainers_sql, (cut24,)):
         maintainer_sets[repo].add(login)
     raw = Path(DB).parent / "raw" / "github_activity"
-    known_bots = {b.strip("'") for b in bots.split(",")}
+    known_bots = set(BOTS)
     reviews = {}
     for path in raw.glob("*.json.gz"):
         repo = path.name[:-len(".json.gz")].replace("__", "/", 1).lower()

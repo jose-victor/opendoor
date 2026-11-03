@@ -19,6 +19,7 @@ python pipeline/guides.py selftest      # self-tests without calling the model (
 python pipeline/collect.py community    # CONTRIBUTING (incl. org-inherited), code of conduct, templates, funding -> repo_community
 python pipeline/collect.py stats        # database summary
 python pipeline/collect.py people --limit 5  # assignable users per repo (repo_assignable, repo_people); 1 GraphQL point per 100 users
+python pipeline/signals.py selftest     # signal self-tests; `run` / `backtest` compute repo_signals offline from data/raw/
 python pipeline/collect.py graph --system pypi  # graph and security steps take npm | pypi | go
 python pipeline/llm.py "prompt"         # the model through the pipeline (reads the root .env)
 python pipeline/opportunities.py        # the model suggests opportunities per project (cached in repo_opportunities)

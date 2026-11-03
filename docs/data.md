@@ -72,6 +72,23 @@ Roles in `participation.role`:
 
 Special logins: `ghost` = deleted account; `~Name` = commit author without a GitHub account.
 
+## Signals (`pipeline/signals.py`)
+`repo_signals(repo, signal, as_of, value, n)`: Tier 1 signals (design in `docs/deep-analysis.md`, section 5), computed offline from the activity raw cache for fully collected repos (`collection_mode` NULL, `activity_truncated = 0`). `as_of` (`YYYY-MM`) is the last closed month, as in `build.py` and `repo_monthly`: windows end at the first day of the **next** month, exclusive, and nothing from that day on is read. `run` writes every signal at the last closed month; `backtest` writes every signal 12 months earlier (T) plus `conversion` at T + 12. A repo whose raw cache was fetched before the window end is skipped (logged as stale). `n` is the sample behind the value; `value` is NULL when `n` is below the minimum.
+
+Insiders at the window end: merged a PR or made 3+ direct commits in the 24 months before it (the `build.py` rule). Behavioral only, in `run` and `backtest` alike; variants that also use `repo_assignable` come later, under separate signal names. Outside PR = author is neither an insider nor a bot (`Bot` type, login ending in `bot` in any case, or the known list in `build.py`).
+
+| `signal` | `value` | `n` (minimum) |
+|---|---|---|
+| `conversion` | of outsiders whose first merged PR fell in the 12 months that end 12 months before the window end (outsider = not an insider at the start of those 12 months, so a debut who becomes a maintainer later still counts), the share with another merged PR or a review on someone else's PR within 12 months of it | cohort (5) |
+| `first_insider_response_days` | median days from an outside PR's creation (12 months) to the first insider review, merge or close (not a bot); unanswered PRs count the time waited until they were closed, or until the window end if still open | outside PRs (10) |
+| `no_insider_response_share` | share of those PRs with no insider review, merge or close before the window end (closed without one still counts) | outside PRs (10) |
+| `outsider_insider_gap` | insider acceptance minus outsider acceptance, PRs created in 12 months and decided before the window end; self-merged insider PRs left out | smaller side (10) |
+| `reviewer_diversity` | distinct insiders who reviewed outside PRs of the 12 months (reviews only) | outside PRs (10) |
+| `active_maintainers` | insiders not on a break: acted in the last 90 days, or the gap since their last action is within the 90th percentile of their own gaps (5+ gaps). Actions: merges, reviews, PR and issue closes, and `direct_committer` months from `participation` (dated the 15th); at most one action per day | insiders (1) |
+| `demand_per_maintainer` | (new issues not by bots + new outside PRs) per month over 12 months, divided by `active_maintainers` | active maintainers (1) |
+
+Retention backtest: pair the signals at T with `conversion` at T + 12 (the `run` row), whose cohort debuted in the 12 months before T and is followed up after it.
+
 ## Large repositories (`repos.collection_mode = 'sampled'`)
 Above 6,000 issues + PRs we do not copy item by item (`collection_mode` is NULL for fully collected repos):
 - `repo_monthly`: only `issues_opened`, `issues_closed`, `prs_opened` and `prs_merged`, which are **complete counts since 2018** from GitHub search. The other fields are NULL.
