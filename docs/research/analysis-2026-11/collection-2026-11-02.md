@@ -101,7 +101,7 @@ vs 0.91 behavioral on the sample).
   seek-oss/capsize 0.57 -> 0.08 (Kubernetes repos merge through bots, so humans never show as mergers).
 - Sampled repos affected: 43, mean drop ~0.10 on the sample share.
 - **Mastodon** (sampled, openness `null` because 207/208 of the authorAssociation sample say "outside"): 20 assignable,
-  0 capped, 9 public members. 1 assignable behavioral outsider, **mjankowski, 257 merged PRs** in 12 months (never
+  0 capped, 9 public members. 1 assignable behavioral outsider, with **257 merged PRs** in 12 months (never
   merges). Behavioral outsider share on the sample: 388/1,530 = 0.25 -> 131/1,530 = **0.09** if assignable = insider.
 
 ## Other steps

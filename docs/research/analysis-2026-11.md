@@ -480,7 +480,7 @@ All 14 newly ready projects flipped on `guide` alone. 7 profiles moved to `open_
 
 Two of the 57 ready badges are false positives of this kind; v1 rates both `bad` for beginners. With assignable as insider, openness would drop to 0.14 and 0.04 (collection report).
 
-**Mastodon** (sampled, so no signals): 20 assignable logins. One of them, `mjankowski`, has 257 merged PRs in 12 months and never merges. The behavioral outsider share on the sample drops from 0.25 to 0.09 if assignable logins count as insiders.
+**Mastodon** (sampled, so no signals): 20 assignable logins. One of them has 257 merged PRs in 12 months and never merges. The behavioral outsider share on the sample drops from 0.25 to 0.09 if assignable logins count as insiders.
 
 ### 7.4 Recommendation: should the insider rule include assignableUsers?
 
