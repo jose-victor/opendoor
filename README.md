@@ -26,13 +26,13 @@ OpenDoor maps the ecosystem, measures the health and openness of each project an
 
 ## Data and AI
 
-On October 31, 2026, the database had:
+On November 2, 2026 (data up to October 2026), the database had:
 - **973 repositories**: those of 1,351 critical npm (950), PyPI (225) and Go (176) packages, plus mainstream and AI apps;
-- **958 projects on the site**, of which 346 accept contributions and **30 are ready for beginners**;
-- **39,100 monthly rows** and **523,716 participation records**;
-- **1,190 files** of contribution guides and AI policies.
+- **957 projects on the site**, of which 387 accept contributions and **43 are ready for beginners**;
+- **50,259 monthly rows** and **672,530 participation records**;
+- **1,188 files** of contribution guides and AI policies.
 
-The 104 large repos have complete monthly counts plus a sample of PRs. Every number can be recomputed from the raw cache.
+The 113 large repos have complete monthly counts plus a sample of PRs. Every number can be recomputed from the raw cache.
 
 The central finding is that activity is not openness: a project can receive many PRs and still keep few outside contributors. That is why OpenDoor measures PRs merged from non-maintainers, active maintainers, beginner issues, commits, reviews and the security Scorecard.
 

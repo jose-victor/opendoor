@@ -6,18 +6,27 @@ The database is not in git. Each collection is published as a GitHub Release tag
 - `raw.tar.gz`: the raw API cache (`data/raw/`), so the aggregations can be recomputed (`collect.py reaggregate`) and `build.py` can compute review times.
 
 ```bash
-python pipeline/collect.py fetch-db --raw    # latest data-* release -> data/ecosystem.db and data/raw/
+python pipeline/collect.py fetch-db --raw    # the release named in data/RELEASE -> data/ecosystem.db and data/raw/
 ```
 `fetch-db` refuses to overwrite an existing database unless you pass `--force`, and only replaces it after an integrity check.
 
-After a new collection, a maintainer publishes it:
+### Monthly update
+Once a month, after the month closes, a maintainer updates and publishes the data:
 ```bash
-python pipeline/build.py                      # regenerate web/public/data/ and commit it in a PR
-gzip -9 -k data/ecosystem.db && tar czf data/raw.tar.gz -C data raw
+python pipeline/collect.py fetch-db --raw     # start from the current release (skip if data/ is up to date)
+python pipeline/collect.py update             # refresh snapshots; fetch only what changed since the last run (1 to 2 h)
+python pipeline/build.py                      # regenerate web/public/data/; compare with the published numbers
+sqlite3 data/ecosystem.db VACUUM
+cp data/ecosystem.db data/publish.db && sqlite3 data/publish.db "DROP TABLE IF EXISTS repo_assignable; VACUUM"  # who has access stays local
+gzip -9c data/publish.db > data/ecosystem.db.gz && tar czf data/raw.tar.gz -C data raw
 gh release create data-YYYY-MM-DD data/ecosystem.db.gz data/raw.tar.gz --latest=false \
   --title "Data: collection of YYYY-MM-DD" --notes "What changed in this collection."
+echo data-YYYY-MM-DD > data/RELEASE           # commit it together with web/public/data/ in one PR
 ```
-CI downloads the latest release and checks that `build.py` reproduces the committed JSON, so publish the release and merge the JSON PR together.
+- `update` refreshes the snapshots (`repos`, then `community`, `people`, `labels`, `topics`) and fetches only PRs, issues and commits changed since the last run. Repos never collected get their full history. A repo already collected keeps its collection mode (full or sampled).
+- It does not refresh the dependency graph (`graph`); run that now and then, followed by `repos` and `update`.
+- CI downloads the release named in `data/RELEASE` and checks that `build.py` reproduces the committed JSON. Publishing a new release does not affect `main` until the PR that bumps `data/RELEASE` merges.
+- Before publishing, compare the build with the published data (profiles, beginner badges). A large jump usually means a collection problem, not a real change.
 
 ## Conventions
 A repository is always identified as `owner/name` in lowercase. Months use the `YYYY-MM` format, closed months only, starting at `2018-01`.
@@ -36,7 +45,8 @@ A repository is always identified as `owner/name` in lowercase. Months use the `
 | `repos` | description, language, license, creation, last push, archived, stars, forks, open and total issues/PRs; `found=0` = no longer exists |
 | `repo_files(repo, path, oid, text)` | CONTRIBUTING, AGENTS, CLAUDE, AI_POLICY, copilot-instructions, README. `oid` changes when the file changes |
 | `ai_policy(repo, classification, evidence, source_file, model, classified_at)` | AI policy classification from the texts in `repo_files`; `evidence` is literal, `source_file` and `evidence` are empty when no rule is confirmed, and `model` is null when the regex filter makes the model unnecessary |
-| `repo_labels(repo, newcomer_open)` | open issues labeled "good first issue", "help wanted" and similar |
+| `repo_labels(repo, newcomer_open)` | open issues labeled "good first issue", "help wanted" and similar. After changing `NEWCOMER_LABELS`, take effect with `DELETE FROM repo_labels;` then `collect.py labels` |
+| `repo_community(repo, contributing_url, contributing_inherited, code_of_conduct, issue_templates, pr_templates, security_policy_url, discussions, funding, fetched_at)` | community health from GitHub (`collect.py community`). `contributing_url` is whatever file GitHub resolves (any supported name or extension, in the repo, `docs/`, `.github/`, or the owner's `.github` repo). `contributing_inherited = 1` when it comes from the owner's `.github` repo. When the `repos` step found no CONTRIBUTING for the repo, `community` stores GitHub's body in `repo_files` (`oid` NULL) with the path from the URL: `<path>` for the repo's own file (e.g. `docs/contributing.rst`), `<owner>/.github/<path>` for an inherited one. Readers match `LIKE '%CONTRIBUTING%'` (case-insensitive); the `guide` check also passes when `contributing_url` is set. `issue_templates`, `pr_templates`, `discussions` are 0/1; `funding` is a JSON list of `{platform, url}` |
 | `project_guides(repo, model, guide)` | "where to start" guide for each project (JSON of `Guide`; `steps_by_way` keys are `Way` ids), generated by `pipeline/guides.py`; each repo is asked once |
 | `repo_opportunities(repo, model, suggestions)` | model suggestions (JSON list of `Opportunity`, with `way` as a `Way` id; the stored `source` is the old `"gemma"`, and `build.py` publishes it as `"gemini"`), generated by `pipeline/opportunities.py`; each repo is asked once |
 | `repo_topics(repo, topics, languages)` | GitHub topics (JSON list) and languages with bytes (`{"C++": 639…}`); `topics` step, used in skill detection |
@@ -51,6 +61,8 @@ A repository is always identified as `owner/name` in lowercase. Months use the `
 | `repo_monthly(repo, month, ...)` | issues opened/closed (completed or "not planned"), PRs opened/merged/closed without merge, reviews |
 | `commit_monthly(repo, month, commits, direct_commits)` | commits on the main branch; `direct_commits` = no associated PR (landed without review) |
 | `participation(repo, month, role, login, is_bot, n)` | **who played each role**, how many times in the month |
+| `repo_assignable(repo, login)` | who GitHub lets be assigned on the repo (`assignableUsers`: write access plus some org members with read access; not every org member, e.g. microsoft/vscode has 85 assignable vs 1,000+ public members); sees private org members that `authorAssociation` misses. Up to 2,000 logins per repo. **Never published**: the release copy drops this table (see Monthly update), because it reveals private org membership |
+| `repo_people(repo, assignable, capped, public_members, fetched_at)` | one row per repo: logins count, `capped` = hit the 20-page cap, `public_members` = public org members count (REST, max 1,000; `NULL` when the owner is a user) |
 
 Roles in `participation.role`:
 - `pr_author`, `pr_reviewer` (1 per PR, not counting the author), `pr_merger`, `pr_closer` (closed without merge);
