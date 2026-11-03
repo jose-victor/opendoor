@@ -24,6 +24,7 @@ python pipeline/llm.py "prompt"         # the model through the pipeline (reads 
 python pipeline/opportunities.py        # the model suggests opportunities per project (cached in repo_opportunities)
 python pipeline/guides.py --limit 10    # the model writes each project's guide (cached in project_guides); run after classify_ai_policy
 python pipeline/classify_ai_policy.py   # the model classifies the AI policy (cached in ai_policy; failed repos are retried next run)
+python pipeline/sources.py selftest       # then `lists` (goodfirstissue.dev, Up For Grabs, GSoC) and `ecosystems` (ecosyste.ms); no GitHub token needed
 sqlite3 data/ecosystem.db      # queries; schema in docs/data.md
 cd web && npm run lint && npm test && npm run build # the site; CI runs the same (.github/workflows/ci.yml)
 ```
