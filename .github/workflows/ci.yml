@@ -16,13 +16,15 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11" # minimum supported version (README)
-      - run: python pipeline/collect.py fetch-db --raw # database + raw cache from the latest data-* release
+      - run: python pipeline/collect.py fetch-db --raw # database + raw cache from the release in data/RELEASE
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - run: python pipeline/collect.py selftest
       - run: python pipeline/skills.py
       - run: python pipeline/guides.py selftest
       - run: python pipeline/opportunities.py selftest
+      - run: python pipeline/signals.py selftest
+      - run: python pipeline/sources.py selftest
       # Profile and beginner-badge self-tests, then a full build against the published database.
       - run: python pipeline/build.py
       # The build is reproducible (windows end at the collection date), so the committed JSON must be its output.
