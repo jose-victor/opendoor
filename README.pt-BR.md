@@ -26,13 +26,13 @@ O OpenDoor mapeia o ecossistema, mede a saúde e a abertura de cada projeto e ca
 
 ## Dados e IA
 
-Em 31/10/2026, o banco tinha:
+Em 02/11/2026 (dados até outubro de 2026), o banco tinha:
 - **973 repositórios**: os de 1.351 pacotes críticos de npm (950), PyPI (225) e Go (176), mais apps mainstream e de IA;
-- **958 projetos no site**, dos quais 346 aceitam contribuição e **30 estão prontos para iniciante**;
-- **39.100 linhas mensais** e **523.716 registros de participação**;
-- **1.190 arquivos** de contribuição e de política de IA.
+- **957 projetos no site**, dos quais 387 aceitam contribuição e **43 estão prontos para iniciante**;
+- **50.259 linhas mensais** e **672.530 registros de participação**;
+- **1.188 arquivos** de contribuição e de política de IA.
 
-Os 104 repos grandes têm contagens mensais completas mais uma amostra de PRs. Todos os números são recalculáveis a partir do cache bruto.
+Os 113 repos grandes têm contagens mensais completas mais uma amostra de PRs. Todos os números são recalculáveis a partir do cache bruto.
 
 O achado central é que atividade não é sinônimo de abertura: um projeto pode receber muitos PRs e continuar mantendo poucas pessoas externas. Por isso, o OpenDoor mede PRs aceitos de quem não é mantenedor, mantenedores ativos, issues para iniciantes, commits, revisões e Scorecard de segurança.
 
@@ -82,6 +82,7 @@ cd web
 cp ../.env.example .env.local   # GEMINI_API_KEY só é necessária para /api/explain
 npm install
 npm run dev                     # http://localhost:3000
+npm test                        # testes do match e do guia (node:test)
 ```
 
 ## Estrutura

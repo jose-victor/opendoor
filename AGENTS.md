@@ -11,7 +11,8 @@ OpenDoor: a platform that recommends entry points into open source projects. A c
 
 ## Commands
 ```bash
-python pipeline/collect.py fetch-db --raw  # database + raw cache from the latest data-* release (not in git)
+python pipeline/collect.py fetch-db --raw  # database + raw cache from the release in data/RELEASE (not in git)
+python pipeline/collect.py update       # monthly incremental update; routine in docs/data.md
 python pipeline/collect.py selftest     # run after touching the aggregation
 python pipeline/build.py                # profile and badge self-tests, then generates web/public/data/
 python pipeline/guides.py selftest      # self-tests without calling the model (same for opportunities.py)
@@ -22,7 +23,7 @@ python pipeline/opportunities.py        # the model suggests opportunities per p
 python pipeline/guides.py --limit 10    # the model writes each project's guide (cached in project_guides); run after classify_ai_policy
 python pipeline/classify_ai_policy.py   # the model classifies the AI policy (cached in ai_policy; failed repos are retried next run)
 sqlite3 data/ecosystem.db      # queries; schema in docs/data.md
-cd web && npm run lint && npm run build # the site; CI runs the same (.github/workflows/ci.yml)
+cd web && npm run lint && npm test && npm run build # the site; CI runs the same (.github/workflows/ci.yml)
 ```
 
 ## Collector rules (`pipeline/collect.py`)

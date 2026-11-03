@@ -25,7 +25,7 @@ As instruções de instalação estão no [README](README.pt-BR.md#começando).
 - PRs pequenos e focados. Escreva `Closes #12` na descrição.
 - Antes de abrir o PR:
   - `python pipeline/collect.py selftest` se você mexeu no pipeline;
-  - `npm run lint` e `npm run build` em `web/` se você mexeu no site.
+  - `npm run lint`, `npm test` e `npm run build` em `web/` se você mexeu no site.
 - **Atualize a documentação no mesmo PR.** Mudou o esquema do banco? Atualize `docs/data.md`. Mudou o JSON ou o contrato da API (`web/lib/types.ts`)? Atualize `docs/architecture.md`.
 - Um mantenedor revisa e faz o merge. Espere perguntas: fazem parte da revisão, não são recusa.
 
