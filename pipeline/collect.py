@@ -153,12 +153,21 @@ DATA_REPO = "jose-victor/opendoor"  # releases tagged data-YYYY-MM-DD hold ecosy
 RELEASE_FILE = DATA / "RELEASE"  # versioned: the release that web/public/data/ was built from
 
 
-def download(url, dest):
+def download(url, dest, tries=5):
     token = os.environ.get("GITHUB_TOKEN")
     headers = {"User-Agent": "hacktoberfest-ecosystem", **({"Authorization": f"Bearer {token}"} if token else {})}
-    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=300) as r, open(dest, "wb") as f:
-        while chunk := r.read(1 << 20):
-            f.write(chunk)
+    for i in range(tries):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=300) as r, open(dest, "wb") as f:
+                while chunk := r.read(1 << 20):
+                    f.write(chunk)
+            return
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            # GitHub's asset download answers 5xx now and then; a 4xx won't change on retry
+            if i == tries - 1 or (isinstance(e, urllib.error.HTTPError) and e.code < 500):
+                raise
+            log(f"  download failed ({e}), retrying in {5 * 2 ** i}s")
+            time.sleep(5 * 2 ** i)
 
 
 def cmd_fetch_db(args):
