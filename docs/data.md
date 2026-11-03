@@ -52,6 +52,8 @@ A repository is always identified as `owner/name` in lowercase. Months use the `
 | `repo_topics(repo, topics, languages)` | GitHub topics (JSON list) and languages with bytes (`{"C++": 639…}`); `topics` step, used in skill detection |
 | `repo_scorecard(repo, overall, date)` / `scorecard_checks(repo, check_name, score, reason)` | OpenSSF Scorecard (0–10) and each check (Maintained, Code-Review, Branch-Protection...) |
 | `package_advisories(system, name, version, advisory)` | vulnerability advisories for the current version |
+| `external_lists(source, repo, label, extra, fetched_at)` | repos on newcomer-oriented lists, from `pipeline/sources.py lists`. `source`: `goodfirstissue_dev`, `up_for_grabs`, `gsoc_2026`. `repo` is lowercase `owner/name`; `label` is the project's own newcomer label (Up For Grabs only); `extra` is JSON (GSoC: `ideas_link`). Organizations that list only an org page are skipped |
+| `repo_ecosystems(repo, funding, files, past_year, fetched_at)` | ecosyste.ms data for repos with `found = 1`, from `pipeline/sources.py ecosystems`. `funding` and `files` (JSON) come from `repos.ecosyste.ms` `metadata`; `past_year` (JSON) keeps the `past_year_*` fields of `issues.ecosyste.ms` (author associations, bot PRs, time to close...). Fields that mention e-mails are dropped. All NULL = unknown to ecosyste.ms. Raw responses in `data/raw/ecosystems/` |
 
 ## Monthly activity
 | Table | Contents |
